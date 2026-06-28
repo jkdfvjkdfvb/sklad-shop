@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Инструкция — СкладПромо Админка</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #1a56db;
+      --border: #e5e7eb;
+      --text: #1a1a2e;
+      --muted: #6b7280;
+      --bg: #f6f8fc;
+      --card: #fff;
+      --radius: 10px;
+      --success: #16a34a;
+      --warn: #d97706;
+    }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: var(--text); background: var(--bg); line-height: 1.6; }
+
+    .page-header {
+      background: #fff; border-bottom: 1px solid var(--border);
+      padding: 0 24px; height: 60px; display: flex; align-items: center;
+      justify-content: space-between; position: sticky; top: 0; z-index: 10;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .page-header-title { font-weight: 700; font-size: 1.1rem; color: var(--primary); }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 8px; border: 1.5px solid var(--border);
+      text-decoration: none; color: var(--text); font-size: .88rem; font-weight: 500;
+      background: #fff; transition: border-color .2s;
+    }
+    .back-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 36px 24px 60px; }
+
+    /* TOC */
+    .toc {
+      background: #fff; border-radius: var(--radius); border: 1px solid var(--border);
+      padding: 20px 24px; margin-bottom: 36px;
+    }
+    .toc h2 { font-size: .95rem; color: var(--muted); font-weight: 600; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .05em; }
+    .toc ol { padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+    .toc a { color: var(--primary); text-decoration: none; font-size: .92rem; }
+    .toc a:hover { text-decoration: underline; }
+
+    /* Sections */
+    .section { margin-bottom: 40px; scroll-margin-top: 80px; }
+    .section-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--border);
+    }
+    .section-icon { font-size: 1.6rem; }
+    .section-header h2 { font-size: 1.25rem; font-weight: 700; }
+
+    .card {
+      background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+      padding: 20px 22px; margin-bottom: 14px;
+    }
+    .card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 10px; }
+
+    p { margin-bottom: 10px; font-size: .93rem; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; font-size: .93rem; }
+    li { margin-bottom: 4px; }
+    a { color: var(--primary); }
+
+    .step-list { list-style: none; padding: 0; counter-reset: step; display: flex; flex-direction: column; gap: 12px; }
+    .step-list li {
+      counter-increment: step; display: flex; gap: 14px; align-items: flex-start;
+      background: #f9fafb; border-radius: 8px; padding: 14px 16px;
+    }
+    .step-list li::before {
+      content: counter(step); flex-shrink: 0;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--primary); color: #fff;
+      font-size: .8rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step-content { flex: 1; }
+    .step-content b { display: block; font-size: .9rem; margin-bottom: 3px; }
+    .step-content span { font-size: .85rem; color: var(--muted); }
+
+    .badge {
+      display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: .78rem; font-weight: 700;
+    }
+    .badge-new  { background: #fef3c7; color: #92400e; }
+    .badge-proc { background: #dbeafe; color: #1e40af; }
+    .badge-done { background: #d1fae5; color: #065f46; }
+
+    .note {
+      border-left: 4px solid var(--primary); background: #eff6ff;
+      padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: .88rem; margin: 12px 0;
+    }
+    .warn {
+      border-left: 4px solid var(--warn); background: #fffbeb;
+      padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: .88rem; margin: 12px 0;
+    }
+
+    code {
+      background: #f3f4f6; border-radius: 4px; padding: 2px 6px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: .85em;
+    }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    @media (max-width: 640px) {
+      .two-col { grid-template-columns: 1fr; }
+      .container { padding: 20px 14px 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <span class="page-header-title">📖 Инструкция администратора</span>
+  <a href="admin.html" class="back-btn">← Вернуться в админку</a>
+</header>
+
+<div class="container">
+
+  <!-- TOC -->
+  <div class="toc">
+    <h2>Содержание</h2>
+    <ol>
+      <li><a href="#login">Вход в административную панель</a></li>
+      <li><a href="#orders">Работа с заказами</a></li>
+      <li><a href="#products">Управление товарами</a></li>
+      <li><a href="#contacts">Контакты магазина</a></li>
+      <li><a href="#email">Настройка Email-уведомлений</a></li>
+      <li><a href="#telegram">Настройка Telegram-уведомлений</a></li>
+      <li><a href="#password">Смена пароля</a></li>
+    </ol>
+  </div>
+
+  <!-- 1. LOGIN -->
+  <div class="section" id="login">
+    <div class="section-header">
+      <span class="section-icon">🔐</span>
+      <h2>Вход в административную панель</h2>
+    </div>
+    <div class="card">
+      <p>Административная панель доступна по адресу <code>/admin.html</code> на сайте магазина.</p>
+      <p>Для входа введите пароль. По умолчанию пароль — <code>admin123</code>. Рекомендуется сменить его сразу после первого входа (см. раздел <a href="#password">Смена пароля</a>).</p>
+      <p>Сессия сохраняется в текущей вкладке браузера. После закрытия вкладки потребуется войти снова.</p>
+    </div>
+  </div>
+
+  <!-- 2. ORDERS -->
+  <div class="section" id="orders">
+    <div class="section-header">
+      <span class="section-icon">📦</span>
+      <h2>Работа с заказами</h2>
+    </div>
+    <div class="card">
+      <h3>Список заказов</h3>
+      <p>Вкладка <b>Заказы</b> открывается по умолчанию при входе. Число в красном кружке рядом с вкладкой показывает количество новых необработанных заказов.</p>
+      <p>В таблице отображаются: номер заказа, дата, имя покупателя, телефон, список товаров и итоговая сумма.</p>
+    </div>
+    <div class="card">
+      <h3>Просмотр деталей заказа</h3>
+      <p>Нажмите на любую строку таблицы — откроется окно с полной информацией: данные покупателя, комментарий, список товаров с количеством и ценами.</p>
+    </div>
+    <div class="card">
+      <h3>Статусы заказов</h3>
+      <p>Для каждого заказа можно выбрать статус в выпадающем списке прямо в таблице:</p>
+      <ul>
+        <li><span class="badge badge-new">Новый</span> — только что поступил, ещё не обработан</li>
+        <li><span class="badge badge-proc">В работе</span> — заказ принят в обработку</li>
+        <li><span class="badge badge-done">Выполнен</span> — заказ выполнен и передан покупателю</li>
+      </ul>
+      <p>Статус сохраняется автоматически при изменении.</p>
+    </div>
+  </div>
+
+  <!-- 3. PRODUCTS -->
+  <div class="section" id="products">
+    <div class="section-header">
+      <span class="section-icon">🏷️</span>
+      <h2>Управление товарами</h2>
+    </div>
+    <div class="card">
+      <h3>Поиск товара</h3>
+      <p>Используйте строку поиска над таблицей — поиск работает по наименованию и артикулу.</p>
+    </div>
+    <div class="card">
+      <h3>Изменение цены и количества</h3>
+      <p>Поля <b>Кол-во</b> и <b>Цена</b> редактируются прямо в таблице. После изменения нажмите <b>Сохранить</b> в той же строке.</p>
+      <div class="note">Товары с количеством 0 автоматически скрываются из витрины для покупателей.</div>
+    </div>
+    <div class="card">
+      <h3>Показывать / скрыть товар</h3>
+      <p>Переключатель в колонке <b>Показывать</b> управляет видимостью товара на витрине. Скрытые товары не удаляются — их можно показать обратно в любой момент.</p>
+    </div>
+    <div class="card">
+      <h3>Замена фотографии</h3>
+      <ol class="step-list">
+        <li><div class="step-content"><b>Нажмите «📷 Фото»</b><span>Кнопка находится в колонке «Медиа» напротив нужного товара</span></div></li>
+        <li><div class="step-content"><b>Выберите файл</b><span>Поддерживаются форматы JPG, PNG, WebP. Рекомендуемый размер: не более 5 МБ</span></div></li>
+        <li><div class="step-content"><b>Дождитесь загрузки</b><span>Фото обновится автоматически — нажимать «Сохранить» не нужно</span></div></li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3>Добавление видео</h3>
+      <ol class="step-list">
+        <li><div class="step-content"><b>Нажмите «🎬 Видео»</b><span>В той же колонке «Медиа»</span></div></li>
+        <li><div class="step-content"><b>Выберите видеофайл</b><span>Поддерживаются MP4, WebM. Рекомендуется до 50 МБ</span></div></li>
+        <li><div class="step-content"><b>Готово</b><span>На карточке товара в витрине появится кнопка «▶ Видео»</span></div></li>
+      </ol>
+      <div class="warn">На Railway файлы, загруженные через админку, могут сброситься при следующем деплое, если не подключён Volume. Фотографии из исходного каталога хранятся в репозитории и не теряются.</div>
+    </div>
+  </div>
+
+  <!-- 4. CONTACTS -->
+  <div class="section" id="contacts">
+    <div class="section-header">
+      <span class="section-icon">📇</span>
+      <h2>Контакты магазина</h2>
+    </div>
+    <div class="card">
+      <p>Вкладка <b>Контакты</b> содержит публичные данные, которые отображаются в шапке и подвале витрины.</p>
+      <ul>
+        <li><b>Телефон</b> — отображается в шапке, кликабельная ссылка <code>tel:</code></li>
+        <li><b>Email</b> — отображается в блоке «Как заказать»</li>
+        <li><b>MAX, Telegram, ВКонтакте</b> — ссылки на мессенджеры и соцсети. Вставьте полный URL (например, <code>https://t.me/username</code>)</li>
+      </ul>
+      <p>После заполнения нажмите <b>Сохранить</b>. Изменения применяются мгновенно.</p>
+    </div>
+  </div>
+
+  <!-- 5. EMAIL -->
+  <div class="section" id="email">
+    <div class="section-header">
+      <span class="section-icon">📧</span>
+      <h2>Настройка Email-уведомлений</h2>
+    </div>
+    <div class="card">
+      <p>Настройки находятся во вкладке <b>Уведомления → Email (Gmail SMTP)</b>.</p>
+      <p>При оформлении каждого заказа на указанный адрес будет приходить письмо с полной информацией о заказе.</p>
+    </div>
+    <div class="card">
+      <h3>Пошаговая настройка для Gmail</h3>
+      <ol class="step-list">
+        <li>
+          <div class="step-content">
+            <b>Включите двухфакторную аутентификацию</b>
+            <span>Перейдите в <a href="https://myaccount.google.com/security" target="_blank">Аккаунт Google → Безопасность</a> и включите двухэтапную верификацию</span>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <b>Создайте пароль приложения</b>
+            <span>Перейдите в <a href="https://myaccount.google.com/apppasswords" target="_blank">Пароли приложений</a>, выберите «Другое (произвольное название)», введите «СкладПромо» и нажмите «Создать»</span>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <b>Скопируйте 16-значный пароль</b>
+            <span>Google покажет пароль вида <code>xxxx xxxx xxxx xxxx</code> — скопируйте его (пробелы можно оставить)</span>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <b>Заполните форму в админке</b>
+            <span>Email для заказов, SMTP Login (ваш Gmail), SMTP Password (пароль из шага 3). Остальные поля оставьте по умолчанию</span>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <b>Нажмите «Сохранить Email»</b>
+            <span>Уведомления начнут приходить со следующего заказа</span>
+          </div>
+        </li>
+      </ol>
+      <div class="note">SMTP Host: <code>smtp.gmail.com</code>, SMTP Port: <code>587</code> — эти значения уже заполнены по умолчанию.</div>
+    </div>
+  </div>
+
+  <!-- 6. TELEGRAM -->
+  <div class="section" id="telegram">
+    <div class="section-header">
+      <span class="section-icon">✈️</span>
+      <h2>Настройка Telegram-уведомлений</h2>
+    </div>
+    <div class="card">
+      <p>Настройки находятся во вкладке <b>Уведомления → Telegram-бот</b>.</p>
+      <p>При каждом новом заказе бот отправит в ваш Telegram сообщение с именем покупателя, телефоном, списком товаров и суммой.</p>
+    </div>
+    <div class="card">
+      <h3>Пошаговая настройка</h3>
+      <ol class="step-list">
+        <li>
+          <div class="step-content">
+            <b>Создайте бота</b>
+            <span>Напишите <a href="https://t.me/BotFather" target="_blank">@BotFather</a> команду <code>/newbot</code>, придумайте имя и username для бота</span>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <b>Получите токен</b>
+            <span>BotFather пришлёт токен вида <code>123456789:AABBccDDeeFF...</code> — скопируйте его</span>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <b>Запустите бота</b>
+            <span>Найдите вашего бота в Telegram по username и нажмите «Старт» или отправьте <code>/start</code></span>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <b>Узнайте свой Chat ID</b>
+            <span>Напишите боту <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> — он ответит вашим числовым ID (например, <code>123456789</code>)</span>
+          </div>
+        </li>
+        <li>
+          <div class="step-content">
+            <b>Вставьте токен и Chat ID в форму</b>
+            <span>Вкладка «Уведомления» → форма «Telegram-бот» → нажмите «Сохранить Telegram»</span>
+          </div>
+        </li>
+      </ol>
+      <div class="note">Если хотите получать уведомления в групповой чат — добавьте бота в группу и используйте Chat ID группы (начинается с минуса, например <code>-1001234567890</code>). Узнать ID группы можно через <a href="https://t.me/username_to_id_bot" target="_blank">@username_to_id_bot</a>.</div>
+    </div>
+  </div>
+
+  <!-- 7. PASSWORD -->
+  <div class="section" id="password">
+    <div class="section-header">
+      <span class="section-icon">🔑</span>
+      <h2>Смена пароля</h2>
+    </div>
+    <div class="card">
+      <p>Пароль задаётся через переменную окружения <code>ADMIN_PASSWORD</code> на хостинге.</p>
+
+      <h3 style="margin: 14px 0 8px">На Railway:</h3>
+      <ol class="step-list">
+        <li><div class="step-content"><b>Откройте Railway Dashboard</b><span><a href="https://railway.app" target="_blank">railway.app</a> → ваш проект → сервис sklad-shop</span></div></li>
+        <li><div class="step-content"><b>Перейдите в Variables</b><span>Найдите переменную <code>ADMIN_PASSWORD</code></span></div></li>
+        <li><div class="step-content"><b>Измените значение</b><span>Введите новый пароль и нажмите «Save». Railway автоматически передеплоит сервис</span></div></li>
+      </ol>
+      <div class="warn">Никому не сообщайте пароль от админки. Смените пароль <code>admin123</code> при первом входе.</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
