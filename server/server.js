@@ -142,8 +142,7 @@ app.put('/api/admin/contacts', authMiddleware, (req, res) => {
 
 // ==================== Start ====================
 
-app.listen(PORT, () => {
-  console.log(`Магазин запущен: http://localhost:${PORT}`);
-  console.log(`Админка: http://localhost:${PORT}/admin.html`);
-  console.log(`Пароль: ${ADMIN_PASSWORD} (задайте ADMIN_PASSWORD=... в среде)`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Магазин запущен на порту ${PORT}`);
+  console.log(`Админка: /admin.html`);
 });
