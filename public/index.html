@@ -25,6 +25,10 @@
         <a id="link-tg"  href="#" class="msg-btn tg"  target="_blank" rel="noopener" title="Telegram">TG</a>
         <a id="link-vk"  href="#" class="msg-btn vk"  target="_blank" rel="noopener" title="ВКонтакте">VK</a>
       </div>
+      <button class="cart-btn" id="cart-btn" aria-label="Корзина">
+        🛒
+        <span class="cart-badge" id="cart-badge">0</span>
+      </button>
     </div>
   </div>
 </header>
@@ -49,38 +53,23 @@
     <div class="contacts-grid">
       <a href="tel:" id="ct-phone" class="contact-item">
         <span class="contact-icon">📞</span>
-        <div>
-          <span class="contact-label">Телефон</span>
-          <span class="contact-value" id="ct-phone-v">—</span>
-        </div>
+        <div><span class="contact-label">Телефон</span><span class="contact-value" id="ct-phone-v">—</span></div>
       </a>
       <a href="mailto:" id="ct-email" class="contact-item">
         <span class="contact-icon">✉️</span>
-        <div>
-          <span class="contact-label">Email</span>
-          <span class="contact-value" id="ct-email-v">—</span>
-        </div>
+        <div><span class="contact-label">Email</span><span class="contact-value" id="ct-email-v">—</span></div>
       </a>
       <a href="#" id="ct-max" class="contact-item" target="_blank" rel="noopener">
         <span class="contact-icon">💬</span>
-        <div>
-          <span class="contact-label">Мессенджер</span>
-          <span class="contact-value">MAX</span>
-        </div>
+        <div><span class="contact-label">Мессенджер</span><span class="contact-value">MAX</span></div>
       </a>
       <a href="#" id="ct-tg" class="contact-item" target="_blank" rel="noopener">
         <span class="contact-icon">✈️</span>
-        <div>
-          <span class="contact-label">Мессенджер</span>
-          <span class="contact-value">Telegram</span>
-        </div>
+        <div><span class="contact-label">Мессенджер</span><span class="contact-value">Telegram</span></div>
       </a>
       <a href="#" id="ct-vk" class="contact-item" target="_blank" rel="noopener">
         <span class="contact-icon">🌐</span>
-        <div>
-          <span class="contact-label">Соцсеть</span>
-          <span class="contact-value">ВКонтакте</span>
-        </div>
+        <div><span class="contact-label">Соцсеть</span><span class="contact-value">ВКонтакте</span></div>
       </a>
     </div>
   </div>
@@ -89,6 +78,39 @@
 <footer class="site-footer">
   <p>© 2024 СкладПромо. Все права защищены.</p>
 </footer>
+
+<!-- ====== CART DRAWER ====== -->
+<div class="cart-overlay" id="cart-overlay"></div>
+<div class="cart-drawer" id="cart-drawer" aria-label="Корзина">
+  <div class="cart-header">
+    <span>Корзина</span>
+    <button class="cart-close" id="cart-close" aria-label="Закрыть">✕</button>
+  </div>
+
+  <div class="cart-items" id="cart-items">
+    <p class="cart-empty">Корзина пуста</p>
+  </div>
+
+  <div class="cart-footer" id="cart-footer" style="display:none">
+    <div class="cart-total">
+      <span>Итого:</span>
+      <span id="cart-total-val">0 ₽</span>
+    </div>
+
+    <div class="checkout-form" id="checkout-form">
+      <input type="text"  id="co-name"    placeholder="Ваше имя *" required>
+      <input type="tel"   id="co-phone"   placeholder="Телефон *" required>
+      <textarea           id="co-comment" placeholder="Комментарий к заказу"></textarea>
+      <button class="order-btn" id="order-btn">Оформить заказ</button>
+    </div>
+
+    <div class="order-success" id="order-success">
+      <h3>✅ Заказ принят!</h3>
+      <p id="order-success-text">Мы свяжемся с вами в ближайшее время.</p>
+      <button class="add-to-cart-btn" id="order-new-btn" style="margin-top:12px">Продолжить покупки</button>
+    </div>
+  </div>
+</div>
 
 <!-- ====== VIDEO MODAL ====== -->
 <div class="modal-overlay" id="video-modal" role="dialog" aria-modal="true">

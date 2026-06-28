@@ -3,5 +3,12 @@
   "email": "shop@example.com",
   "max": "https://max.ru/",
   "telegram": "https://t.me/username",
-  "vk": "https://vk.com/username"
+  "vk": "https://vk.com/username",
+  "order_email": "",
+  "smtp_host": "smtp.gmail.com",
+  "smtp_port": "587",
+  "smtp_user": "",
+  "smtp_pass": "",
+  "telegram_bot_token": "",
+  "telegram_chat_id": ""
 }
