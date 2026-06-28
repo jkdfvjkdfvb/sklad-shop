@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админка — СкладПромо</title>
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<!-- ====== LOGIN ====== -->
+<div id="login-section" class="login-wrap">
+  <div class="login-box">
+    <h1>🔐 Вход в админку</h1>
+    <form id="login-form">
+      <div class="form-group">
+        <label for="login-pwd">Пароль</label>
+        <input type="password" id="login-pwd" placeholder="Введите пароль" autofocus autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Войти</button>
+      <p class="error-msg" id="login-err"></p>
+    </form>
+  </div>
+</div>
+
+<!-- ====== ADMIN PANEL ====== -->
+<div id="admin-section" style="display:none">
+
+  <header class="admin-header">
+    <span class="admin-logo">СкладПромо <span>/ Админка</span></span>
+    <nav>
+      <button class="nav-btn active" data-tab="products">Товары</button>
+      <button class="nav-btn" data-tab="contacts">Контакты</button>
+    </nav>
+    <button class="btn btn-danger btn-sm logout-btn" id="logout-btn">Выйти</button>
+  </header>
+
+  <main class="admin-main">
+
+    <!-- TAB: Products -->
+    <div class="tab-panel active" id="tab-products">
+      <h2 class="section-title">Управление товарами</h2>
+      <div class="table-toolbar">
+        <input class="table-search" type="search" id="table-search" placeholder="Поиск по названию или артикулу…">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Артикул</th>
+              <th>Фото</th>
+              <th>Наименование</th>
+              <th>Кол-во</th>
+              <th>Цена, ₽</th>
+              <th>Показывать</th>
+              <th>Медиа</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="products-tbody">
+            <tr><td colspan="8" style="text-align:center;padding:30px;color:#6b7280">Загрузка…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB: Contacts -->
+    <div class="tab-panel" id="tab-contacts">
+      <h2 class="section-title">Контакты</h2>
+      <div class="contacts-form-wrap">
+        <form class="contacts-form" id="contacts-form">
+          <div class="form-group">
+            <label>Телефон</label>
+            <input type="text" id="c-phone" placeholder="+7 (000) 000-00-00">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="c-email" placeholder="shop@example.com">
+          </div>
+          <div class="form-group">
+            <label>MAX (ссылка)</label>
+            <input type="url" id="c-max" placeholder="https://max.ru/...">
+          </div>
+          <div class="form-group">
+            <label>Telegram (ссылка)</label>
+            <input type="url" id="c-tg" placeholder="https://t.me/username">
+          </div>
+          <div class="form-group">
+            <label>ВКонтакте (ссылка)</label>
+            <input type="url" id="c-vk" placeholder="https://vk.com/username">
+          </div>
+          <div class="form-footer">
+            <button type="submit" class="btn btn-primary">Сохранить контакты</button>
+            <span id="save-contacts-status" class="save-contacts-status"></span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="js/admin.js"></script>
+</body>
+</html>

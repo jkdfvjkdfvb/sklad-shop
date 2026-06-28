@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Склад Промо — интернет-магазин</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ====== HEADER ====== -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="/" class="logo">Склад<span>Промо</span></a>
+
+    <form class="header-search" id="search-form" role="search">
+      <input type="search" id="search-input" placeholder="Поиск по названию или артикулу…" autocomplete="off">
+      <button type="submit" aria-label="Найти">🔍</button>
+    </form>
+
+    <div class="header-contacts">
+      <a href="tel:" id="header-phone" class="header-phone">+7 (000) 000-00-00</a>
+      <div class="messenger-links">
+        <a id="link-max" href="#" class="msg-btn max" target="_blank" rel="noopener" title="MAX">M</a>
+        <a id="link-tg"  href="#" class="msg-btn tg"  target="_blank" rel="noopener" title="Telegram">TG</a>
+        <a id="link-vk"  href="#" class="msg-btn vk"  target="_blank" rel="noopener" title="ВКонтакте">VK</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ====== HERO ====== -->
+<section class="hero">
+  <h1>Промо-товары оптом и в розницу</h1>
+  <p>Брелоки, ручки, часы, сумки, аксессуары — всё в наличии. Быстрая доставка.</p>
+</section>
+
+<!-- ====== CATALOG ====== -->
+<main class="catalog-section">
+  <h2 class="section-title">Каталог товаров</h2>
+  <div class="products-grid" id="products-grid"></div>
+  <p class="status-msg" id="empty-msg" style="display:none">Товары не найдены.</p>
+</main>
+
+<!-- ====== CONTACTS ====== -->
+<section class="contacts-section">
+  <div class="contacts-inner">
+    <h2 class="contacts-title">Как заказать</h2>
+    <div class="contacts-grid">
+      <a href="tel:" id="ct-phone" class="contact-item">
+        <span class="contact-icon">📞</span>
+        <div>
+          <span class="contact-label">Телефон</span>
+          <span class="contact-value" id="ct-phone-v">—</span>
+        </div>
+      </a>
+      <a href="mailto:" id="ct-email" class="contact-item">
+        <span class="contact-icon">✉️</span>
+        <div>
+          <span class="contact-label">Email</span>
+          <span class="contact-value" id="ct-email-v">—</span>
+        </div>
+      </a>
+      <a href="#" id="ct-max" class="contact-item" target="_blank" rel="noopener">
+        <span class="contact-icon">💬</span>
+        <div>
+          <span class="contact-label">Мессенджер</span>
+          <span class="contact-value">MAX</span>
+        </div>
+      </a>
+      <a href="#" id="ct-tg" class="contact-item" target="_blank" rel="noopener">
+        <span class="contact-icon">✈️</span>
+        <div>
+          <span class="contact-label">Мессенджер</span>
+          <span class="contact-value">Telegram</span>
+        </div>
+      </a>
+      <a href="#" id="ct-vk" class="contact-item" target="_blank" rel="noopener">
+        <span class="contact-icon">🌐</span>
+        <div>
+          <span class="contact-label">Соцсеть</span>
+          <span class="contact-value">ВКонтакте</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <p>© 2024 СкладПромо. Все права защищены.</p>
+</footer>
+
+<!-- ====== VIDEO MODAL ====== -->
+<div class="modal-overlay" id="video-modal" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <button class="modal-close" id="modal-close" aria-label="Закрыть">✕</button>
+    <video id="modal-video" controls playsinline></video>
+  </div>
+</div>
+
+<script src="js/shop.js"></script>
+</body>
+</html>
