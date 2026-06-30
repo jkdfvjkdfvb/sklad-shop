@@ -225,6 +225,35 @@ app.delete('/api/admin/products/:article', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
+app.post('/api/admin/products/:article/duplicate', authMiddleware, (req, res) => {
+  const products = readJSON(PRODUCTS_FILE, []);
+  const source = products.find(p => p.article === req.params.article);
+  if (!source) return res.status(404).json({ error: 'Товар не найден' });
+
+  let newArticle = `${source.article}-copy`;
+  let n = 2;
+  while (products.some(p => p.article === newArticle)) {
+    newArticle = `${source.article}-copy${n++}`;
+  }
+
+  const copy = { ...source, article: newArticle };
+
+  for (const field of ['image', 'video']) {
+    if (!source[field]) continue;
+    const dir = field === 'image' ? 'images' : 'media';
+    const ext = path.extname(source[field]);
+    const destRel = `${dir}/${newArticle}${ext}`;
+    try {
+      fs.copyFileSync(path.join(PUBLIC_DIR, source[field]), path.join(PUBLIC_DIR, destRel));
+      copy[field] = destRel;
+    } catch { copy[field] = ''; }
+  }
+
+  products.push(copy);
+  writeJSON(PRODUCTS_FILE, products);
+  res.json(copy);
+});
+
 app.post('/api/admin/products/:article/image', authMiddleware, uploadImg.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Файл не получен' });
   const products = readJSON(PRODUCTS_FILE, []);

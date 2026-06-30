@@ -195,6 +195,7 @@ function productRow(p) {
       <div class="save-btn-row">
         <button class="btn btn-primary btn-sm save-row-btn">Сохранить</button>
         <button class="btn-icon edit-row-btn" title="Редактировать">✏️</button>
+        <button class="btn-icon copy-row-btn" title="Копировать">📄</button>
         <button class="btn-icon delete-row-btn" title="Удалить">🗑</button>
         <span class="save-status" id="status-${escAttr(p.article)}">✓</span>
       </div>
@@ -207,6 +208,7 @@ function attachRowListeners() {
     const art = row.dataset.article;
     row.querySelector('.save-row-btn').addEventListener('click', () => saveRow(row, art));
     row.querySelector('.edit-row-btn').addEventListener('click', () => openEditModal(art));
+    row.querySelector('.copy-row-btn').addEventListener('click', () => duplicateProduct(art));
     row.querySelector('.delete-row-btn').addEventListener('click', () => deleteProduct(art));
     row.querySelector('.row-checkbox').addEventListener('change', updateBulkToolbar);
     row.querySelector('.upload-img').addEventListener('change', async function () {
@@ -264,6 +266,17 @@ async function deleteProduct(art) {
     renderTable(allProducts);
   } else {
     alert('Не удалось удалить товар');
+  }
+}
+
+async function duplicateProduct(art) {
+  const res = await apiFetch(`/api/admin/products/${art}/duplicate`, { method: 'POST' });
+  if (res.ok) {
+    const copy = await res.json();
+    allProducts.push(copy);
+    document.getElementById('table-search').dispatchEvent(new Event('input'));
+  } else {
+    alert('Не удалось скопировать товар');
   }
 }
 
