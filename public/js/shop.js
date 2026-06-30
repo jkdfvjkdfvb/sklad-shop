@@ -6,6 +6,78 @@ let contacts = {};
 // ======== FILTER STATE ========
 const selected = { category: new Set(), material: new Set(), color: new Set() };
 
+// ======== SORT STATE ========
+let sortState = { field: null, dir: 'asc' };
+
+// ======== FILTER ICONS (SVG) ========
+const FILTER_ICONS = {
+  // categories
+  'Брелок':        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="5" r="2.5"/><line x1="8" y1="7.5" x2="8" y2="13"/><line x1="5.5" y1="11" x2="10.5" y2="11"/></svg>',
+  'Часы':          '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><polyline points="8,5 8,8 10,10"/></svg>',
+  'Набор':         '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="5" width="12" height="9" rx="1.5"/><polyline points="5,5 5,3 11,3 11,5"/></svg>',
+  'Визитница':     '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="1" y="4" width="14" height="9" rx="1.5"/><line x1="1" y1="8" x2="15" y2="8"/></svg>',
+  'Открывалка':    '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><line x1="5" y1="13" x2="11" y2="3"/><path d="M11 3c1.5 0 2.5 1 2.5 2s-1 2-2.5 2"/></svg>',
+  'Портфель':      '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="6" width="12" height="8" rx="1.5"/><path d="M6 6V4.5A1.5 1.5 0 0 1 7.5 3h1A1.5 1.5 0 0 1 10 4.5V6"/><line x1="2" y1="10" x2="14" y2="10"/></svg>',
+  'Папка':         '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 5a1 1 0 0 1 1-1h3.5l1.5 2H13a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5z"/></svg>',
+  'Зеркало':       '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><ellipse cx="8" cy="6.5" rx="4" ry="5"/><line x1="8" y1="11.5" x2="8" y2="14"/><line x1="6" y1="14" x2="10" y2="14"/></svg>',
+  'Зонт':          '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M8 2a7 7 0 0 0-7 6h14a7 7 0 0 0-7-6z"/><path d="M8 8v5a2 2 0 0 0 4 0"/></svg>',
+  'Сумка':         '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="6" width="12" height="8" rx="1.5"/><path d="M5.5 6V4.5a2.5 2.5 0 0 1 5 0V6"/></svg>',
+  'Авторучка':     '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M10 2.5l3 3-7 7.5H3v-3L10 2.5z"/><line x1="8" y1="4.5" x2="11" y2="7.5"/></svg>',
+  'Футляр':        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="5" width="12" height="7" rx="3.5"/><line x1="2" y1="8.5" x2="14" y2="8.5"/></svg>',
+  'Подставка':     '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="3" y="3" width="10" height="6" rx="1"/><line x1="8" y1="9" x2="8" y2="13"/><line x1="5" y1="13" x2="11" y2="13"/></svg>',
+  'Бэдж':          '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="3" y="4" width="10" height="10" rx="1.5"/><rect x="6" y="2" width="4" height="3" rx="1"/><line x1="6" y1="9" x2="10" y2="9"/></svg>',
+  'Глобус':        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M8 2c-2 2-2 8 0 12M8 2c2 2 2 8 0 12"/><line x1="2" y1="8" x2="14" y2="8"/></svg>',
+  'Метеостанция':  '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="7" r="3.5"/><line x1="8" y1="1" x2="8" y2="3.5"/><line x1="8" y1="10.5" x2="8" y2="13"/><line x1="1" y1="7" x2="3.5" y2="7"/><line x1="12.5" y1="7" x2="15" y2="7"/></svg>',
+  'Радиоприёмник': '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2" y="6" width="12" height="8" rx="1.5"/><circle cx="6" cy="11" r="2"/><line x1="9" y1="8" x2="13" y2="8"/><line x1="9" y1="11" x2="13" y2="11"/><line x1="5.5" y1="4.5" x2="10.5" y2="2"/></svg>',
+  'USB':           '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><line x1="8" y1="2" x2="8" y2="11"/><line x1="5" y1="8" x2="11" y2="8"/><rect x="4" y="11" width="8" height="3" rx="1.5"/><line x1="6" y1="5" x2="6" y2="3"/><line x1="10" y1="7" x2="10" y2="5"/></svg>',
+  'Косметичка':    '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M4 7a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7z"/><path d="M6.5 6V4.5a1.5 1.5 0 0 1 3 0V6"/><circle cx="8" cy="10" r="1.5"/></svg>',
+  'Посуда':        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M4 3v5a4 4 0 0 0 8 0V3"/><line x1="2" y1="3" x2="14" y2="3"/><line x1="8" y1="12" x2="8" y2="14"/><line x1="5" y1="14" x2="11" y2="14"/></svg>',
+  'Платок':        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 2h12v12L8 9 2 14V2z"/></svg>',
+  'Игрушка':       '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="6" r="3"/><path d="M5 9.5a5 5 0 0 0-2 4h10a5 5 0 0 0-2-4"/></svg>',
+  'Бинокль':       '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="5" cy="10" r="3.5"/><circle cx="11" cy="10" r="3.5"/><path d="M5 6.5L6.5 4h3L11 6.5"/></svg>',
+  'Калькулятор':   '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="3" y="1" width="10" height="14" rx="1.5"/><rect x="5" y="3" width="6" height="3" rx=".5"/><circle cx="5.5" cy="9" r=".7" fill="currentColor" stroke="none"/><circle cx="8" cy="9" r=".7" fill="currentColor" stroke="none"/><circle cx="10.5" cy="9" r=".7" fill="currentColor" stroke="none"/><circle cx="5.5" cy="12" r=".7" fill="currentColor" stroke="none"/><circle cx="8" cy="12" r=".7" fill="currentColor" stroke="none"/><circle cx="10.5" cy="12" r=".7" fill="currentColor" stroke="none"/></svg>',
+  'Чехол':         '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="4" y="1" width="8" height="14" rx="2"/><rect x="5.5" y="2.5" width="5" height="8" rx="1"/><line x1="7" y1="12.5" x2="9" y2="12.5"/></svg>',
+  'Подушка':       '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="1" y="5" width="14" height="7" rx="3.5"/><path d="M1 8.5c2.5-2 5-1.5 7 0s4.5 2 7 0"/></svg>',
+  'Прочее':        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="6.5"/><line x1="8" y1="11" x2="8" y2="11" stroke-width="2.5"/><path d="M8 4.5a2 2 0 0 1 1 3.5c-.7.5-1 1-1 1.5"/></svg>',
+  // materials
+  'Металл':        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="2.5"/><line x1="8" y1="1.5" x2="8" y2="4"/><line x1="8" y1="12" x2="8" y2="14.5"/><line x1="1.5" y1="8" x2="4" y2="8"/><line x1="12" y1="8" x2="14.5" y2="8"/><line x1="3.3" y1="3.3" x2="5.2" y2="5.2"/><line x1="10.8" y1="10.8" x2="12.7" y2="12.7"/><line x1="12.7" y1="3.3" x2="10.8" y2="5.2"/><line x1="5.2" y1="10.8" x2="3.3" y2="12.7"/></svg>',
+  'Пластик':       '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="3" y="5" width="10" height="7" rx="2"/><path d="M6 5V4M10 5V4"/><line x1="5" y1="9" x2="11" y2="9"/></svg>',
+  'Дерево':        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><polygon points="8,2 14,10 2,10"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="5.5" y1="14" x2="10.5" y2="14"/></svg>',
+  'Кожзам':        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4z"/><line x1="5" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="9" y2="10"/></svg>',
+  'Кожа':          '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4z"/><line x1="5.5" y1="6" x2="10.5" y2="6"/><line x1="5.5" y1="9" x2="10.5" y2="9"/><line x1="5.5" y1="12" x2="8.5" y2="12"/></svg>',
+  'ПВХ':           '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M3 6h10v6H3z"/><path d="M5 6V4h6v2"/><line x1="3" y1="9" x2="13" y2="9"/></svg>',
+  'Акрил':         '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><polygon points="8,1 15,13 1,13"/><polygon points="8,5 12,12 4,12"/></svg>',
+  'Нейлон':        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 5 Q5 3 8 5 Q11 7 14 5" stroke-linecap="round"/><path d="M2 8.5 Q5 6.5 8 8.5 Q11 10.5 14 8.5" stroke-linecap="round"/><path d="M2 12 Q5 10 8 12 Q11 14 14 12" stroke-linecap="round"/></svg>',
+  'Стекло':        '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M5 2h6l-1 9a2 2 0 0 1-4 0L5 2z"/><line x1="5" y1="2" x2="11" y2="2"/><path d="M7 5 Q8 4.5 9 5"/></svg>',
+  'Полиэстер':     '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="5.5"/><circle cx="8" cy="8" r="3"/><circle cx="8" cy="8" r=".75" fill="currentColor" stroke="none"/></svg>',
+};
+
+const COLOR_HEX = {
+  'Чёрный':     '#1a1a1a',
+  'Белый':      '#f0f0f0',
+  'Серебро':    '#b8b8c8',
+  'Золото':     '#d4a843',
+  'Синий':      '#2563eb',
+  'Зелёный':    '#16a34a',
+  'Красный':    '#dc2626',
+  'Оранжевый':  '#ea580c',
+  'Коричневый': '#78350f',
+  'Прозрачный': null,
+  'Серый':      '#6b7280',
+};
+
+function getFilterIcon(key, val) {
+  if (key === 'color') {
+    const hex = COLOR_HEX[val];
+    if (hex === null) {
+      return '<span class="filter-color-dot" style="background:repeating-conic-gradient(#ccc 0% 25%,#fff 0% 50%) 0 0/6px 6px;border:1px solid #ccc"></span>';
+    }
+    const border = val === 'Белый' ? 'border:1px solid #d1d5db;' : '';
+    return `<span class="filter-color-dot" style="background:${hex};${border}"></span>`;
+  }
+  return FILTER_ICONS[val] ? `<span class="filter-icon">${FILTER_ICONS[val]}</span>` : '';
+}
+
 // ======== CART STATE ========
 let cart = JSON.parse(localStorage.getItem('cart') || '[]');
 
@@ -115,7 +187,6 @@ function renderCartItems() {
       <button class="cart-remove" data-article="${escAttr(item.article)}" title="Удалить">✕</button>
     </div>`).join('');
 
-  // qty buttons
   container.querySelectorAll('.qty-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const art = btn.dataset.article;
@@ -187,7 +258,7 @@ function buildFilters() {
     }
   }
 
-  const CATEGORY_LIMIT = 6;
+  const GROUP_LIMIT = 6;
 
   document.querySelectorAll('.filter-group').forEach(group => {
     const key = group.dataset.key;
@@ -198,13 +269,14 @@ function buildFilters() {
     const makeOption = ([val, cnt], hidden) => `
       <label class="filter-option${hidden ? ' filter-extra' : ''}"${hidden ? ' style="display:none"' : ''}>
         <input type="checkbox" data-key="${escAttr(key)}" data-value="${escAttr(val)}">
+        ${getFilterIcon(key, val)}
         <span class="filter-option-name">${escHtml(val)}</span>
         <span class="filter-option-count">${cnt}</span>
       </label>`;
 
-    const useLimit = key === 'category' && sorted.length > CATEGORY_LIMIT;
-    const visible = useLimit ? sorted.slice(0, CATEGORY_LIMIT) : sorted;
-    const extra   = useLimit ? sorted.slice(CATEGORY_LIMIT) : [];
+    const useLimit = sorted.length > GROUP_LIMIT;
+    const visible  = useLimit ? sorted.slice(0, GROUP_LIMIT) : sorted;
+    const extra    = useLimit ? sorted.slice(GROUP_LIMIT) : [];
 
     container.innerHTML =
       visible.map(e => makeOption(e, false)).join('') +
@@ -235,13 +307,18 @@ function buildFilters() {
 
 function applyFilters() {
   const q = document.getElementById('search-input').value.toLowerCase().trim();
-  const result = allProducts.filter(p => {
+  let result = allProducts.filter(p => {
     if (q && !p.name.toLowerCase().includes(q) && !p.article.includes(q)) return false;
     for (const key of ['category', 'material', 'color']) {
       if (selected[key].size && !selected[key].has(p[key])) return false;
     }
     return true;
   });
+  if (sortState.field) {
+    const f = sortState.field;
+    const dir = sortState.dir === 'asc' ? 1 : -1;
+    result = result.slice().sort((a, b) => (a[f] - b[f]) * dir);
+  }
   renderProducts(result);
 }
 
@@ -252,7 +329,7 @@ async function loadData() {
   contacts    = await contRes.json();
   renderContacts();
   buildFilters();
-  renderProducts(allProducts);
+  applyFilters();
   updateCartBadge();
   renderCartItems();
 }
@@ -286,7 +363,7 @@ function renderProducts(list) {
       ? `<span class="card-qty in-stock">В наличии: ${p.qty} шт.</span>`
       : `<span class="card-qty out-stock">Нет в наличии</span>`;
     const videoBtn = p.video
-      ? `<a href="#" class="card-video-btn" data-video="${escAttr(p.video)}">▶ Видео</a>` : '';
+      ? `<a href="#" class="card-video-btn" data-video="${escAttr(p.video)}">&#9654; Видео</a>` : '';
     return `
       <div class="product-card">
         <div class="card-img-wrap">
@@ -334,6 +411,26 @@ document.getElementById('filter-toggle').addEventListener('click', () => {
   const btn = document.getElementById('filter-toggle');
   const open = sidebar.classList.toggle('open');
   btn.textContent = open ? 'Фильтры ✕' : 'Фильтры ▾';
+});
+
+// ======== SORT ========
+document.querySelectorAll('.sort-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const field = btn.dataset.field;
+    if (sortState.field === field) {
+      sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortState.field = field;
+      sortState.dir = 'asc';
+    }
+    document.querySelectorAll('.sort-btn').forEach(b => {
+      const isActive = b.dataset.field === sortState.field;
+      b.classList.toggle('active', isActive);
+      b.querySelector('.sort-arrow').textContent = isActive
+        ? (sortState.dir === 'asc' ? ' ↑' : ' ↓') : '';
+    });
+    applyFilters();
+  });
 });
 
 // ======== VIDEO MODAL ========
