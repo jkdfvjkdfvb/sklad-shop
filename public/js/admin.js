@@ -264,7 +264,7 @@ async function deleteProduct(art) {
   if (res.ok) {
     allProducts = allProducts.filter(p => p.article !== art);
     renderTable(allProducts);
-  } else {
+  } else if (res.status !== 401) {
     alert('Не удалось удалить товар');
   }
 }
@@ -275,7 +275,7 @@ async function duplicateProduct(art) {
     const copy = await res.json();
     allProducts.push(copy);
     document.getElementById('table-search').dispatchEvent(new Event('input'));
-  } else {
+  } else if (res.status !== 401) {
     alert('Не удалось скопировать товар');
   }
 }
@@ -341,7 +341,7 @@ document.getElementById('bulk-save-btn').addEventListener('click', async () => {
       if (p) { p.qty = item.qty; p.price = item.price; p.visible = item.visible; }
     });
     items.forEach(item => showStatus(item.article, true, '✓ сохранено'));
-  } else {
+  } else if (res.status !== 401) {
     alert('Не удалось сохранить выбранные товары');
   }
 });
@@ -358,7 +358,7 @@ document.getElementById('bulk-delete-btn').addEventListener('click', async () =>
   if (res.ok) {
     allProducts = allProducts.filter(p => !articles.includes(p.article));
     renderTable(allProducts);
-  } else {
+  } else if (res.status !== 401) {
     alert('Не удалось удалить выбранные товары');
   }
 });
@@ -403,7 +403,7 @@ document.getElementById('pe-img-input').addEventListener('change', async functio
       const thumb = row.querySelector('.thumb, .thumb-placeholder');
       if (thumb) thumb.outerHTML = `<img class="thumb" src="${d.image}?t=${Date.now()}" alt="">`;
     }
-  } else {
+  } else if (res.status !== 401) {
     alert('Не удалось загрузить фото');
   }
 });
@@ -504,10 +504,25 @@ function showSaveStatus(id, ok) {
 }
 
 // ======== HELPERS ========
-function apiFetch(url, opts = {}) {
+async function apiFetch(url, opts = {}) {
   opts.headers = opts.headers || {};
   opts.headers['x-admin-token'] = token;
-  return fetch(url, opts);
+  const res = await fetch(url, opts);
+  if (res.status === 401) handleSessionExpired();
+  return res;
+}
+
+function handleSessionExpired() {
+  token = '';
+  sessionStorage.removeItem('adminToken');
+  document.getElementById('order-detail-overlay').style.display = 'none';
+  document.getElementById('product-edit-overlay').style.display = 'none';
+  document.getElementById('admin-section').style.display = 'none';
+  document.getElementById('login-section').style.display = '';
+  document.getElementById('login-pwd').value = '';
+  const errEl = document.getElementById('login-err');
+  errEl.textContent = 'Сессия истекла, войдите снова';
+  errEl.style.display = 'block';
 }
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function escAttr(s) { return escHtml(s); }
