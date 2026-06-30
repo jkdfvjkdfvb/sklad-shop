@@ -336,8 +336,11 @@ async function loadData() {
 
 function renderContacts() {
   const c = contacts;
+  const heroTitle = document.getElementById('hero-title');
+  const heroText  = document.getElementById('hero-text');
+  if (heroTitle) heroTitle.textContent = c.hero_title || heroTitle.textContent;
+  if (heroText)  heroText.textContent  = c.hero_text  || heroText.textContent;
   const phone = c.phone || '';
-  document.getElementById('header-phone').textContent = phone;
   document.getElementById('header-phone').href = 'tel:' + phone.replace(/\D/g, '');
   document.getElementById('link-max').href = c.max || '#';
   document.getElementById('link-tg').href  = c.telegram || '#';

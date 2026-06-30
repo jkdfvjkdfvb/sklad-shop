@@ -297,7 +297,8 @@ app.get('/api/admin/contacts', authMiddleware, (req, res) => res.json(readJSON(C
 app.put('/api/admin/contacts', authMiddleware, (req, res) => {
   const allowed = ['phone','email','max','telegram','vk',
                    'order_email','smtp_host','smtp_port','smtp_user','smtp_pass',
-                   'telegram_bot_token','telegram_chat_id'];
+                   'telegram_bot_token','telegram_chat_id',
+                   'hero_title','hero_text'];
   const contacts = readJSON(CONTACTS_FILE, {});
   for (const key of allowed) {
     if (req.body[key] !== undefined) contacts[key] = req.body[key];

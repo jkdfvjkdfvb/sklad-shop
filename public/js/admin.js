@@ -450,6 +450,8 @@ document.getElementById('pe-save-btn').addEventListener('click', async () => {
 async function loadContacts() {
   const res = await apiFetch('/api/admin/contacts');
   const c = await res.json();
+  document.getElementById('c-hero-title').value = c.hero_title || '';
+  document.getElementById('c-hero-text').value  = c.hero_text  || '';
   document.getElementById('c-phone').value = c.phone || '';
   document.getElementById('c-email').value = c.email || '';
   document.getElementById('c-max').value   = c.max   || '';
@@ -470,6 +472,8 @@ document.getElementById('contacts-form').addEventListener('submit', async e => {
   const res = await apiFetch('/api/admin/contacts', {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      hero_title: document.getElementById('c-hero-title').value,
+      hero_text:  document.getElementById('c-hero-text').value,
       phone: document.getElementById('c-phone').value,
       email: document.getElementById('c-email').value,
       max:   document.getElementById('c-max').value,
