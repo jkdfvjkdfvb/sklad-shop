@@ -172,6 +172,7 @@ function productRow(p) {
     : `<span style="color:#9ca3af;font-size:.75rem">нет</span>`;
 
   return `<tr data-article="${escAttr(p.article)}">
+    <td><input type="checkbox" class="row-checkbox" value="${escAttr(p.article)}"></td>
     <td>${escHtml(p.article)}</td>
     <td>${imgEl}</td>
     <td style="max-width:240px">${escHtml(p.name)}</td>
@@ -193,6 +194,8 @@ function productRow(p) {
     <td>
       <div class="save-btn-row">
         <button class="btn btn-primary btn-sm save-row-btn">Сохранить</button>
+        <button class="btn-icon edit-row-btn" title="Редактировать">✏️</button>
+        <button class="btn-icon delete-row-btn" title="Удалить">🗑</button>
         <span class="save-status" id="status-${escAttr(p.article)}">✓</span>
       </div>
     </td>
@@ -203,6 +206,9 @@ function attachRowListeners() {
   document.querySelectorAll('#products-tbody tr').forEach(row => {
     const art = row.dataset.article;
     row.querySelector('.save-row-btn').addEventListener('click', () => saveRow(row, art));
+    row.querySelector('.edit-row-btn').addEventListener('click', () => openEditModal(art));
+    row.querySelector('.delete-row-btn').addEventListener('click', () => deleteProduct(art));
+    row.querySelector('.row-checkbox').addEventListener('change', updateBulkToolbar);
     row.querySelector('.upload-img').addEventListener('change', async function () {
       if (!this.files[0]) return;
       const fd = new FormData(); fd.append('image', this.files[0]);
@@ -211,6 +217,8 @@ function attachRowListeners() {
         const d = await res.json();
         const thumb = row.querySelector('.thumb, .thumb-placeholder');
         if (thumb) thumb.outerHTML = `<img class="thumb" src="${d.image}?t=${Date.now()}" alt="">`;
+        const p = allProducts.find(p => p.article === art);
+        if (p) p.image = d.image;
         showStatus(art, true, '✓ фото');
       } else showStatus(art, false, '✗ ошибка');
     });
@@ -221,10 +229,15 @@ function attachRowListeners() {
       if (res.ok) {
         const d = await res.json();
         document.getElementById(`vid-status-${art}`).innerHTML = `<a class="video-link" href="${d.video}" target="_blank">▶ видео</a>`;
+        const p = allProducts.find(p => p.article === art);
+        if (p) p.video = d.video;
         showStatus(art, true, '✓ видео');
       } else showStatus(art, false, '✗ ошибка');
     });
   });
+  document.getElementById('select-all-checkbox').checked = false;
+  document.getElementById('select-all-checkbox').indeterminate = false;
+  updateBulkToolbar();
 }
 
 async function saveRow(row, art) {
@@ -235,7 +248,23 @@ async function saveRow(row, art) {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ qty, price, visible })
   });
+  if (res.ok) {
+    const p = allProducts.find(p => p.article === art);
+    if (p) { p.qty = qty; p.price = price; p.visible = visible; }
+  }
   showStatus(art, res.ok, res.ok ? '✓ сохранено' : '✗ ошибка');
+}
+
+async function deleteProduct(art) {
+  const p = allProducts.find(p => p.article === art);
+  if (!confirm(`Удалить товар «${p ? p.name : art}» (арт. ${art})? Это действие необратимо.`)) return;
+  const res = await apiFetch(`/api/admin/products/${art}`, { method: 'DELETE' });
+  if (res.ok) {
+    allProducts = allProducts.filter(p => p.article !== art);
+    renderTable(allProducts);
+  } else {
+    alert('Не удалось удалить товар');
+  }
 }
 
 function showStatus(art, ok, text) {
@@ -248,6 +277,146 @@ function showStatus(art, ok, text) {
 document.getElementById('table-search').addEventListener('input', function () {
   const q = this.value.toLowerCase().trim();
   renderTable(q ? allProducts.filter(p => p.name.toLowerCase().includes(q) || p.article.includes(q)) : allProducts);
+});
+
+// ======== PRODUCTS: BULK SELECTION / ACTIONS ========
+function getCheckedRows() {
+  return Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.closest('tr'));
+}
+
+function updateBulkToolbar() {
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  const checked = document.querySelectorAll('.row-checkbox:checked');
+  const bulkBar = document.getElementById('bulk-actions');
+  const selectAll = document.getElementById('select-all-checkbox');
+
+  bulkBar.style.display = checked.length > 0 ? 'flex' : 'none';
+  document.getElementById('bulk-count').textContent = checked.length ? `Выбрано: ${checked.length}` : '';
+
+  if (checkboxes.length === 0) {
+    selectAll.checked = false; selectAll.indeterminate = false;
+  } else if (checked.length === 0) {
+    selectAll.checked = false; selectAll.indeterminate = false;
+  } else if (checked.length === checkboxes.length) {
+    selectAll.checked = true; selectAll.indeterminate = false;
+  } else {
+    selectAll.checked = false; selectAll.indeterminate = true;
+  }
+}
+
+document.getElementById('select-all-checkbox').addEventListener('change', function () {
+  document.querySelectorAll('.row-checkbox').forEach(cb => { cb.checked = this.checked; });
+  updateBulkToolbar();
+});
+
+document.getElementById('bulk-save-btn').addEventListener('click', async () => {
+  const rows = getCheckedRows();
+  if (!rows.length) return;
+  const items = rows.map(row => ({
+    article:  row.dataset.article,
+    qty:      parseInt(row.querySelector('.field-qty').value, 10),
+    price:    parseInt(row.querySelector('.field-price').value, 10),
+    visible:  row.querySelector('.field-visible').checked
+  }));
+  const res = await apiFetch('/api/admin/products/bulk', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items })
+  });
+  if (res.ok) {
+    items.forEach(item => {
+      const p = allProducts.find(p => p.article === item.article);
+      if (p) { p.qty = item.qty; p.price = item.price; p.visible = item.visible; }
+    });
+    items.forEach(item => showStatus(item.article, true, '✓ сохранено'));
+  } else {
+    alert('Не удалось сохранить выбранные товары');
+  }
+});
+
+document.getElementById('bulk-delete-btn').addEventListener('click', async () => {
+  const rows = getCheckedRows();
+  if (!rows.length) return;
+  const articles = rows.map(row => row.dataset.article);
+  if (!confirm(`Удалить выбранные товары (${articles.length} шт.)? Это действие необратимо.`)) return;
+  const res = await apiFetch('/api/admin/products/bulk-delete', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ articles })
+  });
+  if (res.ok) {
+    allProducts = allProducts.filter(p => !articles.includes(p.article));
+    renderTable(allProducts);
+  } else {
+    alert('Не удалось удалить выбранные товары');
+  }
+});
+
+// ======== PRODUCTS: EDIT MODAL ========
+let editingArticle = null;
+
+function openEditModal(art) {
+  const p = allProducts.find(p => p.article === art);
+  if (!p) return;
+  editingArticle = art;
+  document.getElementById('pe-title').textContent = `Редактирование: ${p.name}`;
+  document.getElementById('pe-img-preview').src = p.image || '';
+  document.getElementById('pe-name').value = p.name || '';
+  document.getElementById('pe-description').value = p.description || '';
+  document.getElementById('pe-status').style.display = 'none';
+  document.getElementById('product-edit-overlay').style.display = 'flex';
+}
+
+function closeEditModal() {
+  document.getElementById('product-edit-overlay').style.display = 'none';
+  editingArticle = null;
+}
+
+document.getElementById('pe-close').addEventListener('click', closeEditModal);
+document.getElementById('product-edit-overlay').addEventListener('click', function (e) {
+  if (e.target === this) closeEditModal();
+});
+
+document.getElementById('pe-img-input').addEventListener('change', async function () {
+  if (!this.files[0] || !editingArticle) return;
+  const art = editingArticle;
+  const fd = new FormData(); fd.append('image', this.files[0]);
+  const res = await apiFetch(`/api/admin/products/${art}/image`, { method: 'POST', body: fd });
+  if (res.ok) {
+    const d = await res.json();
+    document.getElementById('pe-img-preview').src = `${d.image}?t=${Date.now()}`;
+    const p = allProducts.find(p => p.article === art);
+    if (p) p.image = d.image;
+    const row = document.querySelector(`#products-tbody tr[data-article="${art}"]`);
+    if (row) {
+      const thumb = row.querySelector('.thumb, .thumb-placeholder');
+      if (thumb) thumb.outerHTML = `<img class="thumb" src="${d.image}?t=${Date.now()}" alt="">`;
+    }
+  } else {
+    alert('Не удалось загрузить фото');
+  }
+});
+
+document.getElementById('pe-save-btn').addEventListener('click', async () => {
+  if (!editingArticle) return;
+  const art = editingArticle;
+  const name = document.getElementById('pe-name').value.trim();
+  const description = document.getElementById('pe-description').value;
+  const res = await apiFetch(`/api/admin/products/${art}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, description })
+  });
+  const statusEl = document.getElementById('pe-status');
+  if (res.ok) {
+    const p = allProducts.find(p => p.article === art);
+    if (p) { p.name = name; p.description = description; }
+    const row = document.querySelector(`#products-tbody tr[data-article="${art}"]`);
+    if (row) row.children[3].textContent = name;
+    document.getElementById('pe-title').textContent = `Редактирование: ${name}`;
+    statusEl.textContent = '✓ Сохранено'; statusEl.style.color = '#16a34a';
+  } else {
+    statusEl.textContent = '✗ Ошибка'; statusEl.style.color = '#dc2626';
+  }
+  statusEl.style.display = 'inline';
+  setTimeout(() => { statusEl.style.display = 'none'; }, 2500);
 });
 
 // ======== CONTACTS ========

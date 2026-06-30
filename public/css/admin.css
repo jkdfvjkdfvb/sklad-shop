@@ -104,7 +104,7 @@ td { padding: 10px 14px; vertical-align: middle; font-size: .88rem; }
 .toggle-switch input:checked + .toggle-slider::before { transform: translateX(16px); }
 
 .action-group { display: flex; flex-direction: column; gap: 6px; }
-.save-btn-row { display: flex; gap: 6px; align-items: center; }
+.save-btn-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .save-status { font-size: .75rem; color: var(--success); display: none; }
 .save-status.err { color: var(--danger); }
 
@@ -127,12 +127,31 @@ td { padding: 10px 14px; vertical-align: middle; font-size: .88rem; }
 .save-contacts-status { font-size: .85rem; color: var(--success); display: none; }
 
 /* ====== SEARCH BAR ====== */
-.table-toolbar { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; }
+.table-toolbar { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; flex-wrap: wrap; }
 .table-search {
   flex: 1; max-width: 320px; border: 1.5px solid var(--border); border-radius: 8px;
   padding: 7px 14px; font-size: .9rem; outline: none; transition: border-color .2s;
 }
 .table-search:focus { border-color: var(--primary); }
+
+.bulk-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.bulk-count { font-size: .85rem; color: var(--muted); font-weight: 600; }
+
+.btn-icon {
+  background: transparent; border: 1.5px solid var(--border); border-radius: 6px;
+  width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: .95rem; transition: border-color .2s, background .2s;
+}
+.btn-icon:hover { border-color: var(--danger); background: #fef2f2; }
+.btn-icon.edit-row-btn:hover { border-color: var(--primary); background: #eff6ff; }
+
+.pe-img-row { display: flex; align-items: center; gap: 14px; }
+.pe-img-preview { width: 90px; height: 90px; }
+#pe-description {
+  width: 100%; border: 1.5px solid var(--border); border-radius: 8px;
+  padding: 10px 14px; font-size: .9rem; font-family: inherit; outline: none; resize: vertical;
+}
+#pe-description:focus { border-color: var(--primary); }
 
 /* ====== ORDERS ====== */
 .status-badge {

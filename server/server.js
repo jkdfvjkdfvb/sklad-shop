@@ -167,17 +167,62 @@ app.post('/api/logout', authMiddleware, (req, res) => {
 
 app.get('/api/admin/products', authMiddleware, (req, res) => res.json(readJSON(PRODUCTS_FILE, [])));
 
+function deleteProductFiles(p) {
+  for (const rel of [p.image, p.video]) {
+    if (!rel) continue;
+    fs.unlink(path.join(PUBLIC_DIR, rel), () => {});
+  }
+}
+
+app.put('/api/admin/products/bulk', authMiddleware, (req, res) => {
+  const { items } = req.body;
+  if (!Array.isArray(items)) return res.status(400).json({ error: 'Некорректные данные' });
+  const products = readJSON(PRODUCTS_FILE, []);
+  for (const item of items) {
+    const idx = products.findIndex(p => p.article === item.article);
+    if (idx === -1) continue;
+    if (item.qty     !== undefined) products[idx].qty     = parseInt(item.qty, 10);
+    if (item.price   !== undefined) products[idx].price   = parseInt(item.price, 10);
+    if (item.visible !== undefined) products[idx].visible = Boolean(item.visible);
+  }
+  writeJSON(PRODUCTS_FILE, products);
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/products/bulk-delete', authMiddleware, (req, res) => {
+  const { articles } = req.body;
+  if (!Array.isArray(articles) || !articles.length) return res.status(400).json({ error: 'Не выбраны товары' });
+  const products = readJSON(PRODUCTS_FILE, []);
+  const toRemove  = products.filter(p => articles.includes(p.article));
+  const remaining = products.filter(p => !articles.includes(p.article));
+  writeJSON(PRODUCTS_FILE, remaining);
+  toRemove.forEach(deleteProductFiles);
+  res.json({ ok: true, deleted: toRemove.length });
+});
+
 app.put('/api/admin/products/:article', authMiddleware, (req, res) => {
   const products = readJSON(PRODUCTS_FILE, []);
   const idx = products.findIndex(p => p.article === req.params.article);
   if (idx === -1) return res.status(404).json({ error: 'Товар не найден' });
-  const { qty, price, visible, video } = req.body;
-  if (qty     !== undefined) products[idx].qty     = parseInt(qty, 10);
-  if (price   !== undefined) products[idx].price   = parseInt(price, 10);
-  if (visible !== undefined) products[idx].visible = Boolean(visible);
-  if (video   !== undefined) products[idx].video   = video;
+  const { qty, price, visible, video, name, description } = req.body;
+  if (qty         !== undefined) products[idx].qty         = parseInt(qty, 10);
+  if (price       !== undefined) products[idx].price       = parseInt(price, 10);
+  if (visible     !== undefined) products[idx].visible     = Boolean(visible);
+  if (video       !== undefined) products[idx].video       = video;
+  if (name        !== undefined) products[idx].name        = name;
+  if (description !== undefined) products[idx].description = description;
   writeJSON(PRODUCTS_FILE, products);
   res.json(products[idx]);
+});
+
+app.delete('/api/admin/products/:article', authMiddleware, (req, res) => {
+  const products = readJSON(PRODUCTS_FILE, []);
+  const idx = products.findIndex(p => p.article === req.params.article);
+  if (idx === -1) return res.status(404).json({ error: 'Товар не найден' });
+  const [removed] = products.splice(idx, 1);
+  writeJSON(PRODUCTS_FILE, products);
+  deleteProductFiles(removed);
+  res.json({ ok: true });
 });
 
 app.post('/api/admin/products/:article/image', authMiddleware, uploadImg.single('image'), (req, res) => {

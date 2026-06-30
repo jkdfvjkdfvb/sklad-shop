@@ -78,20 +78,50 @@
       <h2 class="section-title">Управление товарами</h2>
       <div class="table-toolbar">
         <input class="table-search" type="search" id="table-search" placeholder="Поиск по названию или артикулу…">
+        <div class="bulk-actions" id="bulk-actions" style="display:none">
+          <span id="bulk-count" class="bulk-count"></span>
+          <button class="btn btn-primary btn-sm" id="bulk-save-btn">Сохранить выбранные</button>
+          <button class="btn btn-danger btn-sm" id="bulk-delete-btn">Удалить выбранные</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
+              <th><input type="checkbox" id="select-all-checkbox" title="Выбрать все"></th>
               <th>Артикул</th><th>Фото</th><th>Наименование</th>
               <th>Кол-во</th><th>Цена, ₽</th><th>Показывать</th>
               <th>Медиа</th><th>Действия</th>
             </tr>
           </thead>
           <tbody id="products-tbody">
-            <tr><td colspan="8" style="text-align:center;padding:30px;color:#6b7280">Загрузка…</td></tr>
+            <tr><td colspan="9" style="text-align:center;padding:30px;color:#6b7280">Загрузка…</td></tr>
           </tbody>
         </table>
+      </div>
+      <!-- Product edit modal -->
+      <div id="product-edit-overlay" class="order-detail-overlay" style="display:none">
+        <div class="order-detail-box">
+          <div class="order-detail-header">
+            <h3 id="pe-title">Редактирование товара</h3>
+            <button class="cart-close" id="pe-close">✕</button>
+          </div>
+          <div id="pe-body">
+            <div class="form-group">
+              <label>Фото</label>
+              <div class="pe-img-row">
+                <img id="pe-img-preview" class="thumb pe-img-preview" src="" alt="">
+                <label class="upload-label">📷 Заменить фото<input type="file" id="pe-img-input" accept="image/*"></label>
+              </div>
+            </div>
+            <div class="form-group"><label>Наименование</label><input type="text" id="pe-name"></div>
+            <div class="form-group"><label>Описание</label><textarea id="pe-description" rows="5"></textarea></div>
+            <div class="form-footer">
+              <button class="btn btn-primary" id="pe-save-btn">Сохранить</button>
+              <span id="pe-status" class="save-contacts-status"></span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
