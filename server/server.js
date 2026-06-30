@@ -145,7 +145,7 @@ function productPageHtml(product, contacts, siteUrl) {
     <article class="product-detail" itemscope itemtype="https://schema.org/Product">
       <div class="product-detail-media">
         ${imageUrl
-          ? `<img src="${escH(product.image)}" alt="${escH(product.name)}" class="product-detail-img" itemprop="image">`
+          ? `<img src="/${escH(product.image)}" alt="${escH(product.name)}" class="product-detail-img" itemprop="image">`
           : '<div class="product-detail-no-img">Нет фото</div>'}
         ${product.video
           ? `<button class="card-video-btn" id="video-btn" data-video="${escH(product.video)}">&#9654; Видео</button>`
@@ -212,7 +212,7 @@ window.PRODUCT_DATA = ${JSON.stringify({
   name:    product.name,
   price:   product.price,
   qty:     product.qty,
-  image:   product.image || '',
+  image:   product.image ? '/' + product.image : '',
 })};
 </script>
 <script src="/js/product.js"></script>
