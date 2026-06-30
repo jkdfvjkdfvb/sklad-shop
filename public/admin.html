@@ -115,7 +115,22 @@
               </div>
             </div>
             <div class="form-group"><label>Наименование</label><input type="text" id="pe-name"></div>
-            <div class="form-group"><label>Описание</label><textarea id="pe-description" rows="5"></textarea></div>
+            <div class="form-group"><label>Описание</label><textarea id="pe-description" rows="4"></textarea></div>
+            <div class="form-group">
+              <label>Категория</label>
+              <input type="text" id="pe-category" list="dl-category" placeholder="Брелок, Часы, Набор…">
+              <datalist id="dl-category"></datalist>
+            </div>
+            <div class="form-group">
+              <label>Материал</label>
+              <input type="text" id="pe-material" list="dl-material" placeholder="Металл, Пластик, Кожа…">
+              <datalist id="dl-material"></datalist>
+            </div>
+            <div class="form-group">
+              <label>Цвет</label>
+              <input type="text" id="pe-color" list="dl-color" placeholder="Чёрный, Серебро, Синий…">
+              <datalist id="dl-color"></datalist>
+            </div>
             <div class="form-footer">
               <button class="btn btn-primary" id="pe-save-btn">Сохранить</button>
               <span id="pe-status" class="save-contacts-status"></span>

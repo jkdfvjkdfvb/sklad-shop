@@ -6,7 +6,10 @@
     "price": 191,
     "image": "images/140812.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Авторучка",
+    "material": "Дерево",
+    "color": "Красный"
   },
   {
     "article": "220223",
@@ -15,7 +18,10 @@
     "price": 105,
     "image": "images/220223.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Брелок",
+    "material": "Металл",
+    "color": ""
   },
   {
     "article": "220323",
@@ -24,7 +30,10 @@
     "price": 103,
     "image": "images/220323.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Брелок",
+    "material": "Металл",
+    "color": ""
   },
   {
     "article": "220423",
@@ -33,7 +42,10 @@
     "price": 37,
     "image": "images/220423.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Брелок",
+    "material": "Металл",
+    "color": ""
   },
   {
     "article": "230223",
@@ -42,7 +54,10 @@
     "price": 20,
     "image": "images/230223.png",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Брелок",
+    "material": "Металл",
+    "color": ""
   },
   {
     "article": "230352",
@@ -51,7 +66,10 @@
     "price": 51,
     "image": "images/230352.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Брелок",
+    "material": "Пластик",
+    "color": "Белый"
   },
   {
     "article": "240302",
@@ -60,7 +78,10 @@
     "price": 22,
     "image": "images/240302.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Брелок",
+    "material": "",
+    "color": ""
   },
   {
     "article": "240923",
@@ -69,7 +90,10 @@
     "price": 139,
     "image": "images/240923.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Брелок",
+    "material": "",
+    "color": ""
   },
   {
     "article": "250120",
@@ -78,7 +102,10 @@
     "price": 40,
     "image": "images/250120.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Брелок",
+    "material": "",
+    "color": "Коричневый"
   },
   {
     "article": "250255",
@@ -87,7 +114,10 @@
     "price": 52,
     "image": "images/250255.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Брелок",
+    "material": "Акрил",
+    "color": "Синий"
   },
   {
     "article": "260223",
@@ -96,7 +126,10 @@
     "price": 122,
     "image": "images/260223.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Брелок",
+    "material": "Металл",
+    "color": "Серый"
   },
   {
     "article": "260702",
@@ -105,7 +138,10 @@
     "price": 30,
     "image": "images/260702.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Брелок",
+    "material": "Пластик",
+    "color": "Белый"
   },
   {
     "article": "282423",
@@ -114,7 +150,10 @@
     "price": 1495,
     "image": "images/282423.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Метеостанция",
+    "material": "",
+    "color": ""
   },
   {
     "article": "282523",
@@ -123,7 +162,10 @@
     "price": 1390,
     "image": "images/282523.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Метеостанция",
+    "material": "",
+    "color": ""
   },
   {
     "article": "282631",
@@ -132,7 +174,10 @@
     "price": 70,
     "image": "images/282631.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Часы",
+    "material": "Пластик",
+    "color": "Серебро"
   },
   {
     "article": "282751",
@@ -141,7 +186,10 @@
     "price": 159,
     "image": "images/282751.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Часы",
+    "material": "",
+    "color": "Чёрный"
   },
   {
     "article": "282755",
@@ -150,7 +198,10 @@
     "price": 159,
     "image": "images/282755.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Часы",
+    "material": "",
+    "color": "Синий"
   },
   {
     "article": "340223",
@@ -159,7 +210,10 @@
     "price": 23,
     "image": "images/340223.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Часы",
+    "material": "",
+    "color": ""
   },
   {
     "article": "340423",
@@ -168,7 +222,10 @@
     "price": 251,
     "image": "images/340423.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Часы",
+    "material": "Металл",
+    "color": "Серебро"
   },
   {
     "article": "340601",
@@ -177,7 +234,10 @@
     "price": 607,
     "image": "images/340601.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Часы",
+    "material": "Металл",
+    "color": ""
   },
   {
     "article": "431223",
@@ -186,7 +246,10 @@
     "price": 233,
     "image": "images/431223.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Калькулятор",
+    "material": "",
+    "color": "Серебро"
   },
   {
     "article": "440105",
@@ -195,7 +258,10 @@
     "price": 172,
     "image": "images/440105.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Прочее",
+    "material": "Пластик",
+    "color": "Синий"
   },
   {
     "article": "450745",
@@ -204,7 +270,10 @@
     "price": 295,
     "image": "images/450745.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Папка",
+    "material": "",
+    "color": "Чёрный"
   },
   {
     "article": "450945",
@@ -213,7 +282,10 @@
     "price": 233,
     "image": "images/450945.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Папка",
+    "material": "",
+    "color": "Синий"
   },
   {
     "article": "480423",
@@ -222,7 +294,10 @@
     "price": 250,
     "image": "images/480423.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Визитница",
+    "material": "Металл",
+    "color": ""
   },
   {
     "article": "480701",
@@ -231,7 +306,10 @@
     "price": 77,
     "image": "images/480701.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Визитница",
+    "material": "Металл",
+    "color": "Чёрный"
   },
   {
     "article": "480923",
@@ -240,7 +318,10 @@
     "price": 82,
     "image": "images/480923.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Визитница",
+    "material": "Металл",
+    "color": "Серебро"
   },
   {
     "article": "490215",
@@ -249,7 +330,10 @@
     "price": 58,
     "image": "images/490215.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Подставка",
+    "material": "Пластик",
+    "color": "Прозрачный"
   },
   {
     "article": "490266",
@@ -258,7 +342,10 @@
     "price": 58,
     "image": "images/490266.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Подставка",
+    "material": "Пластик",
+    "color": "Синий"
   },
   {
     "article": "491357",
@@ -267,7 +354,10 @@
     "price": 132,
     "image": "images/491357.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Авторучка",
+    "material": "Пластик",
+    "color": "Оранжевый"
   },
   {
     "article": "500102",
@@ -276,7 +366,10 @@
     "price": 58,
     "image": "images/500102.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Посуда",
+    "material": "",
+    "color": ""
   },
   {
     "article": "500522",
@@ -285,7 +378,10 @@
     "price": 70,
     "image": "images/500522.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Бэдж",
+    "material": "Пластик",
+    "color": "Золото"
   },
   {
     "article": "500523",
@@ -294,7 +390,10 @@
     "price": 67,
     "image": "images/500523.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Бэдж",
+    "material": "Пластик",
+    "color": "Серебро"
   },
   {
     "article": "501385",
@@ -303,7 +402,10 @@
     "price": 832,
     "image": "images/501385.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Глобус",
+    "material": "",
+    "color": "Золото"
   },
   {
     "article": "510201",
@@ -312,7 +414,10 @@
     "price": 6000,
     "image": "images/510201.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Портфель",
+    "material": "Кожа",
+    "color": "Чёрный"
   },
   {
     "article": "510301",
@@ -321,7 +426,10 @@
     "price": 4000,
     "image": "images/510301.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Портфель",
+    "material": "Кожа",
+    "color": "Чёрный"
   },
   {
     "article": "510701",
@@ -330,7 +438,10 @@
     "price": 250,
     "image": "images/510701.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Футляр",
+    "material": "Кожа",
+    "color": "Чёрный"
   },
   {
     "article": "530223",
@@ -339,7 +450,10 @@
     "price": 55,
     "image": "images/530223.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Футляр",
+    "material": "Металл",
+    "color": "Серебро"
   },
   {
     "article": "530301",
@@ -348,7 +462,10 @@
     "price": 210,
     "image": "images/530301.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Портфель",
+    "material": "",
+    "color": ""
   },
   {
     "article": "530801",
@@ -357,7 +474,10 @@
     "price": 102,
     "image": "images/530801.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Чехол",
+    "material": "",
+    "color": "Чёрный"
   },
   {
     "article": "530945",
@@ -366,7 +486,10 @@
     "price": 455,
     "image": "images/530945.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Портфель",
+    "material": "",
+    "color": "Чёрный"
   },
   {
     "article": "531601",
@@ -375,7 +498,10 @@
     "price": 245,
     "image": "images/531601.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Портфель",
+    "material": "Полиэстер",
+    "color": "Чёрный"
   },
   {
     "article": "531607",
@@ -384,7 +510,10 @@
     "price": 245,
     "image": "images/531607.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Портфель",
+    "material": "Полиэстер",
+    "color": "Оранжевый"
   },
   {
     "article": "540104",
@@ -393,7 +522,10 @@
     "price": 6,
     "image": "images/540104.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Открывалка",
+    "material": "Пластик",
+    "color": "Зелёный"
   },
   {
     "article": "540108",
@@ -402,7 +534,10 @@
     "price": 6,
     "image": "images/540108.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Открывалка",
+    "material": "Пластик",
+    "color": "Красный"
   },
   {
     "article": "540305",
@@ -411,7 +546,10 @@
     "price": 129,
     "image": "images/540305.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Открывалка",
+    "material": "Металл",
+    "color": "Синий"
   },
   {
     "article": "540523",
@@ -420,7 +558,10 @@
     "price": 20,
     "image": "images/540523.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Открывалка",
+    "material": "Металл",
+    "color": ""
   },
   {
     "article": "540602",
@@ -429,7 +570,10 @@
     "price": 34,
     "image": "images/540602.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Открывалка",
+    "material": "Пластик",
+    "color": ""
   },
   {
     "article": "570231",
@@ -438,7 +582,10 @@
     "price": 86,
     "image": "images/570231.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Набор",
+    "material": "Металл",
+    "color": ""
   },
   {
     "article": "570721",
@@ -447,7 +594,10 @@
     "price": 400,
     "image": "images/570721.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Набор",
+    "material": "Кожзам",
+    "color": "Коричневый"
   },
   {
     "article": "590103",
@@ -456,7 +606,10 @@
     "price": 163,
     "image": "images/590103.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Набор",
+    "material": "Пластик",
+    "color": "Серый"
   },
   {
     "article": "610423",
@@ -465,7 +618,10 @@
     "price": 117,
     "image": "images/610423.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Радиоприёмник",
+    "material": "",
+    "color": ""
   },
   {
     "article": "630302",
@@ -474,7 +630,10 @@
     "price": 117,
     "image": "images/630302.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "USB",
+    "material": "Пластик",
+    "color": "Белый"
   },
   {
     "article": "630402",
@@ -483,7 +642,10 @@
     "price": 150,
     "image": "images/630402.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "USB",
+    "material": "",
+    "color": ""
   },
   {
     "article": "640123",
@@ -492,7 +654,10 @@
     "price": 82,
     "image": "images/640123.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Набор",
+    "material": "Металл",
+    "color": ""
   },
   {
     "article": "640391",
@@ -501,7 +666,10 @@
     "price": 198,
     "image": "images/640391.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Косметичка",
+    "material": "",
+    "color": "Чёрный"
   },
   {
     "article": "640801",
@@ -510,7 +678,10 @@
     "price": 35,
     "image": "images/640801.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Набор",
+    "material": "",
+    "color": "Чёрный"
   },
   {
     "article": "660223",
@@ -519,7 +690,10 @@
     "price": 187,
     "image": "images/660223.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Набор",
+    "material": "",
+    "color": ""
   },
   {
     "article": "700105",
@@ -528,7 +702,10 @@
     "price": 210,
     "image": "images/700105.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Сумка",
+    "material": "Нейлон",
+    "color": ""
   },
   {
     "article": "720613",
@@ -537,7 +714,10 @@
     "price": 70,
     "image": "images/720613.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Прочее",
+    "material": "Дерево",
+    "color": ""
   },
   {
     "article": "721103",
@@ -546,7 +726,10 @@
     "price": 55,
     "image": "images/721103.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Прочее",
+    "material": "",
+    "color": "Серый"
   },
   {
     "article": "800205",
@@ -555,7 +738,10 @@
     "price": 41,
     "image": "images/800205.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Подушка",
+    "material": "",
+    "color": "Синий"
   },
   {
     "article": "800301",
@@ -564,7 +750,10 @@
     "price": 19,
     "image": "images/800301.png",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Зеркало",
+    "material": "Пластик",
+    "color": "Чёрный"
   },
   {
     "article": "800452",
@@ -573,7 +762,10 @@
     "price": 18,
     "image": "images/800452.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Зеркало",
+    "material": "Пластик",
+    "color": "Белый"
   },
   {
     "article": "800455",
@@ -582,7 +774,10 @@
     "price": 18,
     "image": "images/800455.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Зеркало",
+    "material": "Пластик",
+    "color": "Синий"
   },
   {
     "article": "880216",
@@ -591,7 +786,10 @@
     "price": 878,
     "image": "images/880216.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Платок",
+    "material": "",
+    "color": ""
   },
   {
     "article": "890225",
@@ -600,7 +798,10 @@
     "price": 67,
     "image": "images/890225.png",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Игрушка",
+    "material": "Металл",
+    "color": ""
   },
   {
     "article": "900705",
@@ -609,7 +810,10 @@
     "price": 239,
     "image": "images/900705.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Зонт",
+    "material": "",
+    "color": "Синий"
   },
   {
     "article": "940631",
@@ -618,6 +822,9 @@
     "price": 70,
     "image": "images/940631.jpeg",
     "video": "",
-    "visible": true
+    "visible": true,
+    "category": "Бинокль",
+    "material": "",
+    "color": "Серебро"
   }
 ]

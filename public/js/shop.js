@@ -3,6 +3,9 @@
 let allProducts = [];
 let contacts = {};
 
+// ======== FILTER STATE ========
+const selected = { category: new Set(), material: new Set(), color: new Set() };
+
 // ======== CART STATE ========
 let cart = JSON.parse(localStorage.getItem('cart') || '[]');
 
@@ -173,12 +176,59 @@ document.getElementById('order-btn').addEventListener('click', async () => {
   }
 });
 
+// ======== FILTERS ========
+function buildFilters() {
+  const groups = { category: {}, material: {}, color: {} };
+  for (const p of allProducts) {
+    for (const key of ['category', 'material', 'color']) {
+      const val = p[key];
+      if (!val) continue;
+      groups[key][val] = (groups[key][val] || 0) + 1;
+    }
+  }
+
+  document.querySelectorAll('.filter-group').forEach(group => {
+    const key = group.dataset.key;
+    const counts = groups[key];
+    const container = group.querySelector('.filter-options');
+    const sorted = Object.entries(counts).sort((a, b) => a[0].localeCompare(b[0], 'ru'));
+    container.innerHTML = sorted.map(([val, cnt]) => `
+      <label class="filter-option">
+        <input type="checkbox" data-key="${escAttr(key)}" data-value="${escAttr(val)}">
+        <span class="filter-option-name">${escHtml(val)}</span>
+        <span class="filter-option-count">${cnt}</span>
+      </label>`).join('');
+  });
+
+  document.querySelectorAll('.filter-options input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const { key, value } = cb.dataset;
+      if (cb.checked) selected[key].add(value);
+      else selected[key].delete(value);
+      applyFilters();
+    });
+  });
+}
+
+function applyFilters() {
+  const q = document.getElementById('search-input').value.toLowerCase().trim();
+  const result = allProducts.filter(p => {
+    if (q && !p.name.toLowerCase().includes(q) && !p.article.includes(q)) return false;
+    for (const key of ['category', 'material', 'color']) {
+      if (selected[key].size && !selected[key].has(p[key])) return false;
+    }
+    return true;
+  });
+  renderProducts(result);
+}
+
 // ======== DATA LOADING ========
 async function loadData() {
   const [prodRes, contRes] = await Promise.all([fetch('/api/products'), fetch('/api/contacts')]);
   allProducts = await prodRes.json();
   contacts    = await contRes.json();
   renderContacts();
+  buildFilters();
   renderProducts(allProducts);
   updateCartBadge();
   renderCartItems();
@@ -240,12 +290,22 @@ function renderProducts(list) {
 }
 
 // ======== SEARCH ========
-document.getElementById('search-form').addEventListener('submit', e => { e.preventDefault(); filterProducts(); });
-document.getElementById('search-input').addEventListener('input', filterProducts);
-function filterProducts() {
-  const q = document.getElementById('search-input').value.toLowerCase().trim();
-  renderProducts(q ? allProducts.filter(p => p.name.toLowerCase().includes(q) || p.article.includes(q)) : allProducts);
-}
+document.getElementById('search-form').addEventListener('submit', e => { e.preventDefault(); applyFilters(); });
+document.getElementById('search-input').addEventListener('input', applyFilters);
+
+// ======== FILTER CONTROLS ========
+document.getElementById('filter-reset').addEventListener('click', () => {
+  for (const key of ['category', 'material', 'color']) selected[key].clear();
+  document.querySelectorAll('.filter-options input[type=checkbox]').forEach(cb => { cb.checked = false; });
+  applyFilters();
+});
+
+document.getElementById('filter-toggle').addEventListener('click', () => {
+  const sidebar = document.getElementById('filter-sidebar');
+  const btn = document.getElementById('filter-toggle');
+  const open = sidebar.classList.toggle('open');
+  btn.textContent = open ? 'Фильтры ✕' : 'Фильтры ▾';
+});
 
 // ======== VIDEO MODAL ========
 const modal      = document.getElementById('video-modal');

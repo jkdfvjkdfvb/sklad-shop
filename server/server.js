@@ -204,13 +204,16 @@ app.put('/api/admin/products/:article', authMiddleware, (req, res) => {
   const products = readJSON(PRODUCTS_FILE, []);
   const idx = products.findIndex(p => p.article === req.params.article);
   if (idx === -1) return res.status(404).json({ error: 'Товар не найден' });
-  const { qty, price, visible, video, name, description } = req.body;
+  const { qty, price, visible, video, name, description, category, material, color } = req.body;
   if (qty         !== undefined) products[idx].qty         = parseInt(qty, 10);
   if (price       !== undefined) products[idx].price       = parseInt(price, 10);
   if (visible     !== undefined) products[idx].visible     = Boolean(visible);
   if (video       !== undefined) products[idx].video       = video;
   if (name        !== undefined) products[idx].name        = name;
   if (description !== undefined) products[idx].description = description;
+  if (category     !== undefined) products[idx].category    = category;
+  if (material     !== undefined) products[idx].material    = material;
+  if (color        !== undefined) products[idx].color       = color;
   writeJSON(PRODUCTS_FILE, products);
   res.json(products[idx]);
 });

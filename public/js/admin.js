@@ -374,6 +374,17 @@ function openEditModal(art) {
   document.getElementById('pe-img-preview').src = p.image || '';
   document.getElementById('pe-name').value = p.name || '';
   document.getElementById('pe-description').value = p.description || '';
+  document.getElementById('pe-category').value = p.category || '';
+  document.getElementById('pe-material').value = p.material || '';
+  document.getElementById('pe-color').value = p.color || '';
+
+  // populate datalists with unique values from all products
+  for (const key of ['category', 'material', 'color']) {
+    const vals = [...new Set(allProducts.map(x => x[key]).filter(Boolean))].sort((a,b) => a.localeCompare(b, 'ru'));
+    const dl = document.getElementById(`dl-${key}`);
+    dl.innerHTML = vals.map(v => `<option value="${escAttr(v)}">`).join('');
+  }
+
   document.getElementById('pe-status').style.display = 'none';
   document.getElementById('product-edit-overlay').style.display = 'flex';
 }
@@ -413,14 +424,17 @@ document.getElementById('pe-save-btn').addEventListener('click', async () => {
   const art = editingArticle;
   const name = document.getElementById('pe-name').value.trim();
   const description = document.getElementById('pe-description').value;
+  const category = document.getElementById('pe-category').value.trim();
+  const material = document.getElementById('pe-material').value.trim();
+  const color = document.getElementById('pe-color').value.trim();
   const res = await apiFetch(`/api/admin/products/${art}`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, description })
+    body: JSON.stringify({ name, description, category, material, color })
   });
   const statusEl = document.getElementById('pe-status');
   if (res.ok) {
     const p = allProducts.find(p => p.article === art);
-    if (p) { p.name = name; p.description = description; }
+    if (p) { p.name = name; p.description = description; p.category = category; p.material = material; p.color = color; }
     const row = document.querySelector(`#products-tbody tr[data-article="${art}"]`);
     if (row) row.children[3].textContent = name;
     document.getElementById('pe-title').textContent = `Редактирование: ${name}`;
