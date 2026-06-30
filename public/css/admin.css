@@ -160,11 +160,13 @@ td { padding: 10px 14px; vertical-align: middle; font-size: .88rem; }
 
 .pe-img-row { display: flex; align-items: center; gap: 14px; }
 .pe-img-preview { width: 90px; height: 90px; }
-#pe-description {
+#pe-description,
+#pe-meta-desc {
   width: 100%; border: 1.5px solid var(--border); border-radius: 8px;
   padding: 10px 14px; font-size: .9rem; font-family: inherit; outline: none; resize: vertical;
 }
-#pe-description:focus { border-color: var(--primary); }
+#pe-description:focus,
+#pe-meta-desc:focus { border-color: var(--primary); }
 
 /* ====== ORDERS ====== */
 .status-badge {

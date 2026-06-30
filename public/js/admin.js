@@ -374,6 +374,8 @@ function openEditModal(art) {
   document.getElementById('pe-img-preview').src = p.image || '';
   document.getElementById('pe-name').value = p.name || '';
   document.getElementById('pe-description').value = p.description || '';
+  document.getElementById('pe-meta-title').value = p.meta_title || '';
+  document.getElementById('pe-meta-desc').value  = p.meta_description || '';
   document.getElementById('pe-category').value = p.category || '';
   document.getElementById('pe-material').value = p.material || '';
   document.getElementById('pe-color').value = p.color || '';
@@ -422,19 +424,21 @@ document.getElementById('pe-img-input').addEventListener('change', async functio
 document.getElementById('pe-save-btn').addEventListener('click', async () => {
   if (!editingArticle) return;
   const art = editingArticle;
-  const name = document.getElementById('pe-name').value.trim();
+  const name        = document.getElementById('pe-name').value.trim();
   const description = document.getElementById('pe-description').value;
+  const meta_title       = document.getElementById('pe-meta-title').value.trim();
+  const meta_description = document.getElementById('pe-meta-desc').value.trim();
   const category = document.getElementById('pe-category').value.trim();
   const material = document.getElementById('pe-material').value.trim();
-  const color = document.getElementById('pe-color').value.trim();
+  const color    = document.getElementById('pe-color').value.trim();
   const res = await apiFetch(`/api/admin/products/${art}`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, description, category, material, color })
+    body: JSON.stringify({ name, description, meta_title, meta_description, category, material, color })
   });
   const statusEl = document.getElementById('pe-status');
   if (res.ok) {
     const p = allProducts.find(p => p.article === art);
-    if (p) { p.name = name; p.description = description; p.category = category; p.material = material; p.color = color; }
+    if (p) { p.name = name; p.description = description; p.meta_title = meta_title; p.meta_description = meta_description; p.category = category; p.material = material; p.color = color; }
     const row = document.querySelector(`#products-tbody tr[data-article="${art}"]`);
     if (row) row.children[3].textContent = name;
     document.getElementById('pe-title').textContent = `Редактирование: ${name}`;

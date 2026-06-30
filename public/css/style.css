@@ -176,8 +176,13 @@ body { font-family: 'Segoe UI', Arial, sans-serif; color: var(--text); backgroun
 }
 .product-card:hover .card-img-wrap img { transform: scale(1.05); }
 .card-body { padding: 14px 14px 16px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.card-img-link { display: block; text-decoration: none; }
 .card-article { font-size: .75rem; color: var(--muted); }
-.card-name { font-size: .92rem; font-weight: 600; line-height: 1.4; flex: 1; }
+.card-name {
+  font-size: .92rem; font-weight: 600; line-height: 1.4; flex: 1;
+  color: var(--text); text-decoration: none;
+}
+.card-name:hover { color: var(--primary); }
 .card-price { font-size: 1.15rem; font-weight: 700; color: var(--primary); }
 .card-qty { font-size: .8rem; }
 .card-qty.in-stock { color: #16a34a; }

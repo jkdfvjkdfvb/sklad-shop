@@ -34,6 +34,191 @@ function authMiddleware(req, res, next) {
   if (!sessions.has(req.headers['x-admin-token'])) return res.status(401).json({ error: 'Unauthorized' });
   next();
 }
+function escH(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function productPageHtml(product, contacts, siteUrl) {
+  const pageUrl  = `${siteUrl}/product/${product.article}`;
+  const imageUrl = product.image ? `${siteUrl}/${product.image}` : '';
+  const siteName = 'СкладПромо';
+  const inStock  = product.qty > 0;
+
+  const autoDesc = [
+    product.name,
+    product.description ? '' : null,
+    `Арт. ${product.article}`,
+    `Цена: ${product.price} ₽`,
+    inStock ? `В наличии: ${product.qty} шт.` : 'Нет в наличии',
+    product.material || null,
+    product.color    || null,
+  ].filter(v => v !== null).join('. ');
+
+  const title   = product.meta_title       || `${product.name} — ${siteName}`;
+  const metaDesc = product.meta_description || (product.description
+    ? `${product.name}. ${product.description.slice(0, 140)}`
+    : autoDesc);
+
+  const priceValid = new Date(Date.now() + 30 * 24 * 3600000).toISOString().split('T')[0];
+
+  const productLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description || metaDesc,
+    sku: product.article,
+    brand: { '@type': 'Brand', name: siteName },
+    offers: {
+      '@type': 'Offer',
+      price: product.price,
+      priceCurrency: 'RUB',
+      availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      url: pageUrl,
+      priceValidUntil: priceValid,
+    },
+  };
+  if (imageUrl) productLd.image = imageUrl;
+  if (product.category) productLd.category = product.category;
+
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Главная', item: `${siteUrl}/` },
+      { '@type': 'ListItem', position: 2, name: 'Каталог', item: `${siteUrl}/` },
+      { '@type': 'ListItem', position: 3, name: product.name, item: pageUrl },
+    ],
+  };
+
+  const attrs = [
+    product.category && ['Категория', product.category],
+    product.material && ['Материал',  product.material],
+    product.color    && ['Цвет',      product.color],
+  ].filter(Boolean);
+
+  const phone = contacts.phone || '';
+
+  return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escH(title)}</title>
+  <meta name="description" content="${escH(metaDesc)}">
+  <meta property="og:title"       content="${escH(title)}">
+  <meta property="og:description" content="${escH(metaDesc)}">
+  <meta property="og:type"        content="product">
+  <meta property="og:url"         content="${escH(pageUrl)}">
+  <meta property="og:site_name"   content="${escH(siteName)}">
+  ${imageUrl ? `<meta property="og:image" content="${escH(imageUrl)}">` : ''}
+  <link rel="canonical" href="${escH(pageUrl)}">
+  <script type="application/ld+json">${JSON.stringify(productLd)}</script>
+  <script type="application/ld+json">${JSON.stringify(breadcrumbLd)}</script>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/product.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="/" class="logo">Склад<span>Промо</span></a>
+    <div class="header-contacts" style="margin-left:auto">
+      <a href="tel:${phone.replace(/\D/g,'')}" class="header-phone">${escH(phone)}</a>
+      <div class="messenger-links">
+        <a href="${escH(contacts.max||'#')}" class="msg-btn max" target="_blank" rel="noopener" title="MAX">M</a>
+        <a href="${escH(contacts.telegram||'#')}" class="msg-btn tg" target="_blank" rel="noopener" title="Telegram">TG</a>
+        <a href="${escH(contacts.vk||'#')}" class="msg-btn vk" target="_blank" rel="noopener" title="ВКонтакте">VK</a>
+      </div>
+      <button class="cart-btn" id="cart-btn" aria-label="Корзина">🛒<span class="cart-badge" id="cart-badge">0</span></button>
+    </div>
+  </div>
+</header>
+
+<main class="product-page-main">
+  <div class="product-page-wrap">
+    <nav class="breadcrumb" aria-label="Навигация">
+      <a href="/">Главная</a><span class="bc-sep">›</span>
+      <a href="/">Каталог</a><span class="bc-sep">›</span>
+      <span>${escH(product.name)}</span>
+    </nav>
+
+    <article class="product-detail" itemscope itemtype="https://schema.org/Product">
+      <div class="product-detail-media">
+        ${imageUrl
+          ? `<img src="${escH(product.image)}" alt="${escH(product.name)}" class="product-detail-img" itemprop="image">`
+          : '<div class="product-detail-no-img">Нет фото</div>'}
+        ${product.video
+          ? `<button class="card-video-btn" id="video-btn" data-video="${escH(product.video)}">&#9654; Видео</button>`
+          : ''}
+      </div>
+
+      <div class="product-detail-info">
+        <p class="product-detail-article">Арт. <span itemprop="sku">${escH(product.article)}</span></p>
+        <h1 class="product-detail-name" itemprop="name">${escH(product.name)}</h1>
+        <div itemprop="offers" itemscope itemtype="https://schema.org/Offer">
+          <p class="product-detail-price"><span itemprop="price" content="${product.price}">${product.price}</span> ₽
+            <meta itemprop="priceCurrency" content="RUB">
+            <link itemprop="availability" href="${inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}">
+          </p>
+        </div>
+        <p class="product-detail-qty ${inStock ? 'in-stock' : 'out-stock'}">
+          ${inStock ? `В наличии: ${product.qty} шт.` : 'Нет в наличии'}
+        </p>
+        ${product.description ? `<p class="product-detail-desc" itemprop="description">${escH(product.description)}</p>` : ''}
+        ${attrs.length ? `
+        <table class="product-attrs">
+          ${attrs.map(([k,v]) => `<tr><th>${escH(k)}</th><td>${escH(v)}</td></tr>`).join('')}
+        </table>` : ''}
+        ${inStock ? `<button class="add-to-cart-btn" id="add-btn" data-article="${escH(product.article)}">В корзину</button>` : ''}
+        <a href="/" class="back-link">← Вернуться в каталог</a>
+      </div>
+    </article>
+  </div>
+</main>
+
+<div class="cart-overlay" id="cart-overlay"></div>
+<div class="cart-drawer" id="cart-drawer" aria-label="Корзина">
+  <div class="cart-header">
+    <span>Корзина</span>
+    <button class="cart-close" id="cart-close" aria-label="Закрыть">✕</button>
+  </div>
+  <div class="cart-items" id="cart-items"><p class="cart-empty">Корзина пуста</p></div>
+  <div class="cart-footer" id="cart-footer" style="display:none">
+    <div class="cart-total"><span>Итого:</span><span id="cart-total-val">0 ₽</span></div>
+    <div class="checkout-form" id="checkout-form">
+      <input type="text" id="co-name" placeholder="Ваше имя *" required>
+      <input type="tel"  id="co-phone" placeholder="Телефон *" required>
+      <textarea id="co-comment" placeholder="Комментарий к заказу"></textarea>
+      <button class="order-btn" id="order-btn">Оформить заказ</button>
+    </div>
+    <div class="order-success" id="order-success">
+      <h3>✅ Заказ принят!</h3>
+      <p id="order-success-text">Мы свяжемся с вами в ближайшее время.</p>
+      <button class="add-to-cart-btn" id="order-new-btn" style="margin-top:12px">Продолжить покупки</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="video-modal" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <button class="modal-close" id="modal-close" aria-label="Закрыть">✕</button>
+    <video id="modal-video" controls playsinline></video>
+  </div>
+</div>
+
+<script>
+window.PRODUCT_DATA = ${JSON.stringify({
+  article: product.article,
+  name:    product.name,
+  price:   product.price,
+  qty:     product.qty,
+  image:   product.image || '',
+})};
+</script>
+<script src="/js/product.js"></script>
+</body>
+</html>`;
+}
 
 // --- multer ---
 const imgStorage = multer.diskStorage({
@@ -214,6 +399,9 @@ app.put('/api/admin/products/:article', authMiddleware, (req, res) => {
   if (category     !== undefined) products[idx].category    = category;
   if (material     !== undefined) products[idx].material    = material;
   if (color        !== undefined) products[idx].color       = color;
+  const { meta_title, meta_description } = req.body;
+  if (meta_title       !== undefined) products[idx].meta_title       = meta_title;
+  if (meta_description !== undefined) products[idx].meta_description = meta_description;
   writeJSON(PRODUCTS_FILE, products);
   res.json(products[idx]);
 });
@@ -305,6 +493,17 @@ app.put('/api/admin/contacts', authMiddleware, (req, res) => {
   }
   writeJSON(CONTACTS_FILE, contacts);
   res.json({ ok: true });
+});
+
+// ==================== Product pages (SSR) ====================
+
+app.get('/product/:article', (req, res) => {
+  const products = readJSON(PRODUCTS_FILE, []);
+  const product  = products.find(p => p.article === req.params.article && p.visible);
+  if (!product) return res.redirect('/');
+  const contacts = readJSON(CONTACTS_FILE, {});
+  const siteUrl  = `${req.protocol}://${req.get('host')}`;
+  res.send(productPageHtml(product, contacts, siteUrl));
 });
 
 // ==================== Start ====================
