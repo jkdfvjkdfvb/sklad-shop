@@ -187,17 +187,40 @@ function buildFilters() {
     }
   }
 
+  const CATEGORY_LIMIT = 6;
+
   document.querySelectorAll('.filter-group').forEach(group => {
     const key = group.dataset.key;
     const counts = groups[key];
     const container = group.querySelector('.filter-options');
     const sorted = Object.entries(counts).sort((a, b) => a[0].localeCompare(b[0], 'ru'));
-    container.innerHTML = sorted.map(([val, cnt]) => `
-      <label class="filter-option">
+
+    const makeOption = ([val, cnt], hidden) => `
+      <label class="filter-option${hidden ? ' filter-extra' : ''}"${hidden ? ' style="display:none"' : ''}>
         <input type="checkbox" data-key="${escAttr(key)}" data-value="${escAttr(val)}">
         <span class="filter-option-name">${escHtml(val)}</span>
         <span class="filter-option-count">${cnt}</span>
-      </label>`).join('');
+      </label>`;
+
+    const useLimit = key === 'category' && sorted.length > CATEGORY_LIMIT;
+    const visible = useLimit ? sorted.slice(0, CATEGORY_LIMIT) : sorted;
+    const extra   = useLimit ? sorted.slice(CATEGORY_LIMIT) : [];
+
+    container.innerHTML =
+      visible.map(e => makeOption(e, false)).join('') +
+      extra.map(e => makeOption(e, true)).join('') +
+      (useLimit ? `<button class="filter-show-more" data-expanded="0">Показать ещё (${extra.length})</button>` : '');
+
+    if (useLimit) {
+      container.querySelector('.filter-show-more').addEventListener('click', function () {
+        const expanded = this.dataset.expanded === '1';
+        container.querySelectorAll('.filter-extra').forEach(el => {
+          el.style.display = expanded ? 'none' : '';
+        });
+        this.dataset.expanded = expanded ? '0' : '1';
+        this.textContent = expanded ? `Показать ещё (${extra.length})` : 'Скрыть';
+      });
+    }
   });
 
   document.querySelectorAll('.filter-options input[type=checkbox]').forEach(cb => {
@@ -297,6 +320,12 @@ document.getElementById('search-input').addEventListener('input', applyFilters);
 document.getElementById('filter-reset').addEventListener('click', () => {
   for (const key of ['category', 'material', 'color']) selected[key].clear();
   document.querySelectorAll('.filter-options input[type=checkbox]').forEach(cb => { cb.checked = false; });
+  document.querySelectorAll('.filter-extra').forEach(el => { el.style.display = 'none'; });
+  document.querySelectorAll('.filter-show-more').forEach(btn => {
+    btn.dataset.expanded = '0';
+    const n = btn.closest('.filter-options').querySelectorAll('.filter-extra').length;
+    btn.textContent = `Показать ещё (${n})`;
+  });
   applyFilters();
 });
 

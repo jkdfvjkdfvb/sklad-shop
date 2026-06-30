@@ -78,8 +78,9 @@ body { font-family: 'Segoe UI', Arial, sans-serif; color: var(--text); backgroun
 .filter-sidebar {
   background: #fff; border-radius: var(--radius);
   box-shadow: var(--card-shadow); padding: 16px;
-  position: sticky; top: 76px;
-  max-height: calc(100vh - 96px); overflow-y: auto;
+  position: sticky; top: var(--header-h);
+  height: calc(100vh - var(--header-h));
+  overflow-y: auto;
 }
 .filter-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -111,6 +112,14 @@ body { font-family: 'Segoe UI', Arial, sans-serif; color: var(--text); backgroun
 .filter-option-name { flex: 1; color: var(--text); }
 .filter-option-count { font-size: .75rem; color: var(--muted); background: #f3f4f6; border-radius: 10px; padding: 1px 6px; }
 .filter-option input:checked ~ .filter-option-name { color: var(--primary); font-weight: 600; }
+
+.filter-show-more {
+  background: none; border: none; cursor: pointer;
+  font-size: .78rem; color: var(--primary); padding: 3px 0 0;
+  text-decoration: underline; text-underline-offset: 2px;
+  text-align: left; display: block; margin-top: 2px;
+}
+.filter-show-more:hover { color: var(--primary-dark); }
 
 .filter-toggle { display: none; }
 
@@ -204,7 +213,7 @@ body { font-family: 'Segoe UI', Arial, sans-serif; color: var(--text); backgroun
 @media (max-width: 860px) {
   .catalog-layout { grid-template-columns: 1fr; }
   .filter-sidebar {
-    position: static; max-height: none; overflow: visible;
+    position: static; height: auto; overflow: visible;
     display: none;
   }
   .filter-sidebar.open { display: block; }
