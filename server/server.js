@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
-const { getCategoryMeta, categorySeoName, getCategoryPageData, CATEGORY_PAGES } = require('./seo-data');
+const { getCategoryMeta, categorySeoName, getCategoryPageData, CATEGORY_PAGES, getTisnenieContent, getNanesenieHub } = require('./seo-data');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,6 +15,9 @@ const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
 const CONTACTS_FILE = path.join(DATA_DIR, 'contacts.json');
 const ORDERS_FILE   = path.join(DATA_DIR, 'orders.json');
+const TISNENIE_FILE = path.join(DATA_DIR, 'tisnenie.json');
+const PORTFOLIO_DIR = path.join(PUBLIC_DIR, 'images', 'portfolio');
+if (!fs.existsSync(PORTFOLIO_DIR)) fs.mkdirSync(PORTFOLIO_DIR, { recursive: true });
 
 const sessions = new Set();
 
@@ -230,6 +233,13 @@ window.PRODUCT_DATA = ${JSON.stringify({
 </html>`;
 }
 
+function linkifyTechnique(text) {
+  if (/тиснен/i.test(text)) {
+    return escH(text).replace(/(Тиснение[^(]*)/i, '<a href="/nanesenie-logotipa/tisnenie/">$1</a>');
+  }
+  return escH(text);
+}
+
 function categoryPageHtml(data, products, contacts, siteUrl) {
   const pageUrl = `${siteUrl}/catalog/${data.slug}/`;
   const title = `${data.seoName} — купить под нанесение`;
@@ -349,7 +359,7 @@ ${siteHeaderHtml(contacts)}
     ${data.techniques.length ? `
     <section class="category-techniques">
       <h2>Способы нанесения логотипа</h2>
-      <ul>${data.techniques.map(t => `<li>${escH(t)}</li>`).join('')}</ul>
+      <ul>${data.techniques.map(t => `<li>${linkifyTechnique(t)}</li>`).join('')}</ul>
     </section>` : ''}
 
     <section class="category-faq">
@@ -380,6 +390,235 @@ window.CATEGORY_PRODUCTS = ${JSON.stringify(products.map(p => ({
 </html>`;
 }
 
+function nanesenieHubHtml(contacts, siteUrl) {
+  const hub = getNanesenieHub();
+  const pageUrl = `${siteUrl}/nanesenie-logotipa/`;
+
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Главная', item: `${siteUrl}/` },
+      { '@type': 'ListItem', position: 2, name: hub.seoName, item: pageUrl },
+    ],
+  };
+
+  const cardsHtml = hub.techniques.map(t => `
+    <div class="service-type-card">
+      <h3>${t.link ? `<a href="${escH(t.link)}">${escH(t.name)}</a>` : escH(t.name)}</h3>
+      <p>${escH(t.desc)}</p>
+    </div>`).join('');
+
+  return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escH(hub.title)}</title>
+  <meta name="description" content="${escH(hub.metaDescription)}">
+  <meta property="og:title"       content="${escH(hub.title)}">
+  <meta property="og:description" content="${escH(hub.metaDescription)}">
+  <meta property="og:type"        content="website">
+  <meta property="og:url"         content="${escH(pageUrl)}">
+  <meta property="og:site_name"   content="${escH(SITE_NAME)}">
+  <link rel="canonical" href="${escH(pageUrl)}">
+  <script type="application/ld+json">${JSON.stringify(breadcrumbLd)}</script>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/category.css">
+  <link rel="stylesheet" href="/css/service.css">
+</head>
+<body>
+
+${siteHeaderHtml(contacts)}
+
+<main class="category-page-main">
+  <div class="category-page-wrap">
+    <nav class="breadcrumb" aria-label="Навигация">
+      <a href="/">Главная</a><span class="bc-sep">›</span>
+      <span>${escH(hub.seoName)}</span>
+    </nav>
+
+    <h1 class="category-h1">${escH(hub.seoName)} на сувенирную и деловую продукцию</h1>
+    <p class="category-intro">${escH(hub.intro)}</p>
+
+    <section>
+      <h2>Способы нанесения</h2>
+      <div class="service-types-grid">${cardsHtml}</div>
+    </section>
+
+    <a href="/" class="back-link">← Весь каталог</a>
+  </div>
+</main>
+
+${cartAndModalHtml()}
+
+<script src="/js/service-page.js"></script>
+</body>
+</html>`;
+}
+
+function tisnenieHtml(tisnenieData, contacts, siteUrl) {
+  const page = getTisnenieContent();
+  const pageUrl = `${siteUrl}/nanesenie-logotipa/${page.slug}/`;
+  const hub = getNanesenieHub();
+
+  const serviceLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    serviceType: 'Тиснение логотипа',
+    name: page.h1,
+    description: page.metaDescription,
+    provider: { '@type': 'Organization', name: SITE_NAME },
+    areaServed: 'RU',
+    url: pageUrl,
+  };
+
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Главная', item: `${siteUrl}/` },
+      { '@type': 'ListItem', position: 2, name: hub.seoName, item: `${siteUrl}/nanesenie-logotipa/` },
+      { '@type': 'ListItem', position: 3, name: page.h1, item: pageUrl },
+    ],
+  };
+
+  const faqLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: page.faq.map(([q, a]) => ({
+      '@type': 'Question',
+      name: q,
+      acceptedAnswer: { '@type': 'Answer', text: a },
+    })),
+  };
+
+  const portfolio = tisnenieData.portfolio || [];
+  const portfolioHtml = portfolio.length
+    ? `<div class="portfolio-grid">${portfolio.map(item => `
+      <figure class="portfolio-item">
+        <img src="/${escH(item.image)}" alt="${escH(item.caption || 'Пример тиснения логотипа')}" loading="lazy">
+        ${item.caption ? `<figcaption>${escH(item.caption)}</figcaption>` : ''}
+      </figure>`).join('')}</div>`
+    : `<p class="status-msg">Портфолио пополняется — примеры выполненных работ можно запросить у менеджера.</p>`;
+
+  const videoHtml = tisnenieData.video
+    ? `<div class="service-video-wrap"><video src="/${escH(tisnenieData.video)}" controls playsinline></video></div>`
+    : `<p class="status-msg">Видео процесса тиснения появится здесь позже — пока можно запросить его у менеджера.</p>`;
+
+  const relatedHtml = page.related.length ? `
+    <section class="category-related">
+      <h2>Смежные категории</h2>
+      <div class="related-links">
+        ${page.related.map(slug => {
+          const rd = getCategoryPageData(slug);
+          return rd ? `<a href="/catalog/${escH(slug)}/">${escH(rd.seoName)}</a>` : '';
+        }).join('')}
+        <a href="/nanesenie-logotipa/">Другие способы нанесения логотипа</a>
+      </div>
+    </section>` : '';
+
+  return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escH(page.title)}</title>
+  <meta name="description" content="${escH(page.metaDescription)}">
+  <meta property="og:title"       content="${escH(page.title)}">
+  <meta property="og:description" content="${escH(page.metaDescription)}">
+  <meta property="og:type"        content="website">
+  <meta property="og:url"         content="${escH(pageUrl)}">
+  <meta property="og:site_name"   content="${escH(SITE_NAME)}">
+  <link rel="canonical" href="${escH(pageUrl)}">
+  <script type="application/ld+json">${JSON.stringify(serviceLd)}</script>
+  <script type="application/ld+json">${JSON.stringify(breadcrumbLd)}</script>
+  <script type="application/ld+json">${JSON.stringify(faqLd)}</script>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/category.css">
+  <link rel="stylesheet" href="/css/service.css">
+</head>
+<body>
+
+${siteHeaderHtml(contacts)}
+
+<main class="category-page-main">
+  <div class="category-page-wrap">
+    <nav class="breadcrumb" aria-label="Навигация">
+      <a href="/">Главная</a><span class="bc-sep">›</span>
+      <a href="/nanesenie-logotipa/">${escH(hub.seoName)}</a><span class="bc-sep">›</span>
+      <span>${escH(page.h1)}</span>
+    </nav>
+
+    <h1 class="category-h1">${escH(page.h1)}</h1>
+    <p class="category-intro">${escH(page.intro)}</p>
+
+    <section>
+      <h2>Виды тиснения</h2>
+      <table class="service-table">
+        <thead><tr><th>Вид</th><th>Особенности</th></tr></thead>
+        <tbody>${page.types.map(([name, desc]) => `<tr><td>${escH(name)}</td><td>${escH(desc)}</td></tr>`).join('')}</tbody>
+      </table>
+    </section>
+
+    <section class="category-tasks">
+      <h2>На каких изделиях делаем тиснение</h2>
+      <ul>${page.items.map(t => `<li>${escH(t)}</li>`).join('')}</ul>
+    </section>
+
+    <section>
+      <h2>Материалы: кожа, кожзам, экокожа</h2>
+      <table class="service-table">
+        <thead><tr><th>Материал</th><th>Особенности тиснения</th></tr></thead>
+        <tbody>${page.materials.map(([name, desc]) => `<tr><td>${escH(name)}</td><td>${escH(desc)}</td></tr>`).join('')}</tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Какой вариант выбрать</h2>
+      <table class="service-table">
+        <thead><tr><th>Задача</th><th>Рекомендуемое тиснение</th></tr></thead>
+        <tbody>${page.chooseTable.map(([task, rec]) => `<tr><td>${escH(task)}</td><td>${escH(rec)}</td></tr>`).join('')}</tbody>
+      </table>
+    </section>
+
+    <section class="portfolio-section">
+      <h2>Портфолио выполненных работ</h2>
+      ${portfolioHtml}
+    </section>
+
+    <section class="video-section">
+      <h2>Видео процесса нанесения</h2>
+      ${videoHtml}
+    </section>
+
+    <section class="category-tasks">
+      <h2>От чего зависит стоимость тиснения</h2>
+      <ul>${page.costFactors.map(t => `<li>${escH(t)}</li>`).join('')}</ul>
+    </section>
+
+    <section class="category-faq">
+      <h2>Частые вопросы</h2>
+      ${page.faq.map(([q, a]) => `
+        <details class="faq-item">
+          <summary>${escH(q)}</summary>
+          <p>${escH(a)}</p>
+        </details>`).join('')}
+    </section>
+
+    ${relatedHtml}
+
+    <a href="/" class="back-link">← Весь каталог</a>
+  </div>
+</main>
+
+${cartAndModalHtml()}
+
+<script src="/js/service-page.js"></script>
+</body>
+</html>`;
+}
+
 // --- multer ---
 const imgStorage = multer.diskStorage({
   destination: path.join(PUBLIC_DIR, 'images'),
@@ -391,6 +630,17 @@ const vidStorage = multer.diskStorage({
 });
 const uploadImg = multer({ storage: imgStorage, limits: { fileSize: 20 * 1024 * 1024 } });
 const uploadVid = multer({ storage: vidStorage, limits: { fileSize: 200 * 1024 * 1024 } });
+
+const portfolioStorage = multer.diskStorage({
+  destination: PORTFOLIO_DIR,
+  filename: (req, file, cb) => cb(null, crypto.randomBytes(8).toString('hex') + path.extname(file.originalname))
+});
+const tisnenieVidStorage = multer.diskStorage({
+  destination: path.join(PUBLIC_DIR, 'media'),
+  filename: (req, file, cb) => cb(null, 'tisnenie-process' + path.extname(file.originalname))
+});
+const uploadPortfolioImg  = multer({ storage: portfolioStorage,    limits: { fileSize: 20 * 1024 * 1024 } });
+const uploadTisnenieVideo = multer({ storage: tisnenieVidStorage,  limits: { fileSize: 300 * 1024 * 1024 } });
 
 // ==================== Notifications ====================
 
@@ -655,6 +905,63 @@ app.put('/api/admin/contacts', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
+// ==================== Admin: Тиснение (портфолио/видео) ====================
+
+const TISNENIE_DEFAULT = { video: '', portfolio: [] };
+
+app.get('/api/admin/tisnenie', authMiddleware, (req, res) => {
+  res.json(readJSON(TISNENIE_FILE, TISNENIE_DEFAULT));
+});
+
+app.post('/api/admin/tisnenie/video', authMiddleware, uploadTisnenieVideo.single('video'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Файл не получен' });
+  const data = readJSON(TISNENIE_FILE, TISNENIE_DEFAULT);
+  if (data.video) fs.unlink(path.join(PUBLIC_DIR, data.video), () => {});
+  data.video = `media/${req.file.filename}`;
+  writeJSON(TISNENIE_FILE, data);
+  res.json({ video: data.video });
+});
+
+app.delete('/api/admin/tisnenie/video', authMiddleware, (req, res) => {
+  const data = readJSON(TISNENIE_FILE, TISNENIE_DEFAULT);
+  if (data.video) fs.unlink(path.join(PUBLIC_DIR, data.video), () => {});
+  data.video = '';
+  writeJSON(TISNENIE_FILE, data);
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/tisnenie/portfolio', authMiddleware, uploadPortfolioImg.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Файл не получен' });
+  const data = readJSON(TISNENIE_FILE, TISNENIE_DEFAULT);
+  const item = {
+    id: path.basename(req.file.filename, path.extname(req.file.filename)),
+    image: `images/portfolio/${req.file.filename}`,
+    caption: (req.body.caption || '').trim(),
+  };
+  data.portfolio.push(item);
+  writeJSON(TISNENIE_FILE, data);
+  res.json(item);
+});
+
+app.put('/api/admin/tisnenie/portfolio/:id', authMiddleware, (req, res) => {
+  const data = readJSON(TISNENIE_FILE, TISNENIE_DEFAULT);
+  const item = data.portfolio.find(i => i.id === req.params.id);
+  if (!item) return res.status(404).json({ error: 'Не найдено' });
+  if (req.body.caption !== undefined) item.caption = req.body.caption;
+  writeJSON(TISNENIE_FILE, data);
+  res.json(item);
+});
+
+app.delete('/api/admin/tisnenie/portfolio/:id', authMiddleware, (req, res) => {
+  const data = readJSON(TISNENIE_FILE, TISNENIE_DEFAULT);
+  const idx = data.portfolio.findIndex(i => i.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Не найдено' });
+  const [removed] = data.portfolio.splice(idx, 1);
+  fs.unlink(path.join(PUBLIC_DIR, removed.image), () => {});
+  writeJSON(TISNENIE_FILE, data);
+  res.json({ ok: true });
+});
+
 // ==================== Product & category pages (SSR) ====================
 
 app.get('/product/:article', (req, res) => {
@@ -674,6 +981,19 @@ app.get('/catalog/:slug', (req, res) => {
   const contacts = readJSON(CONTACTS_FILE, {});
   const siteUrl  = `${req.protocol}://${req.get('host')}`;
   res.send(categoryPageHtml(data, products, contacts, siteUrl));
+});
+
+app.get('/nanesenie-logotipa', (req, res) => {
+  const contacts = readJSON(CONTACTS_FILE, {});
+  const siteUrl  = `${req.protocol}://${req.get('host')}`;
+  res.send(nanesenieHubHtml(contacts, siteUrl));
+});
+
+app.get('/nanesenie-logotipa/tisnenie', (req, res) => {
+  const tisnenieData = readJSON(TISNENIE_FILE, TISNENIE_DEFAULT);
+  const contacts     = readJSON(CONTACTS_FILE, {});
+  const siteUrl      = `${req.protocol}://${req.get('host')}`;
+  res.send(tisnenieHtml(tisnenieData, contacts, siteUrl));
 });
 
 // ==================== SEO: robots.txt / sitemap.xml ====================
@@ -696,6 +1016,8 @@ app.get('/sitemap.xml', (req, res) => {
   const products = readJSON(PRODUCTS_FILE, []).filter(p => p.visible && p.qty > 0);
   const urls = [
     { loc: `${siteUrl}/`, priority: '1.0' },
+    { loc: `${siteUrl}/nanesenie-logotipa/`, priority: '0.7' },
+    { loc: `${siteUrl}/nanesenie-logotipa/tisnenie/`, priority: '0.8' },
     ...Object.keys(CATEGORY_PAGES).map(slug => ({ loc: `${siteUrl}/catalog/${slug}/`, priority: '0.8' })),
     ...products.map(p => ({ loc: `${siteUrl}/product/${p.article}`, priority: '0.6' })),
   ];
