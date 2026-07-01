@@ -198,6 +198,17 @@ body { font-family: 'Segoe UI', Arial, sans-serif; color: var(--text); backgroun
 /* ====== EMPTY / LOADING ====== */
 .status-msg { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 1rem; }
 
+/* ====== SEO CATEGORY LINKS ====== */
+.seo-links-section { max-width: 1280px; margin: 0 auto; padding: 0 20px 8px; }
+.seo-links-title { font-size: 1rem; font-weight: 700; color: var(--muted); margin-bottom: 12px; }
+.seo-links-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.seo-links-grid a {
+  display: inline-block; background: #fff; border: 1px solid var(--border);
+  color: var(--text); text-decoration: none; font-size: .85rem; font-weight: 600;
+  padding: 8px 14px; border-radius: 20px; transition: border-color .2s, color .2s;
+}
+.seo-links-grid a:hover { border-color: var(--primary); color: var(--primary); }
+
 /* ====== CONTACTS SECTION ====== */
 .contacts-section {
   background: #fff; border-top: 1px solid var(--border);
