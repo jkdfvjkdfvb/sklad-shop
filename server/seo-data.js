@@ -259,7 +259,7 @@ const TISNENIE_PAGE = {
     ['Какие сроки изготовления клише и тиснения?', 'Срок зависит от загрузки производства и тиража — часть заказов можно выполнить срочно, уточните у менеджера.'],
     ['Есть ли примеры выполненных работ?', 'Да, примеры и видео процесса нанесения — в разделах «Портфолио» и «Видео» на этой странице.'],
   ],
-  related: ['portfeli-s-logotipom'],
+  related: ['portfeli-s-logotipom', 'chasy-s-logotipom', 'podarochnye-nabory-s-logotipom'],
 };
 
 function getTisnenieContent() {
@@ -270,6 +270,23 @@ function getNanesenieHub() {
   return NANESENIE_HUB;
 }
 
+// Есть ли у категории тиснение в списке рекомендуемых способов нанесения —
+// используется для точечной перелинковки карточек товара на /nanesenie-logotipa/tisnenie/.
+function categoryHasTisnenie(rawCategory) {
+  const meta = getCategoryMeta(rawCategory);
+  if (!meta || !meta.slug) return false;
+  const content = CATEGORY_CONTENT[meta.slug];
+  return !!(content && content.techniques && content.techniques.some(t => /тиснен/i.test(t)));
+}
+
+// Список P1-категорий для сквозных блоков «Каталог» (главная, хаб нанесения и т.д.)
+function getTopCategoryLinks() {
+  return Object.entries(CATEGORY_PAGES).map(([slug, rawCategory]) => ({
+    slug,
+    seoName: categorySeoName(rawCategory),
+  }));
+}
+
 module.exports = {
   CATEGORY_MAP,
   CATEGORY_PAGES,
@@ -278,4 +295,6 @@ module.exports = {
   getCategoryPageData,
   getTisnenieContent,
   getNanesenieHub,
+  categoryHasTisnenie,
+  getTopCategoryLinks,
 };

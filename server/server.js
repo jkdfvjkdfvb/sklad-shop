@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
-const { getCategoryMeta, categorySeoName, getCategoryPageData, CATEGORY_PAGES, getTisnenieContent, getNanesenieHub } = require('./seo-data');
+const { getCategoryMeta, categorySeoName, getCategoryPageData, CATEGORY_PAGES, getTisnenieContent, getNanesenieHub, categoryHasTisnenie, getTopCategoryLinks } = require('./seo-data');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,6 +49,9 @@ function siteHeaderHtml(contacts) {
   return `<header class="site-header">
   <div class="header-inner">
     <a href="/" class="logo">Склад<span>Промо</span></a>
+    <nav class="header-nav">
+      <a href="/nanesenie-logotipa/">Нанесение логотипа</a>
+    </nav>
     <div class="header-contacts" style="margin-left:auto">
       <a href="tel:${phone.replace(/\D/g,'')}" class="header-phone">${escH(phone)}</a>
       <div class="messenger-links">
@@ -60,6 +63,42 @@ function siteHeaderHtml(contacts) {
     </div>
   </div>
 </header>`;
+}
+
+// Сквозной блок-баннер для перекрёстных переходов между главной, карточкой
+// товара, хабом «Нанесение логотипа» и страницей конкретного способа (тиснение).
+function ctaBannerHtml(icon, text, href, label) {
+  return `<div class="cta-banner">
+    <span class="cta-banner-icon">${icon}</span>
+    <span class="cta-banner-text">${escH(text)}</span>
+    <a href="${escH(href)}" class="cta-banner-btn">${escH(label)}</a>
+  </div>`;
+}
+
+// Сквозной блок ссылок на приоритетные категории каталога — используется на
+// главной, на хабе «Нанесение логотипа» и на странице «Тиснение», чтобы
+// из любого хаба можно было в один клик попасть к товарам.
+function catalogLinksBlockHtml(title) {
+  const links = getTopCategoryLinks();
+  return `<section class="seo-links-section">
+  <div class="seo-links-inner">
+    <h2 class="seo-links-title">${escH(title)}</h2>
+    <div class="seo-links-grid">
+      ${links.map(l => `<a href="/catalog/${escH(l.slug)}/">${escH(l.seoName)}</a>`).join('')}
+    </div>
+  </div>
+</section>`;
+}
+
+function siteFooterHtml() {
+  return `<footer class="site-footer">
+  <div class="footer-links">
+    <a href="/">Каталог</a>
+    <a href="/nanesenie-logotipa/">Нанесение логотипа</a>
+    <a href="/nanesenie-logotipa/tisnenie/">Тиснение логотипа</a>
+  </div>
+  <p>© 2024 СкладПромо. Все права защищены.</p>
+</footer>`;
 }
 
 function cartAndModalHtml() {
@@ -154,6 +193,10 @@ function productPageHtml(product, contacts, siteUrl) {
     ? `<a href="/">Главная</a><span class="bc-sep">›</span><a href="/catalog/${escH(catMeta.slug)}/">${escH(catMeta.seoName)}</a><span class="bc-sep">›</span><span>${escH(product.name)}</span>`
     : `<a href="/">Главная</a><span class="bc-sep">›</span><a href="/">Каталог</a><span class="bc-sep">›</span><span>${escH(product.name)}</span>`;
 
+  const techBanner = categoryHasTisnenie(product.category)
+    ? ctaBannerHtml('🖋️', 'На этот товар можно нанести тиснение логотипа — коже, кожзаму и экокоже.', '/nanesenie-logotipa/tisnenie/', 'Про тиснение логотипа')
+    : ctaBannerHtml('🛠️', 'Наносим логотип на этот товар — гравировка, УФ-печать и другие способы под ваш тираж.', '/nanesenie-logotipa/', 'Способы нанесения логотипа');
+
   return `<!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -211,11 +254,14 @@ ${siteHeaderHtml(contacts)}
           ${attrs.map(([k,v]) => `<tr><th>${escH(k)}</th><td>${escH(v)}</td></tr>`).join('')}
         </table>` : ''}
         ${inStock ? `<button class="add-to-cart-btn" id="add-btn" data-article="${escH(product.article)}">В корзину</button>` : ''}
+        ${techBanner}
         <a href="/" class="back-link">← Вернуться в каталог</a>
       </div>
     </article>
   </div>
 </main>
+
+${siteFooterHtml()}
 
 ${cartAndModalHtml()}
 
@@ -362,6 +408,8 @@ ${siteHeaderHtml(contacts)}
       <ul>${data.techniques.map(t => `<li>${linkifyTechnique(t)}</li>`).join('')}</ul>
     </section>` : ''}
 
+    ${ctaBannerHtml('🛠️', 'Хотите узнать подробнее о технологиях брендирования?', '/nanesenie-logotipa/', 'Все способы нанесения логотипа')}
+
     <section class="category-faq">
       <h2>Частые вопросы</h2>
       ${data.faq.map(([q, a]) => `
@@ -376,6 +424,8 @@ ${siteHeaderHtml(contacts)}
     <a href="/" class="back-link">← Весь каталог</a>
   </div>
 </main>
+
+${siteFooterHtml()}
 
 ${cartAndModalHtml()}
 
@@ -449,6 +499,10 @@ ${siteHeaderHtml(contacts)}
     <a href="/" class="back-link">← Весь каталог</a>
   </div>
 </main>
+
+${catalogLinksBlockHtml('Каталог товаров с нанесением логотипа')}
+
+${siteFooterHtml()}
 
 ${cartAndModalHtml()}
 
@@ -611,6 +665,10 @@ ${siteHeaderHtml(contacts)}
     <a href="/" class="back-link">← Весь каталог</a>
   </div>
 </main>
+
+${catalogLinksBlockHtml('Каталог товаров с нанесением логотипа')}
+
+${siteFooterHtml()}
 
 ${cartAndModalHtml()}
 
