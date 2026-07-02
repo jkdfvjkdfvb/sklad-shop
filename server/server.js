@@ -37,6 +37,15 @@ function authMiddleware(req, res, next) {
 function escH(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+// Обрезка длинного названия для title по границе слова/запятой (для укладки в ~60 симв.).
+function truncate(str, max) {
+  str = String(str);
+  if (str.length <= max) return str;
+  let cut = str.slice(0, max);
+  const sep = Math.max(cut.lastIndexOf(' '), cut.lastIndexOf(','));
+  if (sep > max * 0.5) cut = cut.slice(0, sep);
+  return cut.replace(/[\s,]+$/, '') + '…';
+}
 
 function productPageHtml(product, contacts, siteUrl) {
   const pageUrl  = `${siteUrl}/product/${product.article}`;
@@ -45,22 +54,16 @@ function productPageHtml(product, contacts, siteUrl) {
   const inStock  = product.qty > 0;
   const retail   = product.price * 3; // розничная цена = оптовая ×3
 
-  const autoDesc = [
-    product.name,
-    product.description ? '' : null,
-    `Арт. ${product.article}`,
-    `Цена: ${retail} ₽`,
-    'Оптовая цена — по запросу у менеджера',
-    inStock ? `В наличии: ${product.qty} шт.` : 'Нет в наличии',
-    product.material || null,
-    product.color    || null,
-  ].filter(v => v !== null).join('. ');
+  const stockPart = inStock ? `в наличии ${product.qty} шт` : 'под заказ';
 
-  const stockPart = inStock ? `в наличии ${product.qty} шт.` : 'под заказ';
-  const title   = product.meta_title || `Купить ${product.name} — ${retail} ₽, ${stockPart}, оптом и в розницу — Санкт-Петербург`;
-  const metaDesc = product.meta_description || (product.description
-    ? `${product.name}. ${product.description.slice(0, 140)}`
-    : autoDesc);
+  // Title ≤ ~60 симв.: интент + (обрезанное) название + гео + цена. Приоритетные
+  // ключи в начале; наличие/«оптом и в розницу» вынесены в description.
+  const title = product.meta_title
+    || `Купить ${truncate(product.name, 40)} в СПб — ${retail} ₽`;
+
+  // Description несёт полный коммерческий контекст под сниппет (~155 симв.).
+  const metaDesc = product.meta_description
+    || `Купить ${product.name} в Санкт-Петербурге оптом и в розницу. Цена ${retail} ₽, ${stockPart}. Доставка по России.`;
 
   const priceValid = new Date(Date.now() + 30 * 24 * 3600000).toISOString().split('T')[0];
 
