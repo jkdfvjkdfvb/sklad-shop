@@ -596,6 +596,101 @@ ${lines.join('\n')}
   );
 });
 
+// ==================== Товарные фиды (Merchant Center / Яндекс.Вебмастер) ====================
+
+// Короткое коммерческое описание товара для фидов.
+function feedDesc(p, retail) {
+  const stock = p.qty > 0 ? `в наличии ${p.qty} шт` : 'под заказ';
+  return `${p.name}. Купить в Санкт-Петербурге оптом и в розницу. Розничная цена ${retail} ₽, ${stock}. Доставка по России.`;
+}
+
+// Google Shopping / Merchant Center — RSS 2.0 с namespace g:
+app.get('/feeds/google.xml', (req, res) => {
+  const siteUrl  = `${req.protocol}://${req.get('host')}`;
+  const products = readJSON(PRODUCTS_FILE, []).filter(p => p.visible);
+  const items = products.map(p => {
+    const retail = p.price * 3;
+    const url    = `${siteUrl}/product/${productSlug(p)}`;
+    const img    = p.image ? `${siteUrl}/${p.image}` : '';
+    return `    <item>
+      <g:id>${escH(p.article)}</g:id>
+      <g:title>${escH(p.name)}</g:title>
+      <g:description>${escH(feedDesc(p, retail))}</g:description>
+      <g:link>${escH(url)}</g:link>
+      ${img ? `<g:image_link>${escH(img)}</g:image_link>` : ''}
+      <g:availability>${p.qty > 0 ? 'in_stock' : 'out_of_stock'}</g:availability>
+      <g:price>${retail}.00 RUB</g:price>
+      <g:condition>new</g:condition>
+      <g:brand>СкладПромо</g:brand>
+      ${p.category ? `<g:product_type>${escH(p.category)}</g:product_type>` : ''}
+      <g:identifier_exists>no</g:identifier_exists>
+    </item>`;
+  }).join('\n');
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+  <channel>
+    <title>СкладПромо</title>
+    <link>${escH(siteUrl)}/</link>
+    <description>Промо-товары и сувениры оптом и в розницу, Санкт-Петербург</description>
+${items}
+  </channel>
+</rss>`;
+  res.type('application/xml').send(xml);
+});
+
+// Яндекс.Вебмастер «Товары и цены» / Яндекс.Маркет — YML (yml_catalog)
+app.get('/feeds/yandex.yml', (req, res) => {
+  const siteUrl  = `${req.protocol}://${req.get('host')}`;
+  const products = readJSON(PRODUCTS_FILE, []).filter(p => p.visible);
+
+  const cats = [...new Set(products.map(p => p.category).filter(Boolean))];
+  const catId = {};
+  cats.forEach((c, i) => { catId[c] = i + 2; }); // 1 — корневая категория
+
+  const pad = n => String(n).padStart(2, '0');
+  const now = new Date();
+  const date = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+  const categoriesXml = [`      <category id="1">Каталог</category>`]
+    .concat(cats.map(c => `      <category id="${catId[c]}" parentId="1">${escH(c)}</category>`))
+    .join('\n');
+
+  const offers = products.map(p => {
+    const retail = p.price * 3;
+    const url    = `${siteUrl}/product/${productSlug(p)}`;
+    const img    = p.image ? `${siteUrl}/${p.image}` : '';
+    return `      <offer id="${escH(p.article)}" available="${p.qty > 0 ? 'true' : 'false'}">
+        <url>${escH(url)}</url>
+        <price>${retail}</price>
+        <currencyId>RUB</currencyId>
+        <categoryId>${p.category ? catId[p.category] : 1}</categoryId>
+        ${img ? `<picture>${escH(img)}</picture>` : ''}
+        <vendor>СкладПромо</vendor>
+        <name>${escH(p.name)}</name>
+        <description>${escH(feedDesc(p, retail))}</description>
+      </offer>`;
+  }).join('\n');
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<yml_catalog date="${date}">
+  <shop>
+    <name>СкладПромо</name>
+    <company>СкладПромо</company>
+    <url>${escH(siteUrl)}/</url>
+    <currencies>
+      <currency id="RUB" rate="1"/>
+    </currencies>
+    <categories>
+${categoriesXml}
+    </categories>
+    <offers>
+${offers}
+    </offers>
+  </shop>
+</yml_catalog>`;
+  res.type('application/xml').send(xml);
+});
+
 // ==================== Start ====================
 
 if (!fs.existsSync(ORDERS_FILE)) writeJSON(ORDERS_FILE, []);
