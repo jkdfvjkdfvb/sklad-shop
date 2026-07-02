@@ -388,7 +388,7 @@ function renderProducts(list) {
           <a href="${url}" class="card-name">${escHtml(p.name)}</a>
           <div class="card-prices">
             <span class="card-price">${fmtPrice(retailPrice(p.price))}</span>
-            <span class="card-opt-note">Опт — по запросу у менеджера</span>
+            <span class="card-opt-note">Опт — по запросу</span>
           </div>
           ${qtyLabel}
           ${videoBtn}

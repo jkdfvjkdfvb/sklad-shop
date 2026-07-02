@@ -187,7 +187,7 @@ function productPageHtml(product, contacts, siteUrl) {
           <meta itemprop="priceValidUntil" content="${priceValid}">
           <link itemprop="availability" href="${inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}">
           <p class="pdp-price pdp-retail"><span class="pdp-val" itemprop="price" content="${retail}">${retail} ₽</span></p>
-          <p class="pdp-opt-note">Оптовая цена — обсуждается с менеджером по телефону${phone ? `: <a href="tel:${phone.replace(/\D/g,'')}">${escH(phone)}</a>` : ''}</p>
+          <p class="pdp-opt-note">Оптовая цена — по запросу</p>
         </div>
         <p class="product-detail-qty ${inStock ? 'in-stock' : 'out-stock'}">
           ${inStock ? `В наличии: ${product.qty} шт.` : 'Нет в наличии'}

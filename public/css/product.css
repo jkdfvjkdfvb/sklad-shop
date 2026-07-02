@@ -71,7 +71,6 @@
 .product-detail-prices { display: flex; flex-direction: column; gap: 6px; }
 .pdp-retail .pdp-val { font-size: 1.75rem; font-weight: 600; color: var(--ink); }
 .pdp-opt-note { font-size: .92rem; color: var(--mute); line-height: 1.5; }
-.pdp-opt-note a { color: var(--ink); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
 
 .product-detail-qty        { font-size: .9rem; font-weight: 500; }
 .product-detail-qty.in-stock  { color: var(--success); }
