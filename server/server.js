@@ -524,6 +524,17 @@ app.put('/api/admin/contacts', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
+// ==================== Admin: статус фидов ====================
+
+app.get('/api/admin/feeds/status', authMiddleware, (req, res) => {
+  const visible = readJSON(PRODUCTS_FILE, []).filter(p => p.visible);
+  res.json({
+    generatedAt: new Date().toISOString(),
+    total:   visible.length,
+    inStock: visible.filter(p => p.qty > 0).length,
+  });
+});
+
 // ==================== Product pages (SSR, ЧПУ) ====================
 
 app.get('/product/:slug', (req, res) => {

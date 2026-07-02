@@ -18,6 +18,8 @@ npm start
 | http://localhost:3000/sitemap.xml | XML-карта сайта |
 | http://localhost:3000/robots.txt | robots.txt |
 | http://localhost:3000/llms.txt | Обзор каталога для AI-краулеров |
+| http://localhost:3000/feeds/google.xml | Товарный фид Google Merchant (Shopping) |
+| http://localhost:3000/feeds/yandex.yml | Товарный фид Яндекс.Вебмастер (YML) |
 | http://localhost:3000/admin.html | Административная панель |
 
 Пароль по умолчанию: `admin123`
@@ -52,6 +54,7 @@ npm start
 - **Товары:** удаление товара (с подтверждением)
 - **Товары:** чекбоксы + «выбрать все», массовое сохранение и массовое удаление
 - **Контакты:** редактирование hero-баннера (заголовок и подзаголовок), контактных данных и ссылок на соцсети
+- **Фиды:** ссылки на товарные фиды и карту сайта (открыть / скопировать для подачи в Merchant Center и Яндекс.Вебмастер) и кнопка «Проверить фиды» — подтверждает, что правки в товарах попали в фид (число товаров + время проверки)
 - **Уведомления:** настройка email (Gmail SMTP) и Telegram-бота для оповещений о заказах
 
 ---
@@ -69,6 +72,10 @@ npm start
 - Microdata `itemprop` прямо в HTML
 - Поля `meta_title` / `meta_description` (кастомные) редактируются в модалке товара в админке и перекрывают авто-генерацию
 - **`/sitemap.xml`** (главная + все товары в наличии), **`/robots.txt`**, **`/llms.txt`** (обзор каталога с ценами и наличием для AI-краулеров и ответных нейросетей)
+- **Товарные фиды** для загрузки в кабинеты вебмастеров:
+  - **`/feeds/google.xml`** — Google Merchant Center / Google Shopping (RSS 2.0, namespace `g:`)
+  - **`/feeds/yandex.yml`** — Яндекс.Вебмастер «Товары и цены» / Яндекс.Маркет (YML, `yml_catalog`)
+  - Оба фида генерируются из каталога (розничная цена, наличие, ЧПУ-ссылки, изображения) и всегда актуальны; ссылки на них указываются в кабинетах один раз. On-page разметку JSON-LD **Product/Offer/BreadcrumbList** Google Search Console считывает со страниц автоматически.
 
 ---
 
@@ -153,6 +160,8 @@ scripts/
 | GET | `/sitemap.xml` | XML-карта сайта (главная + товары) |
 | GET | `/robots.txt` | robots.txt |
 | GET | `/llms.txt` | Обзор каталога для AI-краулеров |
+| GET | `/feeds/google.xml` | Товарный фид Google Merchant (RSS 2.0, `g:`) |
+| GET | `/feeds/yandex.yml` | Товарный фид Яндекс.Вебмастер (YML) |
 | GET | `/api/products` | Список товаров в наличии (с полем `slug`) |
 | GET | `/api/contacts` | Контактные данные и hero-баннер |
 | POST | `/api/order` | Оформить заказ |
@@ -175,6 +184,7 @@ scripts/
 | PUT | `/api/admin/orders/:id` | Изменить статус заказа |
 | GET | `/api/admin/contacts` | Контакты + настройки уведомлений |
 | PUT | `/api/admin/contacts` | Обновить контакты, hero-баннер, уведомления |
+| GET | `/api/admin/feeds/status` | Статус фидов (число товаров, время генерации) |
 
 ---
 

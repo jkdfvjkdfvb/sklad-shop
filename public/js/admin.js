@@ -37,6 +37,7 @@ document.getElementById('logout-btn').addEventListener('click', logout);
 async function showAdmin() {
   document.getElementById('login-section').style.display = 'none';
   document.getElementById('admin-section').style.display = '';
+  renderFeeds();
   await Promise.all([loadOrders(), loadProducts(), loadContacts()]);
 }
 
@@ -524,6 +525,59 @@ function showSaveStatus(id, ok) {
   el.style.display = 'inline';
   setTimeout(() => { el.style.display = 'none'; }, 2500);
 }
+
+// ======== ФИДЫ / КАРТА САЙТА ========
+const FEEDS = [
+  { name: 'Google Merchant (Shopping)',   path: '/feeds/google.xml' },
+  { name: 'Яндекс.Вебмастер (YML)',       path: '/feeds/yandex.yml' },
+  { name: 'Карта сайта (sitemap.xml)',    path: '/sitemap.xml' },
+  { name: 'robots.txt',                   path: '/robots.txt' },
+  { name: 'llms.txt (для нейросетей)',    path: '/llms.txt' },
+];
+
+function renderFeeds() {
+  const el = document.getElementById('feeds-list');
+  if (!el) return;
+  const origin = window.location.origin;
+  el.innerHTML = FEEDS.map(f => {
+    const url = origin + f.path;
+    return `<div class="feed-row">
+      <span class="feed-name">${f.name}</span>
+      <input class="feed-url" type="text" readonly value="${escAttr(url)}">
+      <a class="btn btn-sm feed-open" href="${escAttr(f.path)}" target="_blank">Открыть</a>
+      <button class="btn btn-sm btn-primary feed-copy" data-url="${escAttr(url)}">Копировать</button>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.feed-copy').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const input = btn.closest('.feed-row').querySelector('.feed-url');
+      try {
+        await navigator.clipboard.writeText(btn.dataset.url);
+      } catch {
+        input.select(); document.execCommand('copy');
+      }
+      const orig = btn.textContent;
+      btn.textContent = 'Скопировано';
+      setTimeout(() => { btn.textContent = orig; }, 1500);
+    });
+  });
+}
+
+document.getElementById('feeds-check-btn').addEventListener('click', async () => {
+  const st = document.getElementById('feeds-status');
+  st.textContent = 'Проверяем…'; st.style.color = '#6b7280'; st.style.display = 'inline';
+  const res = await apiFetch('/api/admin/feeds/status');
+  if (res.ok) {
+    const d = await res.json();
+    const t = new Date(d.generatedAt).toLocaleTimeString('ru-RU');
+    st.textContent = `✓ Фиды актуальны: ${d.total} товаров (в наличии ${d.inStock}). Проверено в ${t}`;
+    st.style.color = '#16a34a';
+  } else if (res.status !== 401) {
+    st.textContent = '✗ Ошибка проверки';
+    st.style.color = '#dc2626';
+  }
+});
 
 // ======== HELPERS ========
 async function apiFetch(url, opts = {}) {

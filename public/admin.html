@@ -32,6 +32,7 @@
       <button class="nav-btn active" data-tab="orders">Заказы <span class="orders-badge" id="orders-badge" style="display:none"></span></button>
       <button class="nav-btn" data-tab="products">Товары</button>
       <button class="nav-btn" data-tab="contacts">Контакты</button>
+      <button class="nav-btn" data-tab="feeds">Фиды</button>
       <button class="nav-btn" data-tab="notify">Уведомления</button>
     </nav>
     <a href="admin-help.html" target="_blank" class="btn btn-sm" style="border:1.5px solid #e5e7eb;background:#fff;color:#1a1a2e" title="Инструкция">? Помощь</a>
@@ -169,6 +170,23 @@
             <span id="save-contacts-status" class="save-contacts-status"></span>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- TAB: Фиды и карта сайта -->
+    <div class="tab-panel" id="tab-feeds">
+      <h2 class="section-title">Фиды и карта сайта</h2>
+      <p class="notify-hint" style="margin-bottom:18px;max-width:720px">
+        Фиды формируются автоматически из текущего каталога и <b>всегда актуальны</b> — отдельная пересборка файлов не нужна.
+        После правок в товарах нажмите <b>«Проверить фиды»</b>, чтобы убедиться, что изменения попали в фид.
+        Ссылки ниже укажите один раз в Google Merchant Center и Яндекс.Вебмастере — они перечитывают фид по расписанию.
+      </p>
+      <div class="contacts-form-wrap" style="max-width:760px">
+        <div id="feeds-list"></div>
+        <div class="form-footer" style="margin-top:18px">
+          <button class="btn btn-primary" id="feeds-check-btn">Проверить фиды</button>
+          <span id="feeds-status" class="save-contacts-status"></span>
+        </div>
       </div>
     </div>
 

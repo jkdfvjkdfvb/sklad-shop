@@ -119,6 +119,21 @@ td { padding: 10px 14px; vertical-align: middle; font-size: .88rem; }
 .video-indicator { font-size: .75rem; color: var(--success); }
 .video-link { font-size: .75rem; color: var(--primary); text-decoration: none; }
 
+/* ====== FEEDS ====== */
+.feed-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap;
+}
+.feed-row:last-child { border-bottom: none; }
+.feed-name { flex: 0 0 210px; font-size: .88rem; font-weight: 600; }
+.feed-url {
+  flex: 1; min-width: 180px; border: 1.5px solid var(--border); border-radius: 8px;
+  padding: 7px 12px; font-size: .82rem; font-family: inherit; color: var(--muted);
+  background: #f9fafb; outline: none;
+}
+.feed-open { border: 1.5px solid var(--border); background: #fff; color: var(--text); text-decoration: none; }
+.feed-open:hover { border-color: var(--primary); color: var(--primary); }
+
 /* ====== CONTACTS FORM ====== */
 .contacts-section-title {
   font-size: .78rem; font-weight: 700; color: var(--muted);
