@@ -56,7 +56,8 @@ function productPageHtml(product, contacts, siteUrl) {
     product.color    || null,
   ].filter(v => v !== null).join('. ');
 
-  const title   = product.meta_title       || `${product.name} — ${siteName}`;
+  const stockPart = inStock ? `в наличии ${product.qty} шт.` : 'под заказ';
+  const title   = product.meta_title || `Купить ${product.name} — ${retail} ₽, ${stockPart}, оптом и в розницу — Санкт-Петербург`;
   const metaDesc = product.meta_description || (product.description
     ? `${product.name}. ${product.description.slice(0, 140)}`
     : autoDesc);
