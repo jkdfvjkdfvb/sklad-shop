@@ -99,7 +99,8 @@ function addToCart(article) {
   if (existing) {
     existing.qty = Math.min(existing.qty + 1, p.qty);
   } else {
-    cart.push({ article: p.article, name: p.name, price: p.price, image: p.image, maxQty: p.qty, qty: 1 });
+    // В корзину/заказ идёт розничная цена; оптовая обсуждается с менеджером.
+    cart.push({ article: p.article, name: p.name, price: retailPrice(p.price), image: p.image, maxQty: p.qty, qty: 1 });
   }
   saveCart();
   updateCartBadge();
@@ -385,8 +386,8 @@ function renderProducts(list) {
           <span class="card-article">Арт. ${p.article}</span>
           <a href="/product/${escAttr(p.article)}" class="card-name">${escHtml(p.name)}</a>
           <div class="card-prices">
-            <span class="price-line price-retail"><span class="price-tag">Розница</span><span class="price-val">${fmtPrice(retailPrice(p.price))}</span></span>
-            <span class="price-line price-opt"><span class="price-tag">Опт</span><span class="price-val">${fmtPrice(p.price)}</span></span>
+            <span class="card-price">${fmtPrice(retailPrice(p.price))}</span>
+            <span class="card-opt-note">Опт — по запросу у менеджера</span>
           </div>
           ${qtyLabel}
           ${videoBtn}

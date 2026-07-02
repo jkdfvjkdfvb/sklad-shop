@@ -49,8 +49,8 @@ function productPageHtml(product, contacts, siteUrl) {
     product.name,
     product.description ? '' : null,
     `Арт. ${product.article}`,
-    `Розница: ${retail} ₽`,
-    `Опт: ${product.price} ₽`,
+    `Цена: ${retail} ₽`,
+    'Оптовая цена — по запросу у менеджера',
     inStock ? `В наличии: ${product.qty} шт.` : 'Нет в наличии',
     product.material || null,
     product.color    || null,
@@ -61,6 +61,8 @@ function productPageHtml(product, contacts, siteUrl) {
     ? `${product.name}. ${product.description.slice(0, 140)}`
     : autoDesc);
 
+  const priceValid = new Date(Date.now() + 30 * 24 * 3600000).toISOString().split('T')[0];
+
   const productLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -69,13 +71,12 @@ function productPageHtml(product, contacts, siteUrl) {
     sku: product.article,
     brand: { '@type': 'Brand', name: siteName },
     offers: {
-      '@type': 'AggregateOffer',
-      lowPrice: product.price,
-      highPrice: retail,
-      offerCount: 2,
+      '@type': 'Offer',
+      price: retail,
       priceCurrency: 'RUB',
       availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       url: pageUrl,
+      priceValidUntil: priceValid,
     },
   };
   if (imageUrl) productLd.image = imageUrl;
@@ -156,13 +157,12 @@ function productPageHtml(product, contacts, siteUrl) {
       <div class="product-detail-info">
         <p class="product-detail-article">Арт. <span itemprop="sku">${escH(product.article)}</span></p>
         <h1 class="product-detail-name" itemprop="name">${escH(product.name)}</h1>
-        <div class="product-detail-prices" itemprop="offers" itemscope itemtype="https://schema.org/AggregateOffer">
+        <div class="product-detail-prices" itemprop="offers" itemscope itemtype="https://schema.org/Offer">
           <meta itemprop="priceCurrency" content="RUB">
-          <meta itemprop="lowPrice"  content="${product.price}">
-          <meta itemprop="highPrice" content="${retail}">
+          <meta itemprop="priceValidUntil" content="${priceValid}">
           <link itemprop="availability" href="${inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}">
-          <p class="pdp-price pdp-retail"><span class="pdp-label">Розничная цена</span><span class="pdp-val">${retail} ₽</span></p>
-          <p class="pdp-price pdp-opt"><span class="pdp-label">Оптовая цена</span><span class="pdp-val">${product.price} ₽</span></p>
+          <p class="pdp-price pdp-retail"><span class="pdp-val" itemprop="price" content="${retail}">${retail} ₽</span></p>
+          <p class="pdp-opt-note">Оптовая цена — обсуждается с менеджером по телефону${phone ? `: <a href="tel:${phone.replace(/\D/g,'')}">${escH(phone)}</a>` : ''}</p>
         </div>
         <p class="product-detail-qty ${inStock ? 'in-stock' : 'out-stock'}">
           ${inStock ? `В наличии: ${product.qty} шт.` : 'Нет в наличии'}
@@ -213,7 +213,7 @@ function productPageHtml(product, contacts, siteUrl) {
 window.PRODUCT_DATA = ${JSON.stringify({
   article: product.article,
   name:    product.name,
-  price:   product.price,
+  price:   retail, // в корзину/заказ идёт розничная цена; оптовая — через менеджера
   qty:     product.qty,
   image:   product.image ? '/' + product.image : '',
 })};

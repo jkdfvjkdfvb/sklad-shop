@@ -256,10 +256,8 @@ a { color: inherit; }
 .card-name:hover { text-decoration: underline; text-underline-offset: 2px; }
 
 .card-prices { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
-.price-line { display: flex; align-items: baseline; gap: 8px; }
-.price-line .price-tag { font-size: .78rem; color: var(--mute); min-width: 58px; }
-.price-retail .price-val { font-size: 1.05rem; font-weight: 600; color: var(--ink); }
-.price-opt .price-val { font-size: .9rem; font-weight: 500; color: var(--mute); }
+.card-price { font-size: 1.05rem; font-weight: 600; color: var(--ink); }
+.card-opt-note { font-size: .78rem; color: var(--mute); }
 
 .card-qty { font-size: .82rem; }
 .card-qty.in-stock { color: var(--success); }
