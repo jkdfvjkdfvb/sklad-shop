@@ -374,9 +374,10 @@ function renderProducts(list) {
       : `<span class="card-qty out-stock">Нет в наличии</span>`;
     const videoBtn = p.video
       ? `<a href="#" class="card-video-btn" data-video="${escAttr(p.video)}">&#9654; Видео</a>` : '';
+    const url = `/product/${escAttr(p.slug || p.article)}`;
     return `
       <div class="product-card">
-        <a href="/product/${escAttr(p.article)}" class="card-img-link" tabindex="-1" aria-hidden="true">
+        <a href="${url}" class="card-img-link" tabindex="-1" aria-hidden="true">
           <div class="card-img-wrap">
             <img src="${escAttr(p.image)}" alt="${escHtml(p.name)}" loading="lazy"
                  onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23eee%22/></svg>'">
@@ -384,7 +385,7 @@ function renderProducts(list) {
         </a>
         <div class="card-body">
           <span class="card-article">Арт. ${p.article}</span>
-          <a href="/product/${escAttr(p.article)}" class="card-name">${escHtml(p.name)}</a>
+          <a href="${url}" class="card-name">${escHtml(p.name)}</a>
           <div class="card-prices">
             <span class="card-price">${fmtPrice(retailPrice(p.price))}</span>
             <span class="card-opt-note">Опт — по запросу у менеджера</span>

@@ -47,19 +47,40 @@ function truncate(str, max) {
   return cut.replace(/[\s,]+$/, '') + '…';
 }
 
+// Транслитерация RU→LAT для человекочитаемых URL (ЧПУ).
+const TRANSLIT = {
+  а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'e',ж:'zh',з:'z',и:'i',й:'y',к:'k',л:'l',
+  м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'h',ц:'c',ч:'ch',ш:'sh',
+  щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya'
+};
+function slugify(str) {
+  return String(str).toLowerCase().split('').map(ch => (ch in TRANSLIT ? TRANSLIT[ch] : ch)).join('')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+// ЧПУ товара: транслит названия (до 6 слов) + артикул как стабильный идентификатор.
+function productSlug(p) {
+  const base = slugify(p.name).split('-').filter(Boolean).slice(0, 6).join('-');
+  const art  = slugify(p.article) || String(p.article);
+  return base ? `${base}-${art}` : art;
+}
+
 function productPageHtml(product, contacts, siteUrl) {
-  const pageUrl  = `${siteUrl}/product/${product.article}`;
+  const slug     = productSlug(product);
+  const pageUrl  = `${siteUrl}/product/${slug}`;
   const imageUrl = product.image ? `${siteUrl}/${product.image}` : '';
   const siteName = 'СкладПромо';
   const inStock  = product.qty > 0;
   const retail   = product.price * 3; // розничная цена = оптовая ×3
 
-  const stockPart = inStock ? `в наличии ${product.qty} шт` : 'под заказ';
+  const stockPart  = inStock ? `в наличии ${product.qty} шт` : 'под заказ';
+  const stockTitle = inStock ? `в наличии ${product.qty} шт.` : 'под заказ';
 
-  // Title ≤ ~60 симв.: интент + (обрезанное) название + гео + цена. Приоритетные
-  // ключи в начале; наличие/«оптом и в розницу» вынесены в description.
+  // Title ~60 симв.: интент + название + гео + цена + наличие. Название получает
+  // остаток бюджета после фиксированных ключей, поэтому title не переспамлен.
+  const tSuffix = ` в СПб — ${retail} ₽, ${stockTitle}`;
+  const nameBudget = Math.max(18, 62 - 'Купить '.length - tSuffix.length);
   const title = product.meta_title
-    || `Купить ${truncate(product.name, 40)} в СПб — ${retail} ₽`;
+    || `Купить ${truncate(product.name, nameBudget)}${tSuffix}`;
 
   // Description несёт полный коммерческий контекст под сниппет (~155 симв.).
   const metaDesc = product.meta_description
@@ -305,7 +326,8 @@ async function sendEmail(order, contacts) {
 // ==================== Public API ====================
 
 app.get('/api/products', (req, res) => {
-  res.json(readJSON(PRODUCTS_FILE, []).filter(p => p.visible && p.qty > 0));
+  res.json(readJSON(PRODUCTS_FILE, []).filter(p => p.visible && p.qty > 0)
+    .map(p => ({ ...p, slug: productSlug(p) })));
 });
 app.get('/api/contacts', (req, res) => {
   const c = readJSON(CONTACTS_FILE, {});
@@ -502,15 +524,76 @@ app.put('/api/admin/contacts', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
-// ==================== Product pages (SSR) ====================
+// ==================== Product pages (SSR, ЧПУ) ====================
 
-app.get('/product/:article', (req, res) => {
+app.get('/product/:slug', (req, res) => {
   const products = readJSON(PRODUCTS_FILE, []);
-  const product  = products.find(p => p.article === req.params.article && p.visible);
-  if (!product) return res.redirect('/');
+  const slug = req.params.slug;
+
+  // 1) точное совпадение по каноническому ЧПУ
+  let product = products.find(p => p.visible && productSlug(p) === slug);
+  if (!product) {
+    // 2) старый URL по артикулу или ЧПУ с устаревшим названием (артикул в хвосте)
+    //    → 301-редирект на актуальный ЧПУ (сохраняем ссылочный вес и индекс)
+    product = products.find(p => p.visible && (p.article === slug || slug.endsWith('-' + p.article)));
+    if (product) return res.redirect(301, '/product/' + productSlug(product));
+    return res.redirect('/');
+  }
   const contacts = readJSON(CONTACTS_FILE, {});
   const siteUrl  = `${req.protocol}://${req.get('host')}`;
   res.send(productPageHtml(product, contacts, siteUrl));
+});
+
+// ==================== SEO: robots.txt / sitemap.xml / llms.txt ====================
+
+app.get('/robots.txt', (req, res) => {
+  const siteUrl = `${req.protocol}://${req.get('host')}`;
+  res.type('text/plain').send(
+`User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /admin-help.html
+Disallow: /api/
+
+Sitemap: ${siteUrl}/sitemap.xml`
+  );
+});
+
+app.get('/sitemap.xml', (req, res) => {
+  const siteUrl  = `${req.protocol}://${req.get('host')}`;
+  const products = readJSON(PRODUCTS_FILE, []).filter(p => p.visible && p.qty > 0);
+  const urls = [
+    { loc: `${siteUrl}/`, priority: '1.0' },
+    ...products.map(p => ({ loc: `${siteUrl}/product/${productSlug(p)}`, priority: '0.8' })),
+  ];
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.map(u => `  <url><loc>${escH(u.loc)}</loc><changefreq>weekly</changefreq><priority>${u.priority}</priority></url>`).join('\n')}
+</urlset>`;
+  res.type('application/xml').send(xml);
+});
+
+// llms.txt — обзор каталога для AI-краулеров и ответных систем (нейросетей).
+app.get('/llms.txt', (req, res) => {
+  const siteUrl  = `${req.protocol}://${req.get('host')}`;
+  const contacts = readJSON(CONTACTS_FILE, {});
+  const products = readJSON(PRODUCTS_FILE, []).filter(p => p.visible && p.qty > 0);
+  const lines = products.map(p => {
+    const retail = p.price * 3;
+    return `- [${p.name}](${siteUrl}/product/${productSlug(p)}) — ${retail} ₽, в наличии ${p.qty} шт., арт. ${p.article}`;
+  });
+  res.type('text/plain').send(
+`# СкладПромо — промо-товары и сувениры оптом и в розницу (Санкт-Петербург)
+
+> Интернет-магазин промо-товаров и сувенирной продукции со склада в Санкт-Петербурге.
+> Розничная и оптовая продажа, доставка по России. Оптовая цена — по запросу у менеджера${contacts.phone ? ` (${contacts.phone})` : ''}.
+> Цены на страницах указаны розничные.
+
+## Каталог товаров (${products.length})
+
+${lines.join('\n')}
+`
+  );
 });
 
 // ==================== Start ====================
