@@ -3,6 +3,12 @@
 let allProducts = [];
 let contacts = {};
 
+// ======== PRICES ========
+// Розничная цена рассчитывается от оптовой (текущая цена товара = оптовая).
+const RETAIL_MULTIPLIER = 3;
+function retailPrice(price) { return price * RETAIL_MULTIPLIER; }
+function fmtPrice(v) { return v.toLocaleString('ru-RU') + ' ₽'; }
+
 // ======== FILTER STATE ========
 const selected = { category: new Set(), material: new Set(), color: new Set() };
 
@@ -378,7 +384,10 @@ function renderProducts(list) {
         <div class="card-body">
           <span class="card-article">Арт. ${p.article}</span>
           <a href="/product/${escAttr(p.article)}" class="card-name">${escHtml(p.name)}</a>
-          <span class="card-price">${p.price} ₽</span>
+          <div class="card-prices">
+            <span class="price-line price-retail"><span class="price-tag">Розница</span><span class="price-val">${fmtPrice(retailPrice(p.price))}</span></span>
+            <span class="price-line price-opt"><span class="price-tag">Опт</span><span class="price-val">${fmtPrice(p.price)}</span></span>
+          </div>
           ${qtyLabel}
           ${videoBtn}
           ${inStock ? `<button class="add-to-cart-btn" data-article="${escAttr(p.article)}">В корзину</button>` : ''}

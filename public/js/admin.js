@@ -37,7 +37,7 @@ document.getElementById('logout-btn').addEventListener('click', logout);
 async function showAdmin() {
   document.getElementById('login-section').style.display = 'none';
   document.getElementById('admin-section').style.display = '';
-  await Promise.all([loadOrders(), loadProducts(), loadContacts(), loadTisnenie()]);
+  await Promise.all([loadOrders(), loadProducts(), loadContacts()]);
 }
 
 if (token) {
@@ -524,118 +524,6 @@ function showSaveStatus(id, ok) {
   el.style.display = 'inline';
   setTimeout(() => { el.style.display = 'none'; }, 2500);
 }
-
-// ======== ТИСНЕНИЕ (видео + портфолио) ========
-let tisnenieData = { video: '', portfolio: [] };
-
-async function loadTisnenie() {
-  const res = await apiFetch('/api/admin/tisnenie');
-  if (!res.ok) return;
-  tisnenieData = await res.json();
-  renderTisnenieVideo();
-  renderTisneniePortfolio();
-}
-
-function renderTisnenieVideo() {
-  const current = document.getElementById('tis-video-current');
-  const delBtn  = document.getElementById('tis-video-delete');
-  if (tisnenieData.video) {
-    current.innerHTML = `<video src="${escAttr(tisnenieData.video)}?t=${Date.now()}" controls style="max-width:100%;max-height:220px;border-radius:8px;background:#000"></video>`;
-    delBtn.style.display = '';
-  } else {
-    current.innerHTML = `<span style="color:#9ca3af;font-size:.85rem">Видео не загружено</span>`;
-    delBtn.style.display = 'none';
-  }
-}
-
-function renderTisneniePortfolio() {
-  const grid = document.getElementById('tis-portfolio-grid');
-  if (!tisnenieData.portfolio.length) {
-    grid.innerHTML = `<span style="color:#9ca3af;font-size:.85rem">Портфолио пока пустое</span>`;
-    return;
-  }
-  grid.innerHTML = tisnenieData.portfolio.map(item => `
-    <div class="notify-card" style="padding:12px" data-id="${escAttr(item.id)}">
-      <img src="${escAttr(item.image)}" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;margin-bottom:8px">
-      <textarea class="tis-caption-input" rows="2" placeholder="Подпись к фото" style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:6px 9px;font-size:.82rem;font-family:inherit;resize:vertical">${escHtml(item.caption || '')}</textarea>
-      <div style="display:flex;gap:6px;margin-top:8px">
-        <button class="btn btn-primary btn-sm tis-save-caption">Сохранить подпись</button>
-        <button class="btn btn-danger btn-sm tis-delete-item">Удалить</button>
-      </div>
-    </div>`).join('');
-
-  grid.querySelectorAll('[data-id]').forEach(card => {
-    const id = card.dataset.id;
-    card.querySelector('.tis-save-caption').addEventListener('click', async () => {
-      const caption = card.querySelector('.tis-caption-input').value;
-      const res = await apiFetch(`/api/admin/tisnenie/portfolio/${id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ caption })
-      });
-      if (res.ok) {
-        const item = tisnenieData.portfolio.find(i => i.id === id);
-        if (item) item.caption = caption;
-        showTisStatus('tis-portfolio-status', true, '✓ Подпись сохранена');
-      } else showTisStatus('tis-portfolio-status', false, '✗ Ошибка');
-    });
-    card.querySelector('.tis-delete-item').addEventListener('click', async () => {
-      if (!confirm('Удалить это фото из портфолио?')) return;
-      const res = await apiFetch(`/api/admin/tisnenie/portfolio/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        tisnenieData.portfolio = tisnenieData.portfolio.filter(i => i.id !== id);
-        renderTisneniePortfolio();
-      } else showTisStatus('tis-portfolio-status', false, '✗ Не удалось удалить');
-    });
-  });
-}
-
-function showTisStatus(id, ok, text) {
-  const el = document.getElementById(id);
-  el.textContent = text; el.className = 'save-status' + (ok ? '' : ' err'); el.style.display = 'inline';
-  setTimeout(() => { el.style.display = 'none'; }, 2500);
-}
-
-document.getElementById('tis-video-input').addEventListener('change', async function () {
-  if (!this.files[0]) return;
-  const fd = new FormData(); fd.append('video', this.files[0]);
-  showTisStatus('tis-video-status', true, 'Загрузка…');
-  const res = await apiFetch('/api/admin/tisnenie/video', { method: 'POST', body: fd });
-  if (res.ok) {
-    const d = await res.json();
-    tisnenieData.video = d.video;
-    renderTisnenieVideo();
-    showTisStatus('tis-video-status', true, '✓ Видео загружено');
-  } else showTisStatus('tis-video-status', false, '✗ Ошибка загрузки');
-  this.value = '';
-});
-
-document.getElementById('tis-video-delete').addEventListener('click', async () => {
-  if (!confirm('Удалить видео со страницы?')) return;
-  const res = await apiFetch('/api/admin/tisnenie/video', { method: 'DELETE' });
-  if (res.ok) {
-    tisnenieData.video = '';
-    renderTisnenieVideo();
-    showTisStatus('tis-video-status', true, '✓ Видео удалено');
-  } else showTisStatus('tis-video-status', false, '✗ Ошибка');
-});
-
-document.getElementById('tis-portfolio-input').addEventListener('change', async function () {
-  if (!this.files[0]) return;
-  const caption = document.getElementById('tis-new-caption').value.trim();
-  const fd = new FormData();
-  fd.append('image', this.files[0]);
-  fd.append('caption', caption);
-  showTisStatus('tis-portfolio-status', true, 'Загрузка…');
-  const res = await apiFetch('/api/admin/tisnenie/portfolio', { method: 'POST', body: fd });
-  if (res.ok) {
-    const item = await res.json();
-    tisnenieData.portfolio.push(item);
-    renderTisneniePortfolio();
-    document.getElementById('tis-new-caption').value = '';
-    showTisStatus('tis-portfolio-status', true, '✓ Фото добавлено');
-  } else showTisStatus('tis-portfolio-status', false, '✗ Ошибка загрузки');
-  this.value = '';
-});
 
 // ======== HELPERS ========
 async function apiFetch(url, opts = {}) {

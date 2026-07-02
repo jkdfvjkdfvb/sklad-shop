@@ -63,7 +63,12 @@
 
 .product-detail-article { font-size: .8rem; color: var(--muted); }
 .product-detail-name    { font-size: 1.55rem; font-weight: 700; line-height: 1.35; }
-.product-detail-price   { font-size: 2rem; font-weight: 800; color: var(--primary); }
+
+.product-detail-prices { display: flex; flex-direction: column; gap: 4px; }
+.pdp-price { display: flex; align-items: baseline; gap: 10px; }
+.pdp-price .pdp-label { font-size: .85rem; color: var(--muted); min-width: 130px; }
+.pdp-retail .pdp-val { font-size: 2rem; font-weight: 800; color: var(--primary); }
+.pdp-opt .pdp-val { font-size: 1.25rem; font-weight: 700; color: var(--text); }
 
 .product-detail-qty        { font-size: .9rem; }
 .product-detail-qty.in-stock  { color: #16a34a; }
@@ -127,5 +132,7 @@
 @media (max-width: 480px) {
   .product-page-main  { margin: 16px auto; }
   .product-detail-name  { font-size: 1.2rem; }
-  .product-detail-price { font-size: 1.5rem; }
+  .pdp-retail .pdp-val { font-size: 1.5rem; }
+  .pdp-opt .pdp-val { font-size: 1.1rem; }
+  .pdp-price .pdp-label { min-width: 0; }
 }
