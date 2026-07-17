@@ -379,9 +379,6 @@ function renderContacts() {
   const hasMessenger = [setLink('link-max', c.max), setLink('link-tg', c.telegram), setLink('link-vk', c.vk)].some(Boolean);
   const messengerGroup = document.getElementById('header-messengers');
   if (messengerGroup) messengerGroup.hidden = !hasMessenger;
-  const hasFooterMessenger = [setLink('footer-max', c.max), setLink('footer-tg', c.telegram), setLink('footer-vk', c.vk)].some(Boolean);
-  const footerMessengerGroup = document.getElementById('footer-messengers');
-  if (footerMessengerGroup) footerMessengerGroup.hidden = !hasFooterMessenger;
 
   const contactPhone = document.getElementById('ct-phone');
   if (contactPhone) {
