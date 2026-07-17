@@ -209,3 +209,8 @@ scripts/
 | express | HTTP-сервер, API и SSR страниц товаров |
 | multer | Загрузка файлов |
 | nodemailer | Отправка email-уведомлений |
+
+
+## Persistent Railway data
+
+In production, attach a Railway Volume at `/data` and set `DATA_DIR=/data`. The application seeds an empty volume once from `server/data`, then contacts, products, and orders saved in the admin panel persist across deployments.

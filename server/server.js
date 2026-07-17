@@ -10,7 +10,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
-const DATA_DIR = path.join(__dirname, 'data');
+const SEED_DATA_DIR = path.join(__dirname, 'data');
+const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : SEED_DATA_DIR;
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
 const CONTACTS_FILE = path.join(DATA_DIR, 'contacts.json');
@@ -748,7 +749,20 @@ ${offers}
 
 // ==================== Start ====================
 
-if (!fs.existsSync(ORDERS_FILE)) writeJSON(ORDERS_FILE, []);
+function ensureDataFile(filename, fallback) {
+  const destination = path.join(DATA_DIR, filename);
+  if (fs.existsSync(destination)) return;
+
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const seed = path.join(SEED_DATA_DIR, filename);
+  if (destination !== seed && fs.existsSync(seed)) fs.copyFileSync(seed, destination);
+  else writeJSON(destination, fallback);
+}
+
+// A mounted Railway Volume starts empty: seed it once, then preserve admin changes.
+ensureDataFile('products.json', []);
+ensureDataFile('contacts.json', {});
+ensureDataFile('orders.json', []);
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Магазин запущен на порту ${PORT}`);
