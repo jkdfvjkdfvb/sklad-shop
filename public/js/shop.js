@@ -373,17 +373,20 @@ function renderContacts() {
   const headerPhone = document.getElementById('header-phone');
   if (headerPhone) {
     headerPhone.hidden = !isPhone;
-    if (isPhone) { headerPhone.href = 'tel:' + phone.replace(/\D/g, ''); headerPhone.textContent = phone; }
+    if (isPhone) { headerPhone.href = 'tel:+' + phone.replace(/\D/g, ''); headerPhone.textContent = phone; }
     else { headerPhone.removeAttribute('href'); headerPhone.textContent = ''; }
   }
   const hasMessenger = [setLink('link-max', c.max), setLink('link-tg', c.telegram), setLink('link-vk', c.vk)].some(Boolean);
   const messengerGroup = document.getElementById('header-messengers');
   if (messengerGroup) messengerGroup.hidden = !hasMessenger;
+  const hasFooterMessenger = [setLink('footer-max', c.max), setLink('footer-tg', c.telegram), setLink('footer-vk', c.vk)].some(Boolean);
+  const footerMessengerGroup = document.getElementById('footer-messengers');
+  if (footerMessengerGroup) footerMessengerGroup.hidden = !hasFooterMessenger;
 
   const contactPhone = document.getElementById('ct-phone');
   if (contactPhone) {
     contactPhone.hidden = !isPhone;
-    if (isPhone) contactPhone.href = 'tel:' + phone.replace(/\D/g, '');
+    if (isPhone) contactPhone.href = 'tel:+' + phone.replace(/\D/g, '');
     else contactPhone.removeAttribute('href');
   }
   const contactPhoneValue = document.getElementById('ct-phone-v');

@@ -163,7 +163,7 @@ function productPageHtml(product, contacts, siteUrl) {
   <div class="header-inner">
     <a href="/" class="logo">Склад<span>Промо</span></a>
     <div class="header-contacts" style="margin-left:auto">
-      <a href="tel:${phone.replace(/\D/g,'')}" class="header-phone">${escH(phone)}</a>
+      <a href="tel:+${phone.replace(/\D/g,'')}" class="header-phone">${escH(phone)}</a>
       <div class="messenger-links">
         <a href="${escH(contacts.max||'#')}" class="msg-btn max" target="_blank" rel="noopener" title="MAX">M</a>
         <a href="${escH(contacts.telegram||'#')}" class="msg-btn tg" target="_blank" rel="noopener" title="Telegram">TG</a>

@@ -58,19 +58,37 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !/@example\.com$/i.test(email) ? email : '';
   }
 
+  function socialIcon(name) {
+    const icons = {"max":"<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3.5 17V7h3.2l2.7 4L12.1 7h3.2v10h-2.6v-6l-2.2 3.3h-2L6.1 11v6H3.5Z\"/><path d=\"m16.6 7 3.9 10h-2.8l-.6-1.8h-3.4l-.6 1.8h-2.7l3.8-10h2.5Zm-2.2 6h2l-1-3-1 3Z\"/></svg>","tg":"<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m20.5 4.2-3 15.1c-.2 1.1-1 1.4-1.9.9l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.4-5 9.1-8.2c.4-.4-.1-.6-.6-.3L5.1 12.8.4 11.3c-1-.3-1-1 .2-1.5L19 2.7c.9-.3 1.7.2 1.5 1.5Z\"/></svg>","vk":"<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7.2h2.9c.2 4.1 2.1 6.6 3.6 7.1V7.2h2.7v4.1c1.5-.2 3-2.5 3.6-4.1h2.7c-.5 2-2.2 4.4-3.4 5.4 1.2.8 3.1 2.9 3.8 5.2h-3c-.7-1.6-2-3.5-3.7-3.7v3.7h-.3C7.8 17.8 4.7 14.3 4 7.2Z\"/></svg>"};
+    return icons[name] || '';
+  }
+
+  function socialLinksFor(contacts = {}) {
+    return [
+      ['max', 'MAX', validUrl(contacts.max, ['max.ru/'])],
+      ['tg', 'Telegram', validUrl(contacts.telegram, ['t.me/username'])],
+      ['vk', 'ВКонтакте', validUrl(contacts.vk, ['vk.com/username'])],
+    ].filter(([, , url]) => url);
+  }
+
+  function socialLinksHtml(links, className) {
+    if (!links.length) return '';
+    return `<div class="${className}">${links.map(([name, label, url]) => `<a href="${escH(url)}" class="msg-btn ${name}" target="_blank" rel="noopener" title="${escH(label)}" aria-label="${escH(label)}">${socialIcon(name)}<span class="visually-hidden">${escH(label)}</span></a>`).join('')}</div>`;
+  }
+
+  function footerHtml(contacts = {}) {
+    const links = socialLinksFor(contacts);
+    return `<footer class="site-footer"><div class="footer-inner"><p>© 2024 СкладПромо. Все права защищены.</p>${socialLinksHtml(links, 'footer-social-links')}</div></footer>`;
+  }
   function headerHtml(contacts = {}) {
     const phone = validPhone(contacts.phone);
-    const socialLinks = [
-      ['max', 'M', 'MAX', validUrl(contacts.max, ['max.ru/'])],
-      ['tg', 'TG', 'Telegram', validUrl(contacts.telegram, ['t.me/username'])],
-      ['vk', 'VK', 'ВКонтакте', validUrl(contacts.vk, ['vk.com/username'])],
-    ].filter(([, , , url]) => url);
+    const socialLinks = socialLinksFor(contacts);
     return `<header class="site-header">
   <div class="header-inner">
     <a href="/" class="logo">Склад<span>Промо</span></a>
     <div class="header-contacts" style="margin-left:auto">
-      ${phone ? `<a href="tel:${escH(phone.replace(/\D/g, ''))}" class="header-phone">${escH(phone)}</a>` : ''}
-      ${socialLinks.length ? `<div class="messenger-links">${socialLinks.map(([className, label, title, url]) => `<a href="${escH(url)}" class="msg-btn ${className}" target="_blank" rel="noopener" title="${escH(title)}">${label}</a>`).join('')}</div>` : ''}
+      ${phone ? `<a href="tel:+${escH(phone.replace(/\D/g, ''))}" class="header-phone">${escH(phone)}</a>` : ''}
+      ${socialLinksHtml(socialLinks, 'messenger-links')}
       <button class="cart-btn" id="cart-btn" aria-label="Корзина">🛒<span class="cart-badge" id="cart-badge">0</span></button>
     </div>
   </div>
@@ -309,6 +327,7 @@ ${headerHtml(contacts)}
     ${relatedHtml(product, products)}
   </div>
 </main>
+${footerHtml(contacts)}
 ${cartHtml()}
 <script>window.PRODUCT_DATA=${jsonForScript({ article: product.article, name: productName(product), price, qty: stock, image: image ? `/${String(image).replace(/^\//, '')}` : '' })};</script>
 <script src="/js/product.js"></script>
@@ -321,14 +340,14 @@ ${cartHtml()}
     const title = `${category.name} — купить со склада | СкладПромо`;
     const description = `${category.name} со склада: актуальные цены и наличие товаров. Оптовые условия — по запросу.`;
     const url = categoryUrl(category.slug);
-    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escH(title)}</title><meta name="description" content="${escH(description)}"><link rel="canonical" href="${escH(url)}"><meta property="og:title" content="${escH(title)}"><meta property="og:description" content="${escH(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escH(url)}"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css"></head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><a href="/">Каталог</a><span class="bc-sep">›</span><span>${escH(category.name)}</span></nav><h1>${escH(category.name)}</h1><p class="category-intro">${escH(description)}</p><div class="seo-product-grid">${products.map(item => productCardHtml(item)).join('')}</div></main></body></html>`;
+    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escH(title)}</title><meta name="description" content="${escH(description)}"><link rel="canonical" href="${escH(url)}"><meta property="og:title" content="${escH(title)}"><meta property="og:description" content="${escH(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escH(url)}"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css"></head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><a href="/">Каталог</a><span class="bc-sep">›</span><span>${escH(category.name)}</span></nav><h1>${escH(category.name)}</h1><p class="category-intro">${escH(description)}</p><div class="seo-product-grid">${products.map(item => productCardHtml(item)).join('')}</div></main>${footerHtml(contacts)}</body></html>`;
   }
 
   function salePageHtml(products, contacts) {
     const title = 'Распродажа товаров со склада | СкладПромо';
     const description = 'Товары со склада с подтверждённой скидкой: старая и новая цена, размер скидки и условия акции.';
     const url = `${cleanSiteUrl}/sale/`;
-    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${url}"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:type" content="website"><meta property="og:url" content="${url}"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css"></head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><span>Распродажа</span></nav><h1>Распродажа товаров со склада</h1><div class="seo-product-grid">${products.map(item => productCardHtml(item, { sale: true })).join('')}</div></main></body></html>`;
+    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${url}"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:type" content="website"><meta property="og:url" content="${url}"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css"></head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><span>Распродажа</span></nav><h1>Распродажа товаров со склада</h1><div class="seo-product-grid">${products.map(item => productCardHtml(item, { sale: true })).join('')}</div></main>${footerHtml(contacts)}</body></html>`;
   }
 
   function homePageHtml() {
