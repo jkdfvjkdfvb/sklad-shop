@@ -271,7 +271,9 @@ function buildFilters() {
     const key = group.dataset.key;
     const counts = groups[key];
     const container = group.querySelector('.filter-options');
-    const sorted = Object.entries(counts).sort((a, b) => a[0].localeCompare(b[0], 'ru'));
+    const sorted = Object.entries(counts).sort((a, b) =>
+      b[1] - a[1] || a[0].localeCompare(b[0], 'ru')
+    );
 
     const makeOption = ([val, cnt], hidden) => `
       <label class="filter-option${hidden ? ' filter-extra' : ''}"${hidden ? ' style="display:none"' : ''}>
