@@ -344,23 +344,58 @@ async function loadData() {
 function renderContacts() {
   const c = contacts;
   const heroTitle = document.getElementById('hero-title');
-  const heroText  = document.getElementById('hero-text');
+  const heroText = document.getElementById('hero-text');
   if (heroTitle) heroTitle.textContent = c.hero_title || heroTitle.textContent;
-  if (heroText)  heroText.textContent  = c.hero_text  || heroText.textContent;
-  const phone = c.phone || '';
-  document.getElementById('header-phone').href = 'tel:' + phone.replace(/\D/g, '');
-  document.getElementById('link-max').href = c.max || '#';
-  document.getElementById('link-tg').href  = c.telegram || '#';
-  document.getElementById('link-vk').href  = c.vk || '#';
-  document.getElementById('ct-phone').href = 'tel:' + phone.replace(/\D/g, '');
-  document.getElementById('ct-phone-v').textContent = phone || '—';
-  document.getElementById('ct-email').href = 'mailto:' + (c.email || '');
-  document.getElementById('ct-email-v').textContent = c.email || '—';
-  document.getElementById('ct-max').href = c.max || '#';
-  document.getElementById('ct-tg').href  = c.telegram || '#';
-  document.getElementById('ct-vk').href  = c.vk || '#';
-}
+  if (heroText) heroText.textContent = c.hero_text || heroText.textContent;
 
+  const phone = String(c.phone || '').trim();
+  const isPhone = phone.replace(/\D/g, '').length >= 10 && !/^7?0+$/.test(phone.replace(/\D/g, ''));
+  const email = String(c.email || '').trim();
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !/@example\.com$/i.test(email);
+  const isUrl = value => {
+    try {
+      const url = new URL(value);
+      return url.protocol === 'https:' && !/max\.ru\/$|t\.me\/username|vk\.com\/username/i.test(url.href);
+    } catch { return false; }
+  };
+  const setLink = (id, value) => {
+    const element = document.getElementById(id);
+    if (!element) return false;
+    const valid = isUrl(value);
+    element.hidden = !valid;
+    if (valid) element.href = value;
+    else element.removeAttribute('href');
+    return valid;
+  };
+
+  const headerPhone = document.getElementById('header-phone');
+  if (headerPhone) {
+    headerPhone.hidden = !isPhone;
+    if (isPhone) { headerPhone.href = 'tel:' + phone.replace(/\D/g, ''); headerPhone.textContent = phone; }
+    else { headerPhone.removeAttribute('href'); headerPhone.textContent = ''; }
+  }
+  const hasMessenger = [setLink('link-max', c.max), setLink('link-tg', c.telegram), setLink('link-vk', c.vk)].some(Boolean);
+  const messengerGroup = document.getElementById('header-messengers');
+  if (messengerGroup) messengerGroup.hidden = !hasMessenger;
+
+  const contactPhone = document.getElementById('ct-phone');
+  if (contactPhone) {
+    contactPhone.hidden = !isPhone;
+    if (isPhone) contactPhone.href = 'tel:' + phone.replace(/\D/g, '');
+    else contactPhone.removeAttribute('href');
+  }
+  const contactPhoneValue = document.getElementById('ct-phone-v');
+  if (contactPhoneValue) contactPhoneValue.textContent = isPhone ? phone : '—';
+  const contactEmail = document.getElementById('ct-email');
+  if (contactEmail) {
+    contactEmail.hidden = !isEmail;
+    if (isEmail) contactEmail.href = 'mailto:' + email;
+    else contactEmail.removeAttribute('href');
+  }
+  const contactEmailValue = document.getElementById('ct-email-v');
+  if (contactEmailValue) contactEmailValue.textContent = isEmail ? email : '—';
+  setLink('ct-max', c.max); setLink('ct-tg', c.telegram); setLink('ct-vk', c.vk);
+}
 function renderProducts(list) {
   const grid  = document.getElementById('products-grid');
   const empty = document.getElementById('empty-msg');

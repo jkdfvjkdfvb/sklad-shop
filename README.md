@@ -100,6 +100,7 @@ python scripts/import_data.py
 |---|---|---|
 | `PORT` | `3000` | Порт сервера |
 | `ADMIN_PASSWORD` | `admin123` | Пароль для входа в админку |
+| `SITE_URL` | `https://skladpromo.ru` | Основной HTTPS-домен для canonical, Open Graph, sitemap и товарных фидов |
 
 ---
 
@@ -108,12 +109,19 @@ python scripts/import_data.py
 1. Создайте репозиторий на GitHub и загрузите код
 2. Зайдите на [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
 3. Укажите порт `3000` когда Railway спросит
-4. В **Variables** добавьте `ADMIN_PASSWORD` и `PORT=3000`
+4. В **Variables** добавьте `ADMIN_PASSWORD`, `PORT=3000` и `SITE_URL=https://ваш-домен.ru`
 5. В **Settings → Networking → Generate Domain** получите публичный URL
 
 > **Важно:** для сохранения загруженных через админку фото и видео добавьте Railway Volume с путём `/app/public`. Иначе файлы сбросятся при следующем деплое.
 
 > **Важно:** токены сессии AdminPanel хранятся в памяти сервера и сбрасываются при каждом деплое/перезапуске. После деплоя нужно войти заново.
+
+### SEO-проверка перед публикацией
+
+- SITE_URL должен содержать конечный основной HTTPS-домен. Не используйте временный технический домен Railway как canonical, если для сайта подключён отдельный домен.
+- SEO-метаданные 69 SKU находятся в docs/product-meta-tags.csv; импорт выполняется скриптом node scripts/import-product-meta.js.
+- Проверка server-rendered карточек, категорий, sitemap и robots: node scripts/verify-seo.js (запустите приложение локально на порту 3101).
+- /sale/ появляется только при товарах с заполненными старой и новой ценой, размером скидки и условиями/сроком акции.
 
 ---
 
@@ -137,6 +145,7 @@ public/
 
 server/
   server.js           — Express API + SSR страниц товаров
+  seo.js              — SEO/AEO-роуты: карточки, категории, sitemap и robots
   data/
     products.json     — база товаров
     contacts.json     — контакты, hero-баннер и настройки уведомлений
@@ -145,6 +154,8 @@ server/
 scripts/
   import_data.py      — разовый импорт из xls + pdf
   tag_attributes.js   — авто-проставление category/material/color по названиям
+  import-product-meta.js — импорт H1, Title, description и кластера для 69 SKU
+  verify-seo.js       — проверка SSR-метаданных и структурированных данных
   requirements.txt    — Python-зависимости для импорта
 ```
 
@@ -157,6 +168,8 @@ scripts/
 | Метод | URL | Описание |
 |---|---|---|
 | GET | `/product/:slug` | Страница товара (SSR, ЧПУ, SEO); старый `/product/:article` → 301 на ЧПУ |
+| GET | `/category/:slug` | SEO-страница товарной категории |
+| GET | `/sale/` | Распродажа только товаров с подтверждёнными условиями скидки |
 | GET | `/sitemap.xml` | XML-карта сайта (главная + товары) |
 | GET | `/robots.txt` | robots.txt |
 | GET | `/llms.txt` | Обзор каталога для AI-краулеров |
@@ -165,6 +178,7 @@ scripts/
 | GET | `/api/products` | Список товаров в наличии (с полем `slug`) |
 | GET | `/api/contacts` | Контактные данные и hero-баннер |
 | POST | `/api/order` | Оформить заказ |
+| POST | `/api/wholesale-request` | Запрос оптовых условий по карточке товара |
 
 ### Административные эндпоинты (требуют заголовок `x-admin-token`)
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Склад Промо — интернет-магазин</title>
+  <title>Сувениры и бизнес-подарки со склада — оптом, в наличии | СкладПромо</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -19,12 +19,8 @@
     </form>
 
     <div class="header-contacts">
-      <a href="tel:" id="header-phone" class="header-phone">+7 (000) 000-00-00</a>
-      <div class="messenger-links">
-        <a id="link-max" href="#" class="msg-btn max" target="_blank" rel="noopener" title="MAX">M</a>
-        <a id="link-tg"  href="#" class="msg-btn tg"  target="_blank" rel="noopener" title="Telegram">TG</a>
-        <a id="link-vk"  href="#" class="msg-btn vk"  target="_blank" rel="noopener" title="ВКонтакте">VK</a>
-      </div>
+      <a id="header-phone" class="header-phone" hidden></a>
+      <div class="messenger-links" id="header-messengers" hidden><a id="link-max" class="msg-btn max" target="_blank" rel="noopener" title="MAX">M</a><a id="link-tg" class="msg-btn tg" target="_blank" rel="noopener" title="Telegram">TG</a><a id="link-vk" class="msg-btn vk" target="_blank" rel="noopener" title="ВКонтакте">VK</a></div>
       <button class="cart-btn" id="cart-btn" aria-label="Корзина">
         🛒
         <span class="cart-badge" id="cart-badge">0</span>
@@ -35,8 +31,8 @@
 
 <!-- ====== HERO ====== -->
 <section class="hero">
-  <h1 id="hero-title">Промо-товары оптом и в розницу</h1>
-  <p id="hero-text">Брелоки, ручки, часы, сумки, аксессуары — всё в наличии. Быстрая доставка.</p>
+  <h1 id="hero-title">Сувенирная продукция и бизнес-подарки со склада</h1>
+  <p id="hero-text">Товары со склада с актуальными ценами и остатками.</p>
   <a href="#catalog" class="hero-cta">Смотреть каталог</a>
 </section>
 
@@ -82,23 +78,23 @@
   <div class="contacts-inner">
     <h2 class="contacts-title">Как заказать</h2>
     <div class="contacts-grid">
-      <a href="tel:" id="ct-phone" class="contact-item">
+      <a id="ct-phone" class="contact-item" hidden>
         <span class="contact-icon">📞</span>
         <div><span class="contact-label">Телефон</span><span class="contact-value" id="ct-phone-v">—</span></div>
       </a>
-      <a href="mailto:" id="ct-email" class="contact-item">
+      <a id="ct-email" class="contact-item" hidden>
         <span class="contact-icon">✉️</span>
         <div><span class="contact-label">Email</span><span class="contact-value" id="ct-email-v">—</span></div>
       </a>
-      <a href="#" id="ct-max" class="contact-item" target="_blank" rel="noopener">
+      <a id="ct-max" class="contact-item" target="_blank" rel="noopener" hidden>
         <span class="contact-icon">💬</span>
         <div><span class="contact-label">Мессенджер</span><span class="contact-value">MAX</span></div>
       </a>
-      <a href="#" id="ct-tg" class="contact-item" target="_blank" rel="noopener">
+      <a id="ct-tg" class="contact-item" target="_blank" rel="noopener" hidden>
         <span class="contact-icon">✈️</span>
         <div><span class="contact-label">Мессенджер</span><span class="contact-value">Telegram</span></div>
       </a>
-      <a href="#" id="ct-vk" class="contact-item" target="_blank" rel="noopener">
+      <a id="ct-vk" class="contact-item" target="_blank" rel="noopener" hidden>
         <span class="contact-icon">🌐</span>
         <div><span class="contact-label">Соцсеть</span><span class="contact-value">ВКонтакте</span></div>
       </a>

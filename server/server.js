@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const { createSeoRouter } = require('./seo');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,11 +15,22 @@ const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
 const CONTACTS_FILE = path.join(DATA_DIR, 'contacts.json');
 const ORDERS_FILE   = path.join(DATA_DIR, 'orders.json');
+const DEFAULT_SITE_URL = 'https://skladpromo.ru';
+const SITE_URL = String(process.env.SITE_URL || DEFAULT_SITE_URL).replace(/\/$/, '');
 
 const sessions = new Set();
 
+app.set('trust proxy', 1);
 app.use(express.json());
-app.use(express.static(PUBLIC_DIR));
+app.use((req, res, next) => {
+  const forwardedProtocol = req.get('x-forwarded-proto');
+  if (forwardedProtocol && forwardedProtocol.split(',')[0].trim() !== 'https') {
+    return res.redirect(301, `${SITE_URL}${req.originalUrl}`);
+  }
+  next();
+});
+app.use(createSeoRouter({ productsFile: PRODUCTS_FILE, publicDir: PUBLIC_DIR, siteUrl: SITE_URL, readJSON, writeJSON, escH }));
+app.use(express.static(PUBLIC_DIR, { index: false }));
 
 // --- helpers ---
 function readJSON(file, fallback) {
@@ -59,6 +71,7 @@ function slugify(str) {
 }
 // ЧПУ товара: транслит названия (до 6 слов) + артикул как стабильный идентификатор.
 function productSlug(p) {
+  if (p.slug) return p.slug;
   const base = slugify(p.name).split('-').filter(Boolean).slice(0, 6).join('-');
   const art  = slugify(p.article) || String(p.article);
   return base ? `${base}-${art}` : art;
@@ -395,9 +408,20 @@ app.put('/api/admin/products/bulk', authMiddleware, (req, res) => {
   for (const item of items) {
     const idx = products.findIndex(p => p.article === item.article);
     if (idx === -1) continue;
-    if (item.qty     !== undefined) products[idx].qty     = parseInt(item.qty, 10);
-    if (item.price   !== undefined) products[idx].price   = parseInt(item.price, 10);
-    if (item.visible !== undefined) products[idx].visible = Boolean(item.visible);
+    const product = products[idx];
+    const now = new Date().toISOString();
+    if (item.qty !== undefined) {
+      product.qty = parseInt(item.qty, 10);
+      product.stock_qty = product.qty;
+      product.stock_updated_at = now;
+    }
+    if (item.price !== undefined) {
+      product.price = parseInt(item.price, 10);
+      product.wholesale_price_from = product.price;
+      product.retail_price = product.price * 3;
+    }
+    if (item.visible !== undefined) product.visible = Boolean(item.visible);
+    product.seo_updated_at = now;
   }
   writeJSON(PRODUCTS_FILE, products);
   res.json({ ok: true });
@@ -418,9 +442,18 @@ app.put('/api/admin/products/:article', authMiddleware, (req, res) => {
   const products = readJSON(PRODUCTS_FILE, []);
   const idx = products.findIndex(p => p.article === req.params.article);
   if (idx === -1) return res.status(404).json({ error: 'Товар не найден' });
-  const { qty, price, visible, video, name, description, category, material, color } = req.body;
-  if (qty         !== undefined) products[idx].qty         = parseInt(qty, 10);
-  if (price       !== undefined) products[idx].price       = parseInt(price, 10);
+  const { qty, price, visible, video, name, description, category, material, color, seo_name, slug, target_cluster } = req.body;
+  const now = new Date().toISOString();
+  if (qty !== undefined) {
+    products[idx].qty = parseInt(qty, 10);
+    products[idx].stock_qty = products[idx].qty;
+    products[idx].stock_updated_at = now;
+  }
+  if (price !== undefined) {
+    products[idx].price = parseInt(price, 10);
+    products[idx].wholesale_price_from = products[idx].price;
+    products[idx].retail_price = products[idx].price * 3;
+  }
   if (visible     !== undefined) products[idx].visible     = Boolean(visible);
   if (video       !== undefined) products[idx].video       = video;
   if (name        !== undefined) products[idx].name        = name;
@@ -431,6 +464,13 @@ app.put('/api/admin/products/:article', authMiddleware, (req, res) => {
   const { meta_title, meta_description } = req.body;
   if (meta_title       !== undefined) products[idx].meta_title       = meta_title;
   if (meta_description !== undefined) products[idx].meta_description = meta_description;
+  if (seo_name !== undefined) products[idx].seo_name = seo_name;
+  if (target_cluster !== undefined) products[idx].target_cluster = target_cluster;
+  if (slug !== undefined && slug && slug !== products[idx].slug) {
+    products[idx].previous_slugs = Array.from(new Set([...(products[idx].previous_slugs || []), products[idx].slug].filter(Boolean)));
+    products[idx].slug = slug;
+  }
+  products[idx].seo_updated_at = now;
   writeJSON(PRODUCTS_FILE, products);
   res.json(products[idx]);
 });
@@ -480,6 +520,8 @@ app.post('/api/admin/products/:article/image', authMiddleware, uploadImg.single(
   const idx = products.findIndex(p => p.article === req.params.article);
   if (idx === -1) return res.status(404).json({ error: 'Товар не найден' });
   products[idx].image = `images/${req.params.article}${path.extname(req.file.filename)}`;
+  products[idx].image_urls = [products[idx].image];
+  products[idx].seo_updated_at = new Date().toISOString();
   writeJSON(PRODUCTS_FILE, products);
   res.json({ image: products[idx].image });
 });
@@ -490,6 +532,8 @@ app.post('/api/admin/products/:article/video', authMiddleware, uploadVid.single(
   const idx = products.findIndex(p => p.article === req.params.article);
   if (idx === -1) return res.status(404).json({ error: 'Товар не найден' });
   products[idx].video = `media/${req.params.article}${path.extname(req.file.filename)}`;
+  products[idx].video_url = products[idx].video;
+  products[idx].seo_updated_at = new Date().toISOString();
   writeJSON(PRODUCTS_FILE, products);
   res.json({ video: products[idx].video });
 });
