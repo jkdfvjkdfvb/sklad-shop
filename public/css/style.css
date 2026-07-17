@@ -103,8 +103,8 @@ a { color: inherit; }
 .msg-btn:hover { background: var(--hairline-soft); }
 .msg-btn svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .msg-btn.tg svg { fill: currentColor; stroke: none; }
-.msg-btn.vk svg { fill: none; }
-.msg-btn.max svg { fill: initial; stroke: none; }
+.msg-btn.vk svg { fill: currentColor; stroke: none; }
+.msg-btn .max-logo { display: block; width: 19px; height: 19px; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* ====== HERO / CAMPAIGN TILE ====== */
@@ -303,7 +303,8 @@ a { color: inherit; }
 .contact-icon { font-size: 1.4rem; }
 .contact-icon svg { display: block; width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .contact-icon.tg svg { fill: currentColor; stroke: none; }
-.contact-icon.max svg { fill: initial; stroke: none; }
+.contact-icon.vk svg { fill: currentColor; stroke: none; }
+.contact-icon .max-logo { display: block; width: 30px; height: 30px; }
 .contact-label { font-size: .78rem; color: var(--mute); display: block; }
 .contact-value { display: block; font-weight: 600; }
 
