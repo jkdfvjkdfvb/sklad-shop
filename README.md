@@ -112,7 +112,7 @@ python scripts/import_data.py
 4. В **Variables** добавьте `ADMIN_PASSWORD`, `PORT=3000` и `SITE_URL=https://ваш-домен.ru`
 5. В **Settings → Networking → Generate Domain** получите публичный URL
 
-> **Важно:** для сохранения загруженных через админку фото и видео добавьте Railway Volume с путём `/app/public`. Иначе файлы сбросятся при следующем деплое.
+> **Важно:** добавьте Railway Volume с путём `/data` и переменную `DATA_DIR=/data` (см. раздел «Персистентность данных» ниже). Один и тот же volume хранит `products.json`/`contacts.json`/`orders.json` **и** фото/видео, загруженные через админку (`/data/uploads/…`). Без volume все правки и загрузки сбросятся при следующем деплое.
 
 > **Важно:** токены сессии AdminPanel хранятся в памяти сервера и сбрасываются при каждом деплое/перезапуске. После деплоя нужно войти заново.
 
@@ -214,3 +214,5 @@ scripts/
 ## Persistent Railway data
 
 In production, attach a Railway Volume at `/data` and set `DATA_DIR=/data`. The application seeds an empty volume once from `server/data`, then contacts, products, and orders saved in the admin panel persist across deployments.
+
+The same volume also stores files uploaded through the admin panel: `${DATA_DIR}/uploads/images` and `${DATA_DIR}/uploads/media`. On first boot each is seeded once from `public/images` / `public/media` (the git-tracked seed photos), then anything uploaded afterwards is served from the volume with priority over the seed files, so it survives redeploys — including the images referenced by the Google Merchant (`/feeds/google.xml`, `<g:image_link>`) and Яндекс.Вебмастер (`/feeds/yandex.yml`, `<picture>`) feeds.

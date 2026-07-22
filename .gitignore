@@ -5,3 +5,5 @@ node_modules/
 # Исходные файлы импорта (большие, в git не нужны)
 Контент/
 scripts/__pycache__/
+# Локальная копия персистентной папки загрузок (в проде — Railway Volume)
+server/data/uploads/

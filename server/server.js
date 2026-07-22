@@ -19,6 +19,14 @@ const ORDERS_FILE   = path.join(DATA_DIR, 'orders.json');
 const DEFAULT_SITE_URL = 'https://skladpromo.ru';
 const SITE_URL = String(process.env.SITE_URL || DEFAULT_SITE_URL).replace(/\/$/, '');
 
+// Фото/видео, загруженные через админку, живут на Railway Volume (DATA_DIR),
+// а не в public/ — иначе они сбрасывались бы при каждом редеплое (public/
+// разворачивается из git). Фиды (Google/Яндекс) и карточки товара продолжают
+// ссылаться на /images/... и /media/..., эти пути теперь обслуживаются отсюда.
+const UPLOADS_DIR       = path.join(DATA_DIR, 'uploads');
+const UPLOAD_IMAGES_DIR = path.join(UPLOADS_DIR, 'images');
+const UPLOAD_MEDIA_DIR  = path.join(UPLOADS_DIR, 'media');
+
 const sessions = new Set();
 
 app.set('trust proxy', 1);
@@ -31,6 +39,11 @@ app.use((req, res, next) => {
   next();
 });
 app.use(createSeoRouter({ productsFile: PRODUCTS_FILE, publicDir: PUBLIC_DIR, siteUrl: SITE_URL, readJSON, writeJSON, escH }));
+// Персистентные загрузки обслуживаются с приоритетом над одноимёнными
+// файлами из git (public/images, public/media) — так обновлённое фото
+// сразу видно, даже если старая версия осталась закоммиченной в репозитории.
+app.use('/images', express.static(UPLOAD_IMAGES_DIR));
+app.use('/media',  express.static(UPLOAD_MEDIA_DIR));
 app.use(express.static(PUBLIC_DIR, { index: false }));
 
 // --- helpers ---
@@ -264,11 +277,11 @@ window.PRODUCT_DATA = ${JSON.stringify({
 
 // --- multer ---
 const imgStorage = multer.diskStorage({
-  destination: path.join(PUBLIC_DIR, 'images'),
+  destination: UPLOAD_IMAGES_DIR,
   filename: (req, file, cb) => cb(null, req.params.article + path.extname(file.originalname))
 });
 const vidStorage = multer.diskStorage({
-  destination: path.join(PUBLIC_DIR, 'media'),
+  destination: UPLOAD_MEDIA_DIR,
   filename: (req, file, cb) => cb(null, req.params.article + path.extname(file.originalname))
 });
 const uploadImg = multer({ storage: imgStorage, limits: { fileSize: 20 * 1024 * 1024 } });
@@ -398,7 +411,7 @@ app.get('/api/admin/products', authMiddleware, (req, res) => res.json(readJSON(P
 function deleteProductFiles(p) {
   for (const rel of [p.image, p.video]) {
     if (!rel) continue;
-    fs.unlink(path.join(PUBLIC_DIR, rel), () => {});
+    fs.unlink(path.join(UPLOADS_DIR, rel), () => {});
   }
 }
 
@@ -505,7 +518,7 @@ app.post('/api/admin/products/:article/duplicate', authMiddleware, (req, res) =>
     const ext = path.extname(source[field]);
     const destRel = `${dir}/${newArticle}${ext}`;
     try {
-      fs.copyFileSync(path.join(PUBLIC_DIR, source[field]), path.join(PUBLIC_DIR, destRel));
+      fs.copyFileSync(path.join(UPLOADS_DIR, source[field]), path.join(UPLOADS_DIR, destRel));
       copy[field] = destRel;
     } catch { copy[field] = ''; }
   }
@@ -763,6 +776,21 @@ function ensureDataFile(filename, fallback) {
 ensureDataFile('products.json', []);
 ensureDataFile('contacts.json', {});
 ensureDataFile('orders.json', []);
+
+// Сидируем персистентную папку загрузок фото/видео из git-репозитория один раз
+// (если она ещё пуста, т.е. volume только что примонтирован) — так уже
+// загруженные фотографии товаров сразу доступны, а дальнейшие загрузки через
+// админку остаются на volume и переживают редеплой.
+function ensureUploadsSeeded(uploadDir, seedDir) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  if (!fs.existsSync(seedDir)) return;
+  if (fs.readdirSync(uploadDir).length > 0) return; // уже засеяно или есть загрузки админа
+  for (const file of fs.readdirSync(seedDir)) {
+    fs.copyFileSync(path.join(seedDir, file), path.join(uploadDir, file));
+  }
+}
+ensureUploadsSeeded(UPLOAD_IMAGES_DIR, path.join(PUBLIC_DIR, 'images'));
+ensureUploadsSeeded(UPLOAD_MEDIA_DIR,  path.join(PUBLIC_DIR, 'media'));
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Магазин запущен на порту ${PORT}`);
