@@ -435,23 +435,40 @@ ${cartHtml()}
   });
 
   function feedDescription(product) { return descriptionFor(product); }
+  function feedImage(product) { return product.feed_image || product.image || (product.image_urls && product.image_urls[0]); }
+
+  // Фиды используют домен, с которого их реально запросили (а не фиксированный
+  // canonical SITE_URL): Merchant Center/Вебмастер обходят feed-URL и должны
+  // получить рабочие ссылки на этот же домен, иначе они не открываются. Как
+  // только основной домен подключат и фид переподают через него — ссылки
+  // автоматически станут канонical-домена, без правок кода.
+  function feedBaseUrl(req) {
+    const host = req.get('host');
+    return host ? `https://${host}` : cleanSiteUrl;
+  }
 
   router.get('/feeds/google.xml', (req, res) => {
+    const base = feedBaseUrl(req);
+    const feedProductUrl = product => `${base}/product/${encodeURIComponent(productSlug(product))}`;
+    const feedAssetUrl = file => file ? `${base}/${String(file).replace(/^\//, '')}` : '';
     const products = readJSON(productsFile, []).filter(product => product.visible);
     const items = products.map(product => {
-      const image = product.image || (product.image_urls && product.image_urls[0]);
-      return `    <item><g:id>${escH(product.article)}</g:id><g:title>${escH(productName(product))}</g:title><g:description>${escH(feedDescription(product))}</g:description><g:link>${escH(productUrl(product))}</g:link>${image ? `<g:image_link>${escH(assetUrl(image))}</g:image_link>` : ''}<g:availability>${inStock(product) ? 'in_stock' : 'out_of_stock'}</g:availability><g:price>${retailPrice(product)}.00 RUB</g:price><g:condition>new</g:condition>${product.manufacturer_or_brand ? `<g:brand>${escH(product.manufacturer_or_brand)}</g:brand>` : ''}<g:identifier_exists>no</g:identifier_exists></item>`;
+      const image = feedImage(product);
+      return `    <item><g:id>${escH(product.article)}</g:id><g:title>${escH(productName(product))}</g:title><g:description>${escH(feedDescription(product))}</g:description><g:link>${escH(feedProductUrl(product))}</g:link>${image ? `<g:image_link>${escH(feedAssetUrl(image))}</g:image_link>` : ''}<g:availability>${inStock(product) ? 'in_stock' : 'out_of_stock'}</g:availability><g:price>${retailPrice(product)}.00 RUB</g:price><g:condition>new</g:condition>${product.manufacturer_or_brand ? `<g:brand>${escH(product.manufacturer_or_brand)}</g:brand>` : ''}<g:identifier_exists>no</g:identifier_exists></item>`;
     }).join('\n');
-    res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:g="http://base.google.com/ns/1.0"><channel><title>СкладПромо</title><link>${cleanSiteUrl}/</link><description>Товары со склада</description>${items}</channel></rss>`);
+    res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:g="http://base.google.com/ns/1.0"><channel><title>СкладПромо</title><link>${base}/</link><description>Товары со склада</description>${items}</channel></rss>`);
   });
 
   router.get('/feeds/yandex.yml', (req, res) => {
+    const base = feedBaseUrl(req);
+    const feedProductUrl = product => `${base}/product/${encodeURIComponent(productSlug(product))}`;
+    const feedAssetUrl = file => file ? `${base}/${String(file).replace(/^\//, '')}` : '';
     const products = readJSON(productsFile, []).filter(product => product.visible);
     const categories = [...categoriesFrom(products).values()];
     const ids = Object.fromEntries(categories.map((category, index) => [category.slug, index + 2]));
     const categoriesXml = [`<category id="1">Каталог</category>`, ...categories.map(category => `<category id="${ids[category.slug]}" parentId="1">${escH(category.name)}</category>`)].join('');
-    const offers = products.map(product => { const image = product.image || (product.image_urls && product.image_urls[0]); return `<offer id="${escH(product.article)}" available="${inStock(product)}"><url>${escH(productUrl(product))}</url><price>${retailPrice(product)}</price><currencyId>RUB</currencyId><categoryId>${ids[product.category_slug] || 1}</categoryId>${image ? `<picture>${escH(assetUrl(image))}</picture>` : ''}${product.manufacturer_or_brand ? `<vendor>${escH(product.manufacturer_or_brand)}</vendor>` : ''}<name>${escH(productName(product))}</name><description>${escH(feedDescription(product))}</description></offer>`; }).join('');
-    res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><yml_catalog date="${new Date().toISOString().slice(0, 16).replace('T', ' ')}"><shop><name>СкладПромо</name><company>СкладПромо</company><url>${cleanSiteUrl}/</url><currencies><currency id="RUB" rate="1"/></currencies><categories>${categoriesXml}</categories><offers>${offers}</offers></shop></yml_catalog>`);
+    const offers = products.map(product => { const image = feedImage(product); return `<offer id="${escH(product.article)}" available="${inStock(product)}"><url>${escH(feedProductUrl(product))}</url><price>${retailPrice(product)}</price><currencyId>RUB</currencyId><categoryId>${ids[product.category_slug] || 1}</categoryId>${image ? `<picture>${escH(feedAssetUrl(image))}</picture>` : ''}${product.manufacturer_or_brand ? `<vendor>${escH(product.manufacturer_or_brand)}</vendor>` : ''}<name>${escH(productName(product))}</name><description>${escH(feedDescription(product))}</description></offer>`; }).join('');
+    res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><yml_catalog date="${new Date().toISOString().slice(0, 16).replace('T', ' ')}"><shop><name>СкладПромо</name><company>СкладПромо</company><url>${base}/</url><currencies><currency id="RUB" rate="1"/></currencies><categories>${categoriesXml}</categories><offers>${offers}</offers></shop></yml_catalog>`);
   });
 
   return router;

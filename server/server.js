@@ -91,190 +91,6 @@ function productSlug(p) {
   return base ? `${base}-${art}` : art;
 }
 
-function productPageHtml(product, contacts, siteUrl) {
-  const slug     = productSlug(product);
-  const pageUrl  = `${siteUrl}/product/${slug}`;
-  const imageUrl = product.image ? `${siteUrl}/${product.image}` : '';
-  const siteName = 'СкладПромо';
-  const inStock  = product.qty > 0;
-  const retail   = product.price * 3; // розничная цена = оптовая ×3
-
-  const stockPart  = inStock ? `в наличии ${product.qty} шт` : 'под заказ';
-  const stockTitle = inStock ? `в наличии ${product.qty} шт.` : 'под заказ';
-
-  // Title ~60 симв.: интент + название + гео + цена + наличие. Название получает
-  // остаток бюджета после фиксированных ключей, поэтому title не переспамлен.
-  const tSuffix = ` в СПб — ${retail} ₽, ${stockTitle}`;
-  const nameBudget = Math.max(18, 62 - 'Купить '.length - tSuffix.length);
-  const title = product.meta_title
-    || `Купить ${truncate(product.name, nameBudget)}${tSuffix}`;
-
-  // Description несёт полный коммерческий контекст под сниппет (~155 симв.).
-  const metaDesc = product.meta_description
-    || `Купить ${product.name} в Санкт-Петербурге оптом и в розницу. Цена ${retail} ₽, ${stockPart}. Доставка по России.`;
-
-  const priceValid = new Date(Date.now() + 30 * 24 * 3600000).toISOString().split('T')[0];
-
-  const productLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: product.name,
-    description: product.description || metaDesc,
-    sku: product.article,
-    brand: { '@type': 'Brand', name: siteName },
-    offers: {
-      '@type': 'Offer',
-      price: retail,
-      priceCurrency: 'RUB',
-      availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      url: pageUrl,
-      priceValidUntil: priceValid,
-    },
-  };
-  if (imageUrl) productLd.image = imageUrl;
-  if (product.category) productLd.category = product.category;
-
-  const breadcrumbLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Главная', item: `${siteUrl}/` },
-      { '@type': 'ListItem', position: 2, name: 'Каталог', item: `${siteUrl}/` },
-      { '@type': 'ListItem', position: 3, name: product.name, item: pageUrl },
-    ],
-  };
-
-  const attrs = [
-    product.category && ['Категория', product.category],
-    product.material && ['Материал',  product.material],
-    product.color    && ['Цвет',      product.color],
-  ].filter(Boolean);
-
-  const phone = contacts.phone || '';
-
-  return `<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escH(title)}</title>
-  <meta name="description" content="${escH(metaDesc)}">
-  <meta property="og:title"       content="${escH(title)}">
-  <meta property="og:description" content="${escH(metaDesc)}">
-  <meta property="og:type"        content="product">
-  <meta property="og:url"         content="${escH(pageUrl)}">
-  <meta property="og:site_name"   content="${escH(siteName)}">
-  ${imageUrl ? `<meta property="og:image" content="${escH(imageUrl)}">` : ''}
-  <link rel="canonical" href="${escH(pageUrl)}">
-  <script type="application/ld+json">${JSON.stringify(productLd)}</script>
-  <script type="application/ld+json">${JSON.stringify(breadcrumbLd)}</script>
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/product.css">
-</head>
-<body>
-
-<header class="site-header">
-  <div class="header-inner">
-    <a href="/" class="logo">Склад<span>Промо</span></a>
-    <div class="header-contacts" style="margin-left:auto">
-      <a href="tel:+${phone.replace(/\D/g,'')}" class="header-phone">${escH(phone)}</a>
-      <div class="messenger-links">
-        <a href="${escH(contacts.max||'#')}" class="msg-btn max" target="_blank" rel="noopener" title="MAX">M</a>
-        <a href="${escH(contacts.telegram||'#')}" class="msg-btn tg" target="_blank" rel="noopener" title="Telegram">TG</a>
-        <a href="${escH(contacts.vk||'#')}" class="msg-btn vk" target="_blank" rel="noopener" title="ВКонтакте">VK</a>
-      </div>
-      <button class="cart-btn" id="cart-btn" aria-label="Корзина">🛒<span class="cart-badge" id="cart-badge">0</span></button>
-    </div>
-  </div>
-</header>
-
-<main class="product-page-main">
-  <div class="product-page-wrap">
-    <nav class="breadcrumb" aria-label="Навигация">
-      <a href="/">Главная</a><span class="bc-sep">›</span>
-      <a href="/">Каталог</a><span class="bc-sep">›</span>
-      <span>${escH(product.name)}</span>
-    </nav>
-
-    <article class="product-detail" itemscope itemtype="https://schema.org/Product">
-      <div class="product-detail-media">
-        ${imageUrl
-          ? `<img src="/${escH(product.image)}" alt="${escH(product.name)}" class="product-detail-img" itemprop="image">`
-          : '<div class="product-detail-no-img">Нет фото</div>'}
-        ${product.video
-          ? `<button class="card-video-btn" id="video-btn" data-video="${escH(product.video)}">&#9654; Видео</button>`
-          : ''}
-      </div>
-
-      <div class="product-detail-info">
-        <p class="product-detail-article">Арт. <span itemprop="sku">${escH(product.article)}</span></p>
-        <h1 class="product-detail-name" itemprop="name">${escH(product.name)}</h1>
-        <div class="product-detail-prices" itemprop="offers" itemscope itemtype="https://schema.org/Offer">
-          <meta itemprop="priceCurrency" content="RUB">
-          <meta itemprop="priceValidUntil" content="${priceValid}">
-          <link itemprop="availability" href="${inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}">
-          <p class="pdp-price pdp-retail"><span class="pdp-val" itemprop="price" content="${retail}">${retail} ₽</span></p>
-          <p class="pdp-opt-note">Оптовая цена — по запросу</p>
-        </div>
-        <p class="product-detail-qty ${inStock ? 'in-stock' : 'out-stock'}">
-          ${inStock ? `В наличии: ${product.qty} шт.` : 'Нет в наличии'}
-        </p>
-        ${product.description ? `<p class="product-detail-desc" itemprop="description">${escH(product.description)}</p>` : ''}
-        ${attrs.length ? `
-        <table class="product-attrs">
-          ${attrs.map(([k,v]) => `<tr><th>${escH(k)}</th><td>${escH(v)}</td></tr>`).join('')}
-        </table>` : ''}
-        ${inStock ? `<button class="add-to-cart-btn" id="add-btn" data-article="${escH(product.article)}">В корзину</button>` : ''}
-        <a href="/" class="back-link">← Вернуться в каталог</a>
-      </div>
-    </article>
-  </div>
-</main>
-
-<div class="cart-overlay" id="cart-overlay"></div>
-<div class="cart-drawer" id="cart-drawer" aria-label="Корзина">
-  <div class="cart-header">
-    <span>Корзина</span>
-    <button class="cart-close" id="cart-close" aria-label="Закрыть">✕</button>
-  </div>
-  <div class="cart-items" id="cart-items"><p class="cart-empty">Корзина пуста</p></div>
-  <div class="cart-footer" id="cart-footer" style="display:none">
-    <div class="cart-total"><span>Итого:</span><span id="cart-total-val">0 ₽</span></div>
-    <div class="checkout-form" id="checkout-form">
-      <input type="text" id="co-name" placeholder="Ваше имя *" required>
-      <input type="tel"  id="co-phone" placeholder="Телефон *" required>
-      <textarea id="co-comment" placeholder="Комментарий к заказу"></textarea>
-      <button class="order-btn" id="order-btn">Оформить заказ</button>
-    </div>
-    <div class="order-success" id="order-success">
-      <h3>✅ Заказ принят!</h3>
-      <p id="order-success-text">Мы свяжемся с вами в ближайшее время.</p>
-      <button class="add-to-cart-btn" id="order-new-btn" style="margin-top:12px">Продолжить покупки</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="video-modal" role="dialog" aria-modal="true">
-  <div class="modal-box">
-    <button class="modal-close" id="modal-close" aria-label="Закрыть">✕</button>
-    <video id="modal-video" controls playsinline></video>
-  </div>
-</div>
-
-<script>
-window.PRODUCT_DATA = ${JSON.stringify({
-  article: product.article,
-  name:    product.name,
-  price:   retail, // в корзину/заказ идёт розничная цена; оптовая — через менеджера
-  qty:     product.qty,
-  image:   product.image ? '/' + product.image : '',
-})};
-</script>
-<script src="/js/product.js"></script>
-</body>
-</html>`;
-}
-
 // --- multer ---
 const imgStorage = multer.diskStorage({
   destination: UPLOAD_IMAGES_DIR,
@@ -284,8 +100,15 @@ const vidStorage = multer.diskStorage({
   destination: UPLOAD_MEDIA_DIR,
   filename: (req, file, cb) => cb(null, req.params.article + path.extname(file.originalname))
 });
-const uploadImg = multer({ storage: imgStorage, limits: { fileSize: 20 * 1024 * 1024 } });
-const uploadVid = multer({ storage: vidStorage, limits: { fileSize: 200 * 1024 * 1024 } });
+// Отдельное фото для товарных фидов (напр. с инфографикой) — хранится под
+// суффиксом -feed, чтобы не перезаписывать обычное фото товара на странице.
+const feedImgStorage = multer.diskStorage({
+  destination: UPLOAD_IMAGES_DIR,
+  filename: (req, file, cb) => cb(null, req.params.article + '-feed' + path.extname(file.originalname))
+});
+const uploadImg     = multer({ storage: imgStorage,     limits: { fileSize: 20 * 1024 * 1024 } });
+const uploadVid     = multer({ storage: vidStorage,     limits: { fileSize: 200 * 1024 * 1024 } });
+const uploadFeedImg = multer({ storage: feedImgStorage, limits: { fileSize: 20 * 1024 * 1024 } });
 
 // ==================== Notifications ====================
 
@@ -409,7 +232,7 @@ app.post('/api/logout', authMiddleware, (req, res) => {
 app.get('/api/admin/products', authMiddleware, (req, res) => res.json(readJSON(PRODUCTS_FILE, [])));
 
 function deleteProductFiles(p) {
-  for (const rel of [p.image, p.video]) {
+  for (const rel of [p.image, p.video, p.feed_image]) {
     if (!rel) continue;
     fs.unlink(path.join(UPLOADS_DIR, rel), () => {});
   }
@@ -512,11 +335,15 @@ app.post('/api/admin/products/:article/duplicate', authMiddleware, (req, res) =>
 
   const copy = { ...source, article: newArticle };
 
-  for (const field of ['image', 'video']) {
+  const fileFields = [
+    ['image',      'images', ''],
+    ['video',      'media',  ''],
+    ['feed_image', 'images', '-feed'],
+  ];
+  for (const [field, dir, suffix] of fileFields) {
     if (!source[field]) continue;
-    const dir = field === 'image' ? 'images' : 'media';
     const ext = path.extname(source[field]);
-    const destRel = `${dir}/${newArticle}${ext}`;
+    const destRel = `${dir}/${newArticle}${suffix}${ext}`;
     try {
       fs.copyFileSync(path.join(UPLOADS_DIR, source[field]), path.join(UPLOADS_DIR, destRel));
       copy[field] = destRel;
@@ -550,6 +377,31 @@ app.post('/api/admin/products/:article/video', authMiddleware, uploadVid.single(
   products[idx].seo_updated_at = new Date().toISOString();
   writeJSON(PRODUCTS_FILE, products);
   res.json({ video: products[idx].video });
+});
+
+// Отдельное фото для товарных фидов (Google Merchant / Яндекс.Вебмастер) —
+// используется в g:image_link/<picture> вместо обычного фото товара, если
+// загружено. Обычная страница товара его не показывает.
+app.post('/api/admin/products/:article/feed-image', authMiddleware, uploadFeedImg.single('image'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Файл не получен' });
+  const products = readJSON(PRODUCTS_FILE, []);
+  const idx = products.findIndex(p => p.article === req.params.article);
+  if (idx === -1) return res.status(404).json({ error: 'Товар не найден' });
+  products[idx].feed_image = `images/${req.file.filename}`;
+  products[idx].seo_updated_at = new Date().toISOString();
+  writeJSON(PRODUCTS_FILE, products);
+  res.json({ feed_image: products[idx].feed_image });
+});
+
+app.delete('/api/admin/products/:article/feed-image', authMiddleware, (req, res) => {
+  const products = readJSON(PRODUCTS_FILE, []);
+  const idx = products.findIndex(p => p.article === req.params.article);
+  if (idx === -1) return res.status(404).json({ error: 'Товар не найден' });
+  if (products[idx].feed_image) fs.unlink(path.join(UPLOADS_DIR, products[idx].feed_image), () => {});
+  products[idx].feed_image = '';
+  products[idx].seo_updated_at = new Date().toISOString();
+  writeJSON(PRODUCTS_FILE, products);
+  res.json({ ok: true });
 });
 
 // ==================== Admin: Orders ====================
@@ -591,173 +443,6 @@ app.get('/api/admin/feeds/status', authMiddleware, (req, res) => {
     total:   visible.length,
     inStock: visible.filter(p => p.qty > 0).length,
   });
-});
-
-// ==================== Product pages (SSR, ЧПУ) ====================
-
-app.get('/product/:slug', (req, res) => {
-  const products = readJSON(PRODUCTS_FILE, []);
-  const slug = req.params.slug;
-
-  // 1) точное совпадение по каноническому ЧПУ
-  let product = products.find(p => p.visible && productSlug(p) === slug);
-  if (!product) {
-    // 2) старый URL по артикулу или ЧПУ с устаревшим названием (артикул в хвосте)
-    //    → 301-редирект на актуальный ЧПУ (сохраняем ссылочный вес и индекс)
-    product = products.find(p => p.visible && (p.article === slug || slug.endsWith('-' + p.article)));
-    if (product) return res.redirect(301, '/product/' + productSlug(product));
-    return res.redirect('/');
-  }
-  const contacts = readJSON(CONTACTS_FILE, {});
-  const siteUrl  = `${req.protocol}://${req.get('host')}`;
-  res.send(productPageHtml(product, contacts, siteUrl));
-});
-
-// ==================== SEO: robots.txt / sitemap.xml / llms.txt ====================
-
-app.get('/robots.txt', (req, res) => {
-  const siteUrl = `${req.protocol}://${req.get('host')}`;
-  res.type('text/plain').send(
-`User-agent: *
-Allow: /
-Disallow: /admin.html
-Disallow: /admin-help.html
-Disallow: /api/
-
-Sitemap: ${siteUrl}/sitemap.xml`
-  );
-});
-
-app.get('/sitemap.xml', (req, res) => {
-  const siteUrl  = `${req.protocol}://${req.get('host')}`;
-  const products = readJSON(PRODUCTS_FILE, []).filter(p => p.visible && p.qty > 0);
-  const urls = [
-    { loc: `${siteUrl}/`, priority: '1.0' },
-    ...products.map(p => ({ loc: `${siteUrl}/product/${productSlug(p)}`, priority: '0.8' })),
-  ];
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.map(u => `  <url><loc>${escH(u.loc)}</loc><changefreq>weekly</changefreq><priority>${u.priority}</priority></url>`).join('\n')}
-</urlset>`;
-  res.type('application/xml').send(xml);
-});
-
-// llms.txt — обзор каталога для AI-краулеров и ответных систем (нейросетей).
-app.get('/llms.txt', (req, res) => {
-  const siteUrl  = `${req.protocol}://${req.get('host')}`;
-  const contacts = readJSON(CONTACTS_FILE, {});
-  const products = readJSON(PRODUCTS_FILE, []).filter(p => p.visible && p.qty > 0);
-  const lines = products.map(p => {
-    const retail = p.price * 3;
-    return `- [${p.name}](${siteUrl}/product/${productSlug(p)}) — ${retail} ₽, в наличии ${p.qty} шт., арт. ${p.article}`;
-  });
-  res.type('text/plain').send(
-`# СкладПромо — промо-товары и сувениры оптом и в розницу (Санкт-Петербург)
-
-> Интернет-магазин промо-товаров и сувенирной продукции со склада в Санкт-Петербурге.
-> Розничная и оптовая продажа, доставка по России. Оптовая цена — по запросу у менеджера${contacts.phone ? ` (${contacts.phone})` : ''}.
-> Цены на страницах указаны розничные.
-
-## Каталог товаров (${products.length})
-
-${lines.join('\n')}
-`
-  );
-});
-
-// ==================== Товарные фиды (Merchant Center / Яндекс.Вебмастер) ====================
-
-// Короткое коммерческое описание товара для фидов.
-function feedDesc(p, retail) {
-  const stock = p.qty > 0 ? `в наличии ${p.qty} шт` : 'под заказ';
-  return `${p.name}. Купить в Санкт-Петербурге оптом и в розницу. Розничная цена ${retail} ₽, ${stock}. Доставка по России.`;
-}
-
-// Google Shopping / Merchant Center — RSS 2.0 с namespace g:
-app.get('/feeds/google.xml', (req, res) => {
-  const siteUrl  = `${req.protocol}://${req.get('host')}`;
-  const products = readJSON(PRODUCTS_FILE, []).filter(p => p.visible);
-  const items = products.map(p => {
-    const retail = p.price * 3;
-    const url    = `${siteUrl}/product/${productSlug(p)}`;
-    const img    = p.image ? `${siteUrl}/${p.image}` : '';
-    return `    <item>
-      <g:id>${escH(p.article)}</g:id>
-      <g:title>${escH(p.name)}</g:title>
-      <g:description>${escH(feedDesc(p, retail))}</g:description>
-      <g:link>${escH(url)}</g:link>
-      ${img ? `<g:image_link>${escH(img)}</g:image_link>` : ''}
-      <g:availability>${p.qty > 0 ? 'in_stock' : 'out_of_stock'}</g:availability>
-      <g:price>${retail}.00 RUB</g:price>
-      <g:condition>new</g:condition>
-      <g:brand>СкладПромо</g:brand>
-      ${p.category ? `<g:product_type>${escH(p.category)}</g:product_type>` : ''}
-      <g:identifier_exists>no</g:identifier_exists>
-    </item>`;
-  }).join('\n');
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
-  <channel>
-    <title>СкладПромо</title>
-    <link>${escH(siteUrl)}/</link>
-    <description>Промо-товары и сувениры оптом и в розницу, Санкт-Петербург</description>
-${items}
-  </channel>
-</rss>`;
-  res.type('application/xml').send(xml);
-});
-
-// Яндекс.Вебмастер «Товары и цены» / Яндекс.Маркет — YML (yml_catalog)
-app.get('/feeds/yandex.yml', (req, res) => {
-  const siteUrl  = `${req.protocol}://${req.get('host')}`;
-  const products = readJSON(PRODUCTS_FILE, []).filter(p => p.visible);
-
-  const cats = [...new Set(products.map(p => p.category).filter(Boolean))];
-  const catId = {};
-  cats.forEach((c, i) => { catId[c] = i + 2; }); // 1 — корневая категория
-
-  const pad = n => String(n).padStart(2, '0');
-  const now = new Date();
-  const date = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-
-  const categoriesXml = [`      <category id="1">Каталог</category>`]
-    .concat(cats.map(c => `      <category id="${catId[c]}" parentId="1">${escH(c)}</category>`))
-    .join('\n');
-
-  const offers = products.map(p => {
-    const retail = p.price * 3;
-    const url    = `${siteUrl}/product/${productSlug(p)}`;
-    const img    = p.image ? `${siteUrl}/${p.image}` : '';
-    return `      <offer id="${escH(p.article)}" available="${p.qty > 0 ? 'true' : 'false'}">
-        <url>${escH(url)}</url>
-        <price>${retail}</price>
-        <currencyId>RUB</currencyId>
-        <categoryId>${p.category ? catId[p.category] : 1}</categoryId>
-        ${img ? `<picture>${escH(img)}</picture>` : ''}
-        <vendor>СкладПромо</vendor>
-        <name>${escH(p.name)}</name>
-        <description>${escH(feedDesc(p, retail))}</description>
-      </offer>`;
-  }).join('\n');
-
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<yml_catalog date="${date}">
-  <shop>
-    <name>СкладПромо</name>
-    <company>СкладПромо</company>
-    <url>${escH(siteUrl)}/</url>
-    <currencies>
-      <currency id="RUB" rate="1"/>
-    </currencies>
-    <categories>
-${categoriesXml}
-    </categories>
-    <offers>
-${offers}
-    </offers>
-  </shop>
-</yml_catalog>`;
-  res.type('application/xml').send(xml);
 });
 
 // ==================== Start ====================

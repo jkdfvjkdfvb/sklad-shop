@@ -171,6 +171,7 @@ function productRow(p) {
   const vidEl = p.video
     ? `<a class="video-link" href="${escAttr(p.video)}" target="_blank">▶ видео</a>`
     : `<span style="color:#9ca3af;font-size:.75rem">нет</span>`;
+  const feedImgEl = feedImageStatusHtml(p);
 
   return `<tr data-article="${escAttr(p.article)}">
     <td><input type="checkbox" class="row-checkbox" value="${escAttr(p.article)}"></td>
@@ -187,9 +188,11 @@ function productRow(p) {
     </td>
     <td>
       <div class="action-group">
-        <label class="upload-label" title="Попадает в фиды Google Merchant и Яндекс.Вебмастер как обложка товара">📷 Фото<input type="file" class="upload-img" accept="image/*"></label>
+        <label class="upload-label" title="Попадает в фиды Google Merchant и Яндекс.Вебмастер как обложка товара, если не загружено отдельное фото для фида">📷 Фото<input type="file" class="upload-img" accept="image/*"></label>
         <label class="upload-label">🎬 Видео<input type="file" class="upload-vid" accept="video/*"></label>
+        <label class="upload-label" title="Отдельное фото (например, с инфографикой) — заменяет обычное фото товара только в фидах Google/Яндекс">🖼️ Фото для фида<input type="file" class="upload-feed-img" accept="image/*"></label>
         <div id="vid-status-${escAttr(p.article)}">${vidEl}</div>
+        <div id="feed-img-status-${escAttr(p.article)}">${feedImgEl}</div>
       </div>
     </td>
     <td>
@@ -202,6 +205,28 @@ function productRow(p) {
       </div>
     </td>
   </tr>`;
+}
+
+function feedImageStatusHtml(p) {
+  if (!p.feed_image) return `<span style="color:#9ca3af;font-size:.75rem">нет (в фиде — обычное фото)</span>`;
+  return `<a class="video-link" href="${escAttr(p.feed_image)}" target="_blank">🖼️ есть</a> `
+       + `<button type="button" class="btn-icon feed-img-remove" title="Удалить фото для фида" style="width:22px;height:22px;font-size:.75rem;vertical-align:middle">✕</button>`;
+}
+
+function attachFeedImgRemoveListener(row, art) {
+  const btn = document.querySelector(`#feed-img-status-${art} .feed-img-remove`);
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    if (!confirm('Удалить фото для фида? В фидах снова будет использоваться обычное фото товара.')) return;
+    const res = await apiFetch(`/api/admin/products/${art}/feed-image`, { method: 'DELETE' });
+    if (res.ok) {
+      const p = allProducts.find(p => p.article === art);
+      if (p) p.feed_image = '';
+      document.getElementById(`feed-img-status-${art}`).innerHTML = feedImageStatusHtml(p || {});
+      attachFeedImgRemoveListener(row, art);
+      showStatus(art, true, '✓ удалено');
+    } else showStatus(art, false, '✗ ошибка');
+  });
 }
 
 function attachRowListeners() {
@@ -237,6 +262,20 @@ function attachRowListeners() {
         showStatus(art, true, '✓ видео');
       } else showStatus(art, false, '✗ ошибка');
     });
+    row.querySelector('.upload-feed-img').addEventListener('change', async function () {
+      if (!this.files[0]) return;
+      const fd = new FormData(); fd.append('image', this.files[0]);
+      const res = await apiFetch(`/api/admin/products/${art}/feed-image`, { method: 'POST', body: fd });
+      if (res.ok) {
+        const d = await res.json();
+        const p = allProducts.find(p => p.article === art);
+        if (p) p.feed_image = d.feed_image;
+        document.getElementById(`feed-img-status-${art}`).innerHTML = feedImageStatusHtml(p || { feed_image: d.feed_image });
+        attachFeedImgRemoveListener(row, art);
+        showStatus(art, true, '✓ фото для фида');
+      } else showStatus(art, false, '✗ ошибка');
+    });
+    attachFeedImgRemoveListener(row, art);
   });
   document.getElementById('select-all-checkbox').checked = false;
   document.getElementById('select-all-checkbox').indeterminate = false;
