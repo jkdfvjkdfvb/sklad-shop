@@ -187,7 +187,7 @@ function productRow(p) {
     </td>
     <td>
       <div class="action-group">
-        <label class="upload-label">📷 Фото<input type="file" class="upload-img" accept="image/*"></label>
+        <label class="upload-label" title="Попадает в фиды Google Merchant и Яндекс.Вебмастер как обложка товара">📷 Фото<input type="file" class="upload-img" accept="image/*"></label>
         <label class="upload-label">🎬 Видео<input type="file" class="upload-vid" accept="video/*"></label>
         <div id="vid-status-${escAttr(p.article)}">${vidEl}</div>
       </div>
