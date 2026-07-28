@@ -231,6 +231,31 @@ app.post('/api/logout', authMiddleware, (req, res) => {
 
 app.get('/api/admin/products', authMiddleware, (req, res) => res.json(readJSON(PRODUCTS_FILE, [])));
 
+app.post('/api/admin/products', authMiddleware, (req, res) => {
+  const products = readJSON(PRODUCTS_FILE, []);
+  const now = new Date().toISOString();
+
+  let article = String(req.body?.article || '').trim();
+  if (!article) article = `new-${Date.now().toString(36)}`;
+  if (products.some(p => p.article === article)) {
+    return res.status(409).json({ error: 'Товар с таким артикулом уже существует' });
+  }
+
+  const product = {
+    article, name: 'Новый товар', description: '',
+    qty: 0, price: 0, visible: false,
+    stock_qty: 0, stock_updated_at: now,
+    wholesale_price_from: 0, retail_price: 0,
+    image: '', video: '', video_url: '', image_urls: [], feed_image: '',
+    category: '', material: '', color: '',
+    meta_title: '', meta_description: '',
+    seo_updated_at: now, previous_slugs: [],
+  };
+  products.push(product);
+  writeJSON(PRODUCTS_FILE, products);
+  res.status(201).json(product);
+});
+
 function deleteProductFiles(p) {
   for (const rel of [p.image, p.video, p.feed_image]) {
     if (!rel) continue;
@@ -279,8 +304,18 @@ app.put('/api/admin/products/:article', authMiddleware, (req, res) => {
   const products = readJSON(PRODUCTS_FILE, []);
   const idx = products.findIndex(p => p.article === req.params.article);
   if (idx === -1) return res.status(404).json({ error: 'Товар не найден' });
-  const { qty, price, visible, video, name, description, category, material, color, seo_name, slug, target_cluster } = req.body;
+  const { qty, price, visible, video, name, description, category, material, color, seo_name, slug, target_cluster, new_article } = req.body;
   const now = new Date().toISOString();
+  if (new_article !== undefined) {
+    const nextArticle = String(new_article).trim();
+    if (!nextArticle) return res.status(400).json({ error: 'Артикул не может быть пустым' });
+    if (nextArticle !== products[idx].article) {
+      if (products.some((p, i) => i !== idx && p.article === nextArticle)) {
+        return res.status(409).json({ error: 'Товар с таким артикулом уже существует' });
+      }
+      products[idx].article = nextArticle;
+    }
+  }
   if (qty !== undefined) {
     products[idx].qty = parseInt(qty, 10);
     products[idx].stock_qty = products[idx].qty;

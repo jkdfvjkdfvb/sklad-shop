@@ -309,6 +309,22 @@ async function deleteProduct(art) {
   }
 }
 
+async function createProduct() {
+  const res = await apiFetch('/api/admin/products', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({})
+  });
+  if (res.ok) {
+    const product = await res.json();
+    allProducts.push(product);
+    document.getElementById('table-search').value = '';
+    renderTable(allProducts);
+    openEditModal(product.article);
+  } else if (res.status !== 401) {
+    alert('Не удалось создать товар');
+  }
+}
+document.getElementById('new-product-btn').addEventListener('click', createProduct);
+
 async function duplicateProduct(art) {
   const res = await apiFetch(`/api/admin/products/${art}/duplicate`, { method: 'POST' });
   if (res.ok) {
@@ -411,6 +427,7 @@ function openEditModal(art) {
   if (!p) return;
   editingArticle = art;
   document.getElementById('pe-title').textContent = `Редактирование: ${p.name}`;
+  document.getElementById('pe-article').value = p.article || '';
   document.getElementById('pe-img-preview').src = p.image || '';
   document.getElementById('pe-name').value = p.name || '';
   document.getElementById('pe-description').value = p.description || '';
@@ -464,6 +481,16 @@ document.getElementById('pe-img-input').addEventListener('change', async functio
 document.getElementById('pe-save-btn').addEventListener('click', async () => {
   if (!editingArticle) return;
   const art = editingArticle;
+  const statusEl = document.getElementById('pe-status');
+
+  const articleInput = document.getElementById('pe-article').value.trim();
+  if (!articleInput) {
+    statusEl.textContent = '✗ Укажите артикул'; statusEl.style.color = '#dc2626';
+    statusEl.style.display = 'inline';
+    setTimeout(() => { statusEl.style.display = 'none'; }, 2500);
+    return;
+  }
+
   const name        = document.getElementById('pe-name').value.trim();
   const description = document.getElementById('pe-description').value;
   const meta_title       = document.getElementById('pe-meta-title').value.trim();
@@ -471,20 +498,24 @@ document.getElementById('pe-save-btn').addEventListener('click', async () => {
   const category = document.getElementById('pe-category').value.trim();
   const material = document.getElementById('pe-material').value.trim();
   const color    = document.getElementById('pe-color').value.trim();
+  const body = { name, description, meta_title, meta_description, category, material, color };
+  if (articleInput !== art) body.new_article = articleInput;
+
   const res = await apiFetch(`/api/admin/products/${art}`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, description, meta_title, meta_description, category, material, color })
+    body: JSON.stringify(body)
   });
-  const statusEl = document.getElementById('pe-status');
   if (res.ok) {
+    const updated = await res.json();
     const p = allProducts.find(p => p.article === art);
-    if (p) { p.name = name; p.description = description; p.meta_title = meta_title; p.meta_description = meta_description; p.category = category; p.material = material; p.color = color; }
-    const row = document.querySelector(`#products-tbody tr[data-article="${art}"]`);
-    if (row) row.children[3].textContent = name;
+    if (p) Object.assign(p, updated);
+    editingArticle = updated.article;
     document.getElementById('pe-title').textContent = `Редактирование: ${name}`;
+    document.getElementById('table-search').dispatchEvent(new Event('input'));
     statusEl.textContent = '✓ Сохранено'; statusEl.style.color = '#16a34a';
   } else {
-    statusEl.textContent = '✗ Ошибка'; statusEl.style.color = '#dc2626';
+    const err = await res.json().catch(() => ({}));
+    statusEl.textContent = `✗ ${err.error || 'Ошибка'}`; statusEl.style.color = '#dc2626';
   }
   statusEl.style.display = 'inline';
   setTimeout(() => { statusEl.style.display = 'none'; }, 2500);

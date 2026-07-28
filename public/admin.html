@@ -79,6 +79,7 @@
       <h2 class="section-title">Управление товарами</h2>
       <div class="table-toolbar">
         <input class="table-search" type="search" id="table-search" placeholder="Поиск по названию или артикулу…">
+        <button class="btn btn-primary btn-sm" id="new-product-btn">+ Новый товар</button>
         <div class="bulk-actions" id="bulk-actions" style="display:none">
           <span id="bulk-count" class="bulk-count"></span>
           <button class="btn btn-primary btn-sm" id="bulk-save-btn">Сохранить выбранные</button>
@@ -108,6 +109,10 @@
             <button class="cart-close" id="pe-close">✕</button>
           </div>
           <div id="pe-body">
+            <div class="form-group">
+              <label>Артикул <small style="font-weight:400;color:#9ca3af">(уникальный; используется в ссылке на товар, если не задан отдельный ЧПУ)</small></label>
+              <input type="text" id="pe-article" placeholder="140812">
+            </div>
             <div class="form-group">
               <label>Фото <small style="font-weight:400;color:#9ca3af">(обложка в фидах Google/Яндекс, если для товара не загружено отдельное «Фото для фида» — см. таблицу товаров)</small></label>
               <div class="pe-img-row">
