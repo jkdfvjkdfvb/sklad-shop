@@ -12,6 +12,28 @@ function cartTotal() { return cart.reduce((s, i) => s + i.price * i.qty, 0); }
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function escAttr(s) { return escHtml(s); }
 
+// ======== PHONE MASK: +7XXXXXXXXXX ========
+// Применяется ко всем полям типа tel на странице: телефон в корзине и
+// контакт в форме «Запросить оптовые условия».
+function formatPhoneMask(raw) {
+  let digits = raw.replace(/\D/g, '');
+  if (digits.startsWith('8')) digits = '7' + digits.slice(1);
+  if (!digits.startsWith('7')) digits = '7' + digits;
+  return '+' + digits.slice(0, 11);
+}
+function isValidPhone(v) { return /^\+7\d{10}$/.test(v); }
+function bindPhoneMask(input) {
+  if (!input) return;
+  input.addEventListener('focus', () => { if (!input.value) input.value = '+7'; });
+  input.addEventListener('input', () => { input.value = formatPhoneMask(input.value); });
+  input.addEventListener('keydown', e => {
+    if ((e.key === 'Backspace' || e.key === 'Delete') && input.selectionStart <= 2 && input.selectionEnd <= 2) {
+      e.preventDefault();
+    }
+  });
+}
+document.querySelectorAll('input[type="tel"]').forEach(bindPhoneMask);
+
 function updateCartBadge() {
   const n = cartCount();
   const badge = document.getElementById('cart-badge');
@@ -133,6 +155,7 @@ document.getElementById('order-btn').addEventListener('click', async () => {
   const phone   = document.getElementById('co-phone').value.trim();
   const comment = document.getElementById('co-comment').value.trim();
   if (!name || !phone || !cart.length) return;
+  if (!isValidPhone(phone)) { document.getElementById('co-phone').reportValidity(); return; }
   const btn = document.getElementById('order-btn');
   btn.disabled = true; btn.textContent = 'Отправляем…';
   try {

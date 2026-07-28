@@ -203,10 +203,15 @@ app.get('/api/contacts', (req, res) => {
   res.json(pub);
 });
 
+const PHONE_RE = /^\+7\d{10}$/;
+
 app.post('/api/order', async (req, res) => {
   const { customer, items } = req.body;
   if (!customer?.name || !customer?.phone || !Array.isArray(items) || !items.length) {
     return res.status(400).json({ error: 'Заполните имя, телефон и добавьте товары в корзину' });
+  }
+  if (!PHONE_RE.test(customer.phone)) {
+    return res.status(400).json({ error: 'Номер телефона должен быть в формате +7XXXXXXXXXX' });
   }
   const total = items.reduce((s, i) => s + i.price * i.qty, 0);
   const order = {
@@ -234,6 +239,9 @@ app.post('/api/wholesale-request', (req, res) => {
   const contact = String(req.body?.contact || '').trim();
   if (!article || !name || !contact) {
     return res.status(400).json({ error: 'Заполните имя и контакт для связи' });
+  }
+  if (!PHONE_RE.test(contact)) {
+    return res.status(400).json({ error: 'Номер телефона должен быть в формате +7XXXXXXXXXX' });
   }
   const product = readJSON(PRODUCTS_FILE, []).find(p => String(p.article) === article && p.visible);
   if (!product) return res.status(404).json({ error: 'Товар не найден' });

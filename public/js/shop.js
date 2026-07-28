@@ -7,6 +7,26 @@ let contacts = {};
 // Показывается ровно та цена, которая указана в админке — без наценки.
 function fmtPrice(v) { return v.toLocaleString('ru-RU') + ' ₽'; }
 
+// ======== PHONE MASK: +7XXXXXXXXXX ========
+function formatPhoneMask(raw) {
+  let digits = raw.replace(/\D/g, '');
+  if (digits.startsWith('8')) digits = '7' + digits.slice(1);
+  if (!digits.startsWith('7')) digits = '7' + digits;
+  return '+' + digits.slice(0, 11);
+}
+function isValidPhone(v) { return /^\+7\d{10}$/.test(v); }
+function bindPhoneMask(input) {
+  if (!input) return;
+  input.addEventListener('focus', () => { if (!input.value) input.value = '+7'; });
+  input.addEventListener('input', () => { input.value = formatPhoneMask(input.value); });
+  input.addEventListener('keydown', e => {
+    if ((e.key === 'Backspace' || e.key === 'Delete') && input.selectionStart <= 2 && input.selectionEnd <= 2) {
+      e.preventDefault();
+    }
+  });
+}
+document.querySelectorAll('input[type="tel"]').forEach(bindPhoneMask);
+
 // ======== FILTER STATE ========
 const selected = { category: new Set(), material: new Set(), color: new Set() };
 
@@ -213,7 +233,7 @@ document.getElementById('order-btn').addEventListener('click', async () => {
   const phone   = document.getElementById('co-phone').value.trim();
   const comment = document.getElementById('co-comment').value.trim();
 
-  if (!name || !phone) {
+  if (!name || !phone || !isValidPhone(phone)) {
     document.getElementById('co-name').reportValidity();
     document.getElementById('co-phone').reportValidity();
     return;

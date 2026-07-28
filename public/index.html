@@ -126,7 +126,7 @@
 
     <div class="checkout-form" id="checkout-form">
       <input type="text"  id="co-name"    placeholder="Ваше имя *" required>
-      <input type="tel"   id="co-phone"   placeholder="Телефон *" required>
+      <input type="tel"   id="co-phone"   placeholder="+7XXXXXXXXXX" required pattern="\+7\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX">
       <textarea           id="co-comment" placeholder="Комментарий к заказу"></textarea>
       <button class="order-btn" id="order-btn">Оформить заказ</button>
     </div>
