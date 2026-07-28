@@ -221,7 +221,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   <div class="cart-items" id="cart-items"><p class="cart-empty">Корзина пуста</p></div>
   <div class="cart-footer" id="cart-footer" style="display:none">
     <div class="cart-total"><span>Итого:</span><span id="cart-total-val">0 ₽</span></div>
-    <div class="checkout-form" id="checkout-form"><input type="text" id="co-name" placeholder="Ваше имя *" required><input type="tel" id="co-phone" placeholder="+7XXXXXXXXXX" required pattern="\+7\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX"><textarea id="co-comment" placeholder="Комментарий к заказу"></textarea><button class="order-btn" id="order-btn">Оформить заказ</button></div>
+    <div class="checkout-form" id="checkout-form"><input type="text" id="co-name" placeholder="Ваше имя *" required><input type="tel" id="co-phone" placeholder="+7XXXXXXXXXX" required pattern="\\+7\\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX"><textarea id="co-comment" placeholder="Комментарий к заказу"></textarea><button class="order-btn" id="order-btn">Оформить заказ</button></div>
     <div class="order-success" id="order-success"><h3>✅ Заказ принят!</h3><p id="order-success-text">Мы свяжемся с вами в ближайшее время.</p><button class="add-to-cart-btn" id="order-new-btn" style="margin-top:12px">Продолжить покупки</button></div>
   </div>
 </div>
@@ -320,7 +320,7 @@ ${headerHtml(contacts)}
     ${factsHtml(product)}
     ${attrs.length ? `<section class="product-characteristics" aria-labelledby="characteristics-heading"><h2 id="characteristics-heading">Характеристики</h2><table class="product-attrs">${attrs.map(([key, value]) => `<tr><th>${escH(key)}</th><td>${escH(value)}</td></tr>`).join('')}</table></section>` : ''}
     ${longDescription}
-    <section class="product-wholesale" id="wholesale-request" aria-labelledby="wholesale-heading"><h2 id="wholesale-heading">Оптовые условия</h2><p>Оставьте номер телефона — менеджер подтвердит цену и условия для этой модели.</p><form id="wholesale-form"><input name="name" required placeholder="Ваше имя"><input type="tel" name="contact" required placeholder="+7XXXXXXXXXX" pattern="\+7\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX"><textarea name="comment" placeholder="Количество и комментарий"></textarea><button type="submit" class="wholesale-btn">Отправить запрос</button><p id="wholesale-status" aria-live="polite"></p></form></section>
+    <section class="product-wholesale" id="wholesale-request" aria-labelledby="wholesale-heading"><h2 id="wholesale-heading">Оптовые условия</h2><p>Оставьте номер телефона — менеджер подтвердит цену и условия для этой модели.</p><form id="wholesale-form"><input name="name" required placeholder="Ваше имя"><input type="tel" name="contact" required placeholder="+7XXXXXXXXXX" pattern="\\+7\\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX"><textarea name="comment" placeholder="Количество и комментарий"></textarea><button type="submit" class="wholesale-btn">Отправить запрос</button><p id="wholesale-status" aria-live="polite"></p></form></section>
     ${faqHtml(faq)}
     ${relatedHtml(product, products)}
   </div>
