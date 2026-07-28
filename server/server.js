@@ -16,6 +16,7 @@ const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
 const CONTACTS_FILE = path.join(DATA_DIR, 'contacts.json');
 const ORDERS_FILE   = path.join(DATA_DIR, 'orders.json');
+const WHOLESALE_FILE = path.join(DATA_DIR, 'wholesale-requests.json');
 const DEFAULT_SITE_URL = 'https://skladpromo.ru';
 const SITE_URL = String(process.env.SITE_URL || DEFAULT_SITE_URL).replace(/\/$/, '');
 
@@ -127,7 +128,16 @@ function orderText(order) {
   ].filter(l => l !== undefined).join('\n');
 }
 
-async function sendTelegram(order, contacts) {
+function wholesaleText(entry) {
+  return [
+    `📦 Заявка на оптовые условия #${entry.id}`,
+    `🛍️ ${entry.product_name} (арт. ${entry.article})`,
+    `👤 ${entry.name}  📞 ${entry.contact}`,
+    entry.comment ? `💬 ${entry.comment}` : '',
+  ].filter(l => l !== '').join('\n');
+}
+
+async function sendTelegramMessage(text, contacts) {
   const token = contacts.telegram_bot_token;
   const chatId = contacts.telegram_chat_id;
   if (!token || !chatId) return;
@@ -135,10 +145,11 @@ async function sendTelegram(order, contacts) {
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: orderText(order), parse_mode: 'HTML' })
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
     });
   } catch (e) { console.error('Telegram error:', e.message); }
 }
+async function sendTelegram(order, contacts) { return sendTelegramMessage(orderText(order), contacts); }
 
 async function sendEmail(order, contacts) {
   const smtpUser = contacts.smtp_user;
@@ -211,6 +222,36 @@ app.post('/api/order', async (req, res) => {
   res.json({ ok: true, orderId: order.id });
 });
 
+app.post('/api/wholesale-request', (req, res) => {
+  const article = String(req.body?.article || '');
+  const name    = String(req.body?.name || '').trim();
+  const contact = String(req.body?.contact || '').trim();
+  if (!article || !name || !contact) {
+    return res.status(400).json({ error: 'Заполните имя и контакт для связи' });
+  }
+  const product = readJSON(PRODUCTS_FILE, []).find(p => String(p.article) === article && p.visible);
+  if (!product) return res.status(404).json({ error: 'Товар не найден' });
+
+  const entry = {
+    id: Date.now().toString(36).toUpperCase(),
+    type: 'wholesale_request',
+    status: 'new',
+    created_at: new Date().toISOString(),
+    article,
+    product_name: product.seo_name || product.name || `Товар ${product.article}`,
+    name, contact,
+    comment: String(req.body?.comment || '').trim(),
+  };
+  const requests = readJSON(WHOLESALE_FILE, []);
+  requests.unshift(entry);
+  writeJSON(WHOLESALE_FILE, requests);
+
+  const contacts = readJSON(CONTACTS_FILE, {});
+  sendTelegramMessage(wholesaleText(entry), contacts).catch(() => {});
+
+  res.status(201).json({ ok: true, requestId: entry.id });
+});
+
 // ==================== Auth ====================
 
 app.post('/api/login', (req, res) => {
@@ -280,7 +321,7 @@ app.put('/api/admin/products/bulk', authMiddleware, (req, res) => {
     if (item.price !== undefined) {
       product.price = parseInt(item.price, 10);
       product.wholesale_price_from = product.price;
-      product.retail_price = product.price * 3;
+      product.retail_price = product.price;
     }
     if (item.visible !== undefined) product.visible = Boolean(item.visible);
     product.seo_updated_at = now;
@@ -324,7 +365,7 @@ app.put('/api/admin/products/:article', authMiddleware, (req, res) => {
   if (price !== undefined) {
     products[idx].price = parseInt(price, 10);
     products[idx].wholesale_price_from = products[idx].price;
-    products[idx].retail_price = products[idx].price * 3;
+    products[idx].retail_price = products[idx].price;
   }
   if (visible     !== undefined) products[idx].visible     = Boolean(visible);
   if (video       !== undefined) products[idx].video       = video;
@@ -450,6 +491,28 @@ app.put('/api/admin/orders/:id', authMiddleware, (req, res) => {
   if (req.body.status) orders[idx].status = req.body.status;
   writeJSON(ORDERS_FILE, orders);
   res.json(orders[idx]);
+});
+
+// ==================== Admin: Wholesale requests ====================
+
+app.get('/api/admin/wholesale-requests', authMiddleware, (req, res) => res.json(readJSON(WHOLESALE_FILE, [])));
+
+app.put('/api/admin/wholesale-requests/:id', authMiddleware, (req, res) => {
+  const requests = readJSON(WHOLESALE_FILE, []);
+  const idx = requests.findIndex(r => r.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Заявка не найдена' });
+  if (req.body.status) requests[idx].status = req.body.status;
+  writeJSON(WHOLESALE_FILE, requests);
+  res.json(requests[idx]);
+});
+
+app.delete('/api/admin/wholesale-requests/:id', authMiddleware, (req, res) => {
+  const requests = readJSON(WHOLESALE_FILE, []);
+  const idx = requests.findIndex(r => r.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Заявка не найдена' });
+  requests.splice(idx, 1);
+  writeJSON(WHOLESALE_FILE, requests);
+  res.json({ ok: true });
 });
 
 // ==================== Admin: Contacts ====================

@@ -6,7 +6,6 @@ const path = require('path');
 
 function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON, escH }) {
   const router = express.Router();
-  const requestsFile = path.join(path.dirname(productsFile), 'wholesale-requests.json');
   const cleanSiteUrl = String(siteUrl).replace(/\/$/, '');
 
   const productName = p => p.seo_name || p.name || `Товар ${p.article}`;
@@ -15,8 +14,8 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   const categoryUrl = slug => `${cleanSiteUrl}/category/${encodeURIComponent(slug)}`;
   const assetUrl = file => file ? `${cleanSiteUrl}/${String(file).replace(/^\//, '')}` : '';
   const quantity = p => Number.isFinite(Number(p.stock_qty)) ? Number(p.stock_qty) : Number(p.qty) || 0;
-  const retailPrice = p => Number.isFinite(Number(p.retail_price)) ? Number(p.retail_price) : (Number(p.price) || 0) * 3;
-  const wholesalePrice = p => Number.isFinite(Number(p.wholesale_price_from)) ? Number(p.wholesale_price_from) : Number(p.price) || 0;
+  // Цена = ровно то значение, которое задано в админке — без наценки.
+  const retailPrice = p => Number(p.price) || 0;
   const inStock = p => quantity(p) > 0;
   const priceText = value => Number(value).toLocaleString('ru-RU').replace(/\u00a0/g, ' ');
   const jsonForScript = value => JSON.stringify(value).replace(/</g, '\\u003c');
@@ -281,7 +280,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>${escH(title)}</title>
   <meta name="description" content="${escH(description)}">
   <link rel="canonical" href="${escH(url)}">
@@ -339,14 +338,14 @@ ${cartHtml()}
     const title = `${category.name} — купить со склада | СкладПромо`;
     const description = `${category.name} со склада: актуальные цены и наличие товаров. Оптовые условия — по запросу.`;
     const url = categoryUrl(category.slug);
-    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escH(title)}</title><meta name="description" content="${escH(description)}"><link rel="canonical" href="${escH(url)}"><meta property="og:title" content="${escH(title)}"><meta property="og:description" content="${escH(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escH(url)}"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css"></head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><a href="/">Каталог</a><span class="bc-sep">›</span><span>${escH(category.name)}</span></nav><h1>${escH(category.name)}</h1><p class="category-intro">${escH(description)}</p><div class="seo-product-grid">${products.map(item => productCardHtml(item)).join('')}</div></main>${footerHtml(contacts)}</body></html>`;
+    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>${escH(title)}</title><meta name="description" content="${escH(description)}"><link rel="canonical" href="${escH(url)}"><meta property="og:title" content="${escH(title)}"><meta property="og:description" content="${escH(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escH(url)}"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css"></head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><a href="/">Каталог</a><span class="bc-sep">›</span><span>${escH(category.name)}</span></nav><h1>${escH(category.name)}</h1><p class="category-intro">${escH(description)}</p><div class="seo-product-grid">${products.map(item => productCardHtml(item)).join('')}</div></main>${footerHtml(contacts)}</body></html>`;
   }
 
   function salePageHtml(products, contacts) {
     const title = 'Распродажа товаров со склада | СкладПромо';
     const description = 'Товары со склада с подтверждённой скидкой: старая и новая цена, размер скидки и условия акции.';
     const url = `${cleanSiteUrl}/sale/`;
-    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${url}"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:type" content="website"><meta property="og:url" content="${url}"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css"></head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><span>Распродажа</span></nav><h1>Распродажа товаров со склада</h1><div class="seo-product-grid">${products.map(item => productCardHtml(item, { sale: true })).join('')}</div></main>${footerHtml(contacts)}</body></html>`;
+    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${url}"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:type" content="website"><meta property="og:url" content="${url}"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css"></head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><span>Распродажа</span></nav><h1>Распродажа товаров со склада</h1><div class="seo-product-grid">${products.map(item => productCardHtml(item, { sale: true })).join('')}</div></main>${footerHtml(contacts)}</body></html>`;
   }
 
   function homePageHtml() {
@@ -370,18 +369,8 @@ ${cartHtml()}
 
   router.get('/', (req, res) => res.send(homePageHtml()));
 
-  router.post('/api/wholesale-request', (req, res) => {
-    const article = String(req.body?.article || '');
-    const name = String(req.body?.name || '').trim();
-    const contact = String(req.body?.contact || '').trim();
-    if (!article || !name || !contact) return res.status(400).json({ error: 'Заполните имя и контакт для связи' });
-    const product = readJSON(productsFile, []).find(item => String(item.article) === article && item.visible);
-    if (!product) return res.status(404).json({ error: 'Товар не найден' });
-    const requests = readJSON(requestsFile, []);
-    requests.unshift({ id: Date.now().toString(36).toUpperCase(), type: 'wholesale_request', created_at: new Date().toISOString(), article, product_name: productName(product), name, contact, comment: String(req.body?.comment || '').trim() });
-    writeJSON(requestsFile, requests);
-    res.status(201).json({ ok: true });
-  });
+  // POST /api/wholesale-request теперь в server.js — нужен доступ к
+  // CONTACTS_FILE и Telegram-уведомлениям, которых нет в этом роутере.
 
   router.get('/product/:slug', (req, res) => {
     const products = readJSON(productsFile, []);

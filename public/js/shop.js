@@ -4,9 +4,7 @@ let allProducts = [];
 let contacts = {};
 
 // ======== PRICES ========
-// Розничная цена рассчитывается от оптовой (текущая цена товара = оптовая).
-const RETAIL_MULTIPLIER = 3;
-function retailPrice(price) { return price * RETAIL_MULTIPLIER; }
+// Показывается ровно та цена, которая указана в админке — без наценки.
 function fmtPrice(v) { return v.toLocaleString('ru-RU') + ' ₽'; }
 
 // ======== FILTER STATE ========
@@ -99,8 +97,7 @@ function addToCart(article) {
   if (existing) {
     existing.qty = Math.min(existing.qty + 1, p.qty);
   } else {
-    // В корзину/заказ идёт розничная цена; оптовая обсуждается с менеджером.
-    cart.push({ article: p.article, name: p.name, price: retailPrice(p.price), image: p.image, maxQty: p.qty, qty: 1 });
+    cart.push({ article: p.article, name: p.name, price: p.price, image: p.image, maxQty: p.qty, qty: 1 });
   }
   saveCart();
   updateCartBadge();
@@ -424,7 +421,7 @@ function renderProducts(list) {
           <span class="card-article">Арт. ${p.article}</span>
           <a href="${url}" class="card-name">${escHtml(p.name)}</a>
           <div class="card-prices">
-            <span class="card-price">${fmtPrice(retailPrice(p.price))}</span>
+            <span class="card-price">${fmtPrice(p.price)}</span>
             <span class="card-opt-note">Опт — по запросу</span>
           </div>
           ${qtyLabel}

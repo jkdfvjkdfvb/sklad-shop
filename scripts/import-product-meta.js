@@ -93,7 +93,8 @@ for (const product of products) {
   if (!meta) throw new Error(`Metadata is missing for article ${product.article}.`);
 
   const slug = new URL(meta.url).pathname.split('/').filter(Boolean).pop();
-  const retailPrice = Number(product.price) * 3;
+  // Цена = ровно значение из админки, без наценки.
+  const retailPrice = Number(product.price);
   const metaDescriptionTemplate = meta.meta_description
     .replace(new RegExp(`${product.qty}\\s*шт\\.`, 'u'), '{{stock_qty}} шт.')
     .replace(`${priceText(retailPrice)} ₽`, '{{retail_price}} ₽');

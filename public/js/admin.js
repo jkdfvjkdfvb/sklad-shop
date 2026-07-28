@@ -38,7 +38,7 @@ async function showAdmin() {
   document.getElementById('login-section').style.display = 'none';
   document.getElementById('admin-section').style.display = '';
   renderFeeds();
-  await Promise.all([loadOrders(), loadProducts(), loadContacts()]);
+  await Promise.all([loadOrders(), loadProducts(), loadContacts(), loadWholesaleRequests()]);
 }
 
 if (token) {
@@ -150,6 +150,79 @@ document.getElementById('od-close').addEventListener('click', () => {
 document.getElementById('order-detail-overlay').addEventListener('click', function(e) {
   if (e.target === this) this.style.display = 'none';
 });
+
+// ======== WHOLESALE REQUESTS ========
+let allWholesaleRequests = [];
+
+async function loadWholesaleRequests() {
+  const res = await apiFetch('/api/admin/wholesale-requests');
+  allWholesaleRequests = await res.json();
+  renderWholesaleRequests();
+  updateWholesaleBadge();
+}
+
+function updateWholesaleBadge() {
+  const newCount = allWholesaleRequests.filter(r => (r.status || 'new') === 'new').length;
+  const badge = document.getElementById('wholesale-badge');
+  badge.textContent = newCount;
+  badge.style.display = newCount > 0 ? 'inline' : 'none';
+}
+
+const WHOLESALE_STATUS_LABELS = { new: 'Новая', done: 'Обработана' };
+
+function renderWholesaleRequests() {
+  const tbody = document.getElementById('wholesale-tbody');
+  if (!allWholesaleRequests.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#6b7280">Заявок пока нет</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allWholesaleRequests.map(r => {
+    const date = new Date(r.created_at).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const status = r.status || 'new';
+    return `<tr data-id="${escAttr(r.id)}">
+      <td style="white-space:nowrap;font-size:.8rem">${date}</td>
+      <td>${escHtml(r.product_name)} <span style="color:#9ca3af;font-size:.78rem">арт. ${escHtml(r.article)}</span></td>
+      <td>${escHtml(r.name)}</td>
+      <td>${escHtml(r.contact)}</td>
+      <td style="max-width:220px">${escHtml(r.comment || '—')}</td>
+      <td>
+        <select class="status-select wholesale-status-select" data-id="${escAttr(r.id)}">
+          ${['new','done'].map(s => `<option value="${s}" ${status===s?'selected':''}>${WHOLESALE_STATUS_LABELS[s]}</option>`).join('')}
+        </select>
+      </td>
+      <td><button class="btn-icon wholesale-delete-btn" title="Удалить">🗑</button></td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('.wholesale-status-select').forEach(sel => {
+    sel.addEventListener('change', () => updateWholesaleStatus(sel.dataset.id, sel.value));
+  });
+  tbody.querySelectorAll('.wholesale-delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => deleteWholesaleRequest(btn.closest('tr').dataset.id));
+  });
+}
+
+async function updateWholesaleStatus(id, status) {
+  await apiFetch(`/api/admin/wholesale-requests/${id}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status })
+  });
+  const r = allWholesaleRequests.find(r => r.id === id);
+  if (r) r.status = status;
+  updateWholesaleBadge();
+}
+
+async function deleteWholesaleRequest(id) {
+  if (!confirm('Удалить заявку?')) return;
+  const res = await apiFetch(`/api/admin/wholesale-requests/${id}`, { method: 'DELETE' });
+  if (res.ok) {
+    allWholesaleRequests = allWholesaleRequests.filter(r => r.id !== id);
+    renderWholesaleRequests();
+    updateWholesaleBadge();
+  } else if (res.status !== 401) {
+    alert('Не удалось удалить заявку');
+  }
+}
 
 // ======== PRODUCTS ========
 async function loadProducts() {
