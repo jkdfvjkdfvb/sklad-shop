@@ -113,14 +113,20 @@ const uploadFeedImg = multer({ storage: feedImgStorage, limits: { fileSize: 20 *
 
 // ==================== Notifications ====================
 
+// Экранирование для Telegram HTML parse_mode — иначе спецсимволы в имени/
+// комментарии покупателя (<, >, &) могут сломать отправку или разметку.
+function escTg(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function orderText(order) {
   const lines = order.items.map(i =>
-    `• ${i.name} (Арт. ${i.article}) — ${i.qty} × ${i.price} ₽ = ${i.qty * i.price} ₽`
+    `• ${escTg(i.name)} (Арт. ${escTg(i.article)}) — ${i.qty} × ${i.price} ₽ = ${i.qty * i.price} ₽`
   );
   return [
-    `🛒 Новый заказ #${order.id}`,
-    `👤 ${order.customer.name}  📞 ${order.customer.phone}`,
-    order.customer.comment ? `💬 ${order.customer.comment}` : '',
+    `<b>🛒 НОВЫЙ ЗАКАЗ #${escTg(order.id)}</b>`,
+    `👤 ${escTg(order.customer.name)}  📞 ${escTg(order.customer.phone)}`,
+    order.customer.comment ? `💬 ${escTg(order.customer.comment)}` : '',
     '',
     ...lines,
     '',
@@ -130,10 +136,10 @@ function orderText(order) {
 
 function wholesaleText(entry) {
   return [
-    `📦 Заявка на оптовые условия #${entry.id}`,
-    `🛍️ ${entry.product_name} (арт. ${entry.article})`,
-    `👤 ${entry.name}  📞 ${entry.contact}`,
-    entry.comment ? `💬 ${entry.comment}` : '',
+    `<b>🧾 ЗАЯВКА НА ОПТОВЫЙ ПРАЙС #${escTg(entry.id)}</b>`,
+    `🛍️ ${escTg(entry.product_name)} (арт. ${escTg(entry.article)})`,
+    `👤 ${escTg(entry.name)}  📞 ${escTg(entry.contact)}`,
+    entry.comment ? `💬 ${escTg(entry.comment)}` : '',
   ].filter(l => l !== '').join('\n');
 }
 
