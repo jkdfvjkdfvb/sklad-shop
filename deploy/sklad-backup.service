@@ -1,0 +1,30 @@
+[Unit]
+Description=Ежедневный бэкап данных «Склада» (том sklad-data)
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+# Песочница как у бэкапа автосервиса. Скрипту нужен только каталог копий:
+# всё остальное читается через docker exec, наружу ничего не пишется.
+ProtectSystem=strict
+# Разрешаем запись в РОДИТЕЛЬСКИЙ каталог, а не в /var/backups/sklad.
+# ReadWritePaths проверяется при настройке пространства имён — то есть до
+# запуска любых команд юнита, включая ExecStartPre с префиксом «+». Если
+# указать здесь ещё не созданный подкаталог, юнит падает с «Failed to set up
+# mount namespacing» и не доходит до его создания. /var/backups существует
+# всегда, а свой подкаталог скрипт заводит сам — так связка чинится сама,
+# даже если каталог копий кто-то удалит.
+ReadWritePaths=/var/backups
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+ExecStart=/opt/sklad/deploy/sklad-backup.sh

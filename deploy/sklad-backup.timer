@@ -1,0 +1,12 @@
+[Unit]
+Description=Ежедневный бэкап «Склада» — таймер
+
+[Timer]
+# 03:50 UTC. Бэкап автосервиса идёт в 03:30, ночная сводка в 00:30 —
+# разносим по времени, чтобы три задачи не делили два ядра одновременно.
+OnCalendar=*-*-* 03:50:00
+RandomizedDelaySec=300
+Persistent=true
+
+[Install]
+WantedBy=timers.target
