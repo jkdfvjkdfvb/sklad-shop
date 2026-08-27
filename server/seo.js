@@ -76,7 +76,9 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   }
 
   function footerHtml(contacts = {}) {
-    return '<footer class="site-footer"><p>© 2024 СкладПромо. Все права защищены.</p></footer>';
+    // Год берётся из системного времени, а не зашит: в footer он устаревал
+    // молча — «2024» провисел до августа 2026-го.
+    return `<footer class="site-footer"><p>© ${new Date().getFullYear()} СкладПромо. Все права защищены.</p></footer>`;
   }
   function headerHtml(contacts = {}) {
     const phone = validPhone(contacts.phone);

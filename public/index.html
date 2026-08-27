@@ -106,7 +106,7 @@
 </section>
 
 <footer class="site-footer">
-  <p>© 2024 СкладПромо. Все права защищены.</p>
+  <p>© <span id="footer-year">2026</span> СкладПромо. Все права защищены.</p>
 </footer>
 
 <!-- ====== CART DRAWER ====== -->
@@ -151,5 +151,10 @@
 </div>
 
 <script src="js/shop.js"></script>
+  <script>
+    // Разметка несёт актуальный год как запасной вариант, скрипт держит его
+    // в согласии с календарём — чтобы 1 января футер не стал неправильным.
+    document.getElementById('footer-year').textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>
