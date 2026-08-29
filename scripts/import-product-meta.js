@@ -106,7 +106,6 @@ for (const product of products) {
     seo_name: meta.h1,
     short_name: meta.title.replace(/ — купить \| СкладПромо$/u, ''),
     meta_title: meta.title,
-    meta_description: meta.meta_description,
     meta_description_template: metaDescriptionTemplate,
     target_cluster: meta.target_cluster,
     ...category,

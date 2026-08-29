@@ -75,6 +75,23 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
     return `<div class="${className}">${links.map(([name, label, url]) => `<a href="${escH(url)}" class="msg-btn ${name}" target="_blank" rel="noopener" title="${escH(label)}" aria-label="${escH(label)}">${socialIcon(name)}<span class="visually-hidden">${escH(label)}</span></a>`).join('')}</div>`;
   }
 
+  // Счётчики подключаются только при заданных ID в переменных окружения.
+  // Пустой ID — ничего не рендерится: счётчик-заглушка хуже отсутствующего,
+  // он создаёт видимость измерения там, где его нет.
+  const GA4_ID = String(process.env.GA4_ID || '').trim();
+  const YM_ID = String(process.env.YANDEX_METRIKA_ID || '').trim();
+
+  function analyticsHtml() {
+    if (!GA4_ID && !YM_ID) return '';
+    const ga = GA4_ID ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${escH(GA4_ID)}"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config',${JSON.stringify(GA4_ID)});</script>` : '';
+    const ym = YM_ID ? `<script>(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,'script','https://mc.yandex.ru/metrika/tag.js','ym');ym(${JSON.stringify(YM_ID)},'init',{defer:true,clickmap:true,trackLinks:true,accurateTrackBounce:true});</script><noscript><div><img src="https://mc.yandex.ru/watch/${escH(YM_ID)}" style="position:absolute;left:-9999px" alt=""></div></noscript>` : '';
+    // Единая точка отправки событий. Вызывается как window.skladTrack?.(...) —
+    // если счётчиков нет, вызов просто не происходит и код не падает.
+    const shim = `<script>window.skladTrack=function(name,params){params=params||{};try{if(window.gtag)gtag('event',name,params);if(window.ym)ym(${JSON.stringify(YM_ID || '0')},'reachGoal',name,params);}catch(e){}};</script>`;
+    return ga + ym + shim;
+  }
+
   function footerHtml(contacts = {}) {
     // Год берётся из системного времени, а не зашит: в footer он устаревал
     // молча — «2024» провисел до августа 2026-го.
@@ -112,7 +129,11 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
     const stock = quantity(product);
     const retail = priceText(retailPrice(product));
     if (stock <= 0) return `${name}. Арт. ${product.article}. Нет в наличии. Цена ${retail} ₽. Опт — по запросу.`;
-    const template = product.meta_description_template || product.meta_description;
+    // Единственный источник — шаблон: цена и остаток подставляются в момент
+    // рендера из тех же полей, что и видимый блок цены. Снимок
+    // meta_description больше не хранится — он устаревал при первом же
+    // изменении прайса (все 69 значений разъехались с ценой ровно в 3 раза).
+    const template = product.meta_description_template;
     if (template && template.includes('{{stock_qty}}') && template.includes('{{retail_price}}')) {
       return template.replaceAll('{{stock_qty}}', String(stock)).replaceAll('{{retail_price}}', retail);
     }
@@ -263,7 +284,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Главная', item: `${cleanSiteUrl}/` },
-        { '@type': 'ListItem', position: 2, name: 'Каталог', item: `${cleanSiteUrl}/` },
+        { '@type': 'ListItem', position: 2, name: 'Каталог', item: `${cleanSiteUrl}/catalog` },
         { '@type': 'ListItem', position: 3, name: categoryName, item: categoryUrl(product.category_slug) },
         { '@type': 'ListItem', position: 4, name: productName(product), item: url },
       ],
@@ -298,6 +319,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   <script type="application/ld+json">${jsonForScript(faqLd)}</script>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/product.css">
+  ${analyticsHtml()}
 </head>
 <body>
 ${headerHtml(contacts)}
@@ -331,33 +353,233 @@ ${footerHtml(contacts)}
 ${cartHtml()}
 <script>window.PRODUCT_DATA=${jsonForScript({ article: product.article, name: productName(product), price, qty: stock, image: image ? `/${String(image).replace(/^\//, '')}` : '' })};</script>
 <script src="/js/product.js"></script>
-<script>document.getElementById('wholesale-btn')?.addEventListener('click',()=>document.getElementById('wholesale-request').scrollIntoView({behavior:'smooth'}));document.getElementById('wholesale-form')?.addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget;const status=document.getElementById('wholesale-status');const data=Object.fromEntries(new FormData(form));try{const response=await fetch('/api/wholesale-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({article:${jsonForScript(String(product.article))},...data})});if(!response.ok)throw new Error();form.reset();status.textContent='Запрос принят.';}catch{status.textContent='Не удалось отправить запрос. Попробуйте ещё раз.';}});</script>
+<script>document.getElementById('wholesale-btn')?.addEventListener('click',()=>document.getElementById('wholesale-request').scrollIntoView({behavior:'smooth'}));document.getElementById('wholesale-form')?.addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget;const status=document.getElementById('wholesale-status');const data=Object.fromEntries(new FormData(form));try{const response=await fetch('/api/wholesale-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({article:${jsonForScript(String(product.article))},...data})});if(!response.ok)throw new Error();form.reset();status.textContent='Запрос принят.';window.skladTrack?.('generate_lead',{lead_type:'wholesale',item_id:${jsonForScript(String(product.article))}});}catch{status.textContent='Не удалось отправить запрос. Попробуйте ещё раз.';}});</script>
 </body>
 </html>`;
   }
 
-  function categoryPageHtml(category, products, contacts) {
+  function categoryPageHtml(category, products, contacts, allProducts = []) {
     const title = `${category.name} — купить со склада | СкладПромо`;
     const description = `${category.name} со склада: актуальные цены и наличие товаров. Оптовые условия — по запросу.`;
+    const intro = categoryIntro(category, products);
     const url = categoryUrl(category.slug);
-    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>${escH(title)}</title><meta name="description" content="${escH(description)}"><link rel="canonical" href="${escH(url)}"><meta property="og:title" content="${escH(title)}"><meta property="og:description" content="${escH(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escH(url)}"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css"></head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><a href="/">Каталог</a><span class="bc-sep">›</span><span>${escH(category.name)}</span></nav><h1>${escH(category.name)}</h1><p class="category-intro">${escH(description)}</p><div class="seo-product-grid">${products.map(item => productCardHtml(item)).join('')}</div></main>${footerHtml(contacts)}</body></html>`;
+
+    const breadcrumbLd = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Главная', item: `${cleanSiteUrl}/` },
+        { '@type': 'ListItem', position: 2, name: 'Каталог', item: `${cleanSiteUrl}/catalog` },
+        { '@type': 'ListItem', position: 3, name: category.name, item: url },
+      ],
+    };
+    const listLd = {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: category.name,
+      numberOfItems: products.length,
+      itemListElement: products.map((item, i) => ({
+        '@type': 'ListItem', position: i + 1, url: productUrl(item), name: productName(item),
+      })),
+    };
+
+    // Смежные категории: соседи по алфавиту вокруг текущей. Раньше со страницы
+    // категории вообще не было ссылок никуда, кроме логотипа и главной.
+    const siblings = sortedCategories(allProducts).filter(c => c.slug !== category.slug);
+    const idx = sortedCategories(allProducts).findIndex(c => c.slug === category.slug);
+    const near = siblings.slice(Math.max(0, idx - 2), Math.max(0, idx - 2) + 4);
+    const siblingsHtml = near.length
+      ? `<nav class="category-siblings" aria-labelledby="siblings-heading"><h2 id="siblings-heading">Другие категории</h2><ul>${near.map(c => `<li><a href="/category/${encodeURIComponent(c.slug)}">${escH(c.name)}</a></li>`).join('')}<li><a href="/catalog">Весь каталог</a></li></ul></nav>`
+      : '';
+
+    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>${escH(title)}</title><meta name="description" content="${escH(description)}"><link rel="canonical" href="${escH(url)}"><meta property="og:title" content="${escH(title)}"><meta property="og:description" content="${escH(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escH(url)}"><meta property="og:site_name" content="СкладПромо"><script type="application/ld+json">${jsonForScript(breadcrumbLd)}</script><script type="application/ld+json">${jsonForScript(listLd)}</script><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css">${analyticsHtml()}</head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><a href="/catalog">Каталог</a><span class="bc-sep">›</span><span>${escH(category.name)}</span></nav><h1>${escH(category.name)}</h1><p class="category-intro">${escH(intro)}</p><div class="seo-product-grid">${products.map(item => productCardHtml(item)).join('')}</div>${siblingsHtml}</main>${footerHtml(contacts)}${cartHtml()}<script src="/js/product.js"></script></body></html>`;
   }
 
   function salePageHtml(products, contacts) {
     const title = 'Распродажа товаров со склада | СкладПромо';
     const description = 'Товары со склада с подтверждённой скидкой: старая и новая цена, размер скидки и условия акции.';
-    const url = `${cleanSiteUrl}/sale/`;
-    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${url}"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:type" content="website"><meta property="og:url" content="${url}"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css"></head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><span>Распродажа</span></nav><h1>Распродажа товаров со склада</h1><div class="seo-product-grid">${products.map(item => productCardHtml(item, { sale: true })).join('')}</div></main>${footerHtml(contacts)}</body></html>`;
+    const url = `${cleanSiteUrl}/sale`;
+    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${url}"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:type" content="website"><meta property="og:url" content="${url}"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css">${analyticsHtml()}</head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><span>Распродажа</span></nav><h1>Распродажа товаров со склада</h1><div class="seo-product-grid">${products.map(item => productCardHtml(item, { sale: true })).join('')}</div></main>${footerHtml(contacts)}</body></html>`;
   }
 
-  function homePageHtml() {
+  function plural(n, one, few, many) {
+    const mod10 = n % 10, mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return one;
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+    return many;
+  }
+
+  // Сводка по категории считается из самих товаров: число SKU, диапазон цен,
+  // суммарный остаток и дата его обновления. Это фактические данные — они не
+  // требуют подтверждения от бизнеса и при этом делают интро всех категорий
+  // разными (сейчас у 20 из 20 интро побайтно равно meta description).
+  function categoryStats(items) {
+    const prices = items.map(retailPrice).filter(value => value > 0);
+    return {
+      count: items.length,
+      min: prices.length ? Math.min(...prices) : 0,
+      max: prices.length ? Math.max(...prices) : 0,
+      stock: items.reduce((sum, item) => sum + quantity(item), 0),
+      updated: formatStockDate(items.map(item => item.stock_updated_at).filter(Boolean).sort().pop()),
+    };
+  }
+
+  function categoryIntro(category, items) {
+    const s = categoryStats(items);
+    const parts = [`${category.name} со склада: ${s.count} ${plural(s.count, 'товар', 'товара', 'товаров')} в каталоге`];
+    if (s.min && s.max) {
+      parts.push(s.min === s.max
+        ? `цена ${priceText(s.min)} ₽`
+        : `цены от ${priceText(s.min)} до ${priceText(s.max)} ₽`);
+    }
+    if (s.stock > 0) parts.push(`${priceText(s.stock)} шт. в наличии`);
+    // ru-RU уже отдаёт «17 июля 2026 г.» с точкой — вторую не добавляем.
+    const updated = s.updated ? ` Остатки обновлены ${s.updated.replace(/\.$/, '')}.` : '';
+    return `${parts.join(', ')}.${updated} Оптовые условия — по запросу.`;
+  }
+
+  function groupByCategory(products) {
+    const map = new Map();
+    products.filter(product => product.visible).forEach(product => {
+      const slug = product.category_slug || 'catalog';
+      if (!map.has(slug)) map.set(slug, []);
+      map.get(slug).push(product);
+    });
+    return map;
+  }
+
+  function sortedCategories(products) {
+    return [...categoriesFrom(products).values()]
+      .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+  }
+
+  // Карточка SSR-грида главной. Разметка намеренно повторяет ту, что строит
+  // renderProducts() в public/js/shop.js: грид перерисовывается на клиенте, и
+  // при расхождении разметки пользователь увидел бы скачок при гидратации.
+  function homeProductCardHtml(product) {
+    const stock = quantity(product);
+    const url = `/product/${encodeURIComponent(productSlug(product))}`;
+    const image = product.image || (product.image_urls && product.image_urls[0]) || '';
+    const name = product.name || productName(product);
+    return `
+      <div class="product-card">
+        <a href="${url}" class="card-img-link" tabindex="-1" aria-hidden="true">
+          <div class="card-img-wrap">
+            <img src="${escH(image)}" alt="${escH(name)}" loading="lazy"
+                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23eee%22/></svg>'">
+          </div>
+        </a>
+        <div class="card-body">
+          <span class="card-article">Арт. ${escH(product.article)}</span>
+          <a href="${url}" class="card-name">${escH(name)}</a>
+          <div class="card-prices">
+            <span class="card-price">${priceText(retailPrice(product))} ₽</span>
+            <span class="card-opt-note">Опт — по запросу</span>
+          </div>
+          <span class="card-qty ${stock > 0 ? 'in-stock' : 'out-stock'}">${stock > 0 ? `В наличии: ${stock} шт.` : 'Нет в наличии'}</span>
+          ${stock > 0 ? `<button class="add-to-cart-btn" data-article="${escH(product.article)}">В корзину</button>` : ''}
+        </div>
+      </div>`;
+  }
+
+  function categoryDirectoryHtml(categories, byCategory) {
+    const items = categories.map(category => {
+      const count = (byCategory.get(category.slug) || []).length;
+      return `<li><a href="/category/${encodeURIComponent(category.slug)}">${escH(category.name)}</a> <span class="cat-count">${count}</span></li>`;
+    }).join('');
+    return `<nav class="category-directory" aria-labelledby="categories-heading">
+    <h2 id="categories-heading">Категории каталога</h2>
+    <ul class="category-directory-list">${items}</ul>
+    <p><a href="/catalog" class="category-directory-all">Весь каталог — все категории и товары</a></p>
+  </nav>`;
+  }
+
+  function homePageHtml(products, contacts = {}) {
     const index = fs.readFileSync(path.join(publicDir, 'index.html'), 'utf8');
-    const title = 'Сувениры и бизнес-подарки со склада — оптом, в наличии | СкладПромо';
-    const description = 'Сувенирная продукция и бизнес-подарки со склада: актуальные цены и остатки товаров.';
-    const head = `<title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${cleanSiteUrl}/"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:type" content="website"><meta property="og:url" content="${cleanSiteUrl}/">`;
+    const visible = products.filter(product => product.visible);
+    // Тот же срез и тот же порядок, что отдаёт /api/products, — чтобы после
+    // гидратации грид не перестроился.
+    const listed = visible.filter(product => Number(product.qty) > 0);
+    const categories = sortedCategories(products);
+    const byCategory = groupByCategory(products);
+
+    const title = 'Сувениры и бизнес-подарки со склада оптом | СкладПромо';
+    const description = 'Сувенирная продукция и бизнес-подарки в наличии: цены и остатки на складе. Оптовые условия — по запросу.';
+
+    // WebSite без SearchAction: поиск на сайте чисто клиентский, отдельного
+    // индексируемого URL результатов нет — заявлять его было бы неправдой.
+    const websiteLd = {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'СкладПромо',
+      url: `${cleanSiteUrl}/`,
+      inLanguage: 'ru-RU',
+    };
+    const categoryListLd = {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: 'Категории каталога',
+      numberOfItems: categories.length,
+      itemListElement: categories.map((category, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        url: categoryUrl(category.slug),
+        name: category.name,
+      })),
+    };
+
+    const head = `<title>${escH(title)}</title><meta name="description" content="${escH(description)}"><link rel="canonical" href="${cleanSiteUrl}/"><meta property="og:title" content="${escH(title)}"><meta property="og:description" content="${escH(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${cleanSiteUrl}/"><meta property="og:site_name" content="СкладПромо"><script type="application/ld+json">${jsonForScript(websiteLd)}</script><script type="application/ld+json">${jsonForScript(categoryListLd)}</script>${analyticsHtml()}`;
+
+    // Hero берётся из contacts.json с тем же fallback, что и в shop.js:367 —
+    // иначе SSR-текст и текст после гидратации расходятся, как только
+    // администратор отредактирует баннер.
+    const heroTitle = contacts.hero_title || 'Сувенирная продукция и бизнес-подарки со склада';
+    const heroText = contacts.hero_text || 'Товары со склада с актуальными ценами и остатками.';
+
     return index.replace(/<title>[\s\S]*?<\/title>/i, head)
-      .replace(/<h1 id="hero-title">[\s\S]*?<\/h1>/i, '<h1 id="hero-title">Сувенирная продукция и бизнес-подарки со склада</h1>')
-      .replace(/<p id="hero-text">[\s\S]*?<\/p>/i, '<p id="hero-text">Товары со склада с актуальными ценами и остатками.</p>');
+      .replace(/<h1 id="hero-title">[\s\S]*?<\/h1>/i, `<h1 id="hero-title">${escH(heroTitle)}</h1>`)
+      .replace(/<p id="hero-text">[\s\S]*?<\/p>/i, `<p id="hero-text">${escH(heroText)}</p>`)
+      .replace('<div class="catalog-layout">', `${categoryDirectoryHtml(categories, byCategory)}\n  <div class="catalog-layout">`)
+      .replace('<div class="products-grid" id="products-grid"></div>',
+        `<div class="products-grid" id="products-grid">${listed.map(homeProductCardHtml).join('')}</div>`);
+  }
+
+  function catalogPageHtml(products, contacts) {
+    const categories = sortedCategories(products);
+    const byCategory = groupByCategory(products);
+    const title = 'Каталог товаров со склада — все категории | СкладПромо';
+    const total = products.filter(product => product.visible).length;
+    const description = `Каталог со склада: ${categories.length} ${plural(categories.length, 'категория', 'категории', 'категорий')}, ${total} ${plural(total, 'товар', 'товара', 'товаров')} с актуальными ценами и остатками.`;
+    const url = `${cleanSiteUrl}/catalog`;
+
+    const breadcrumbLd = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Главная', item: `${cleanSiteUrl}/` },
+        { '@type': 'ListItem', position: 2, name: 'Каталог', item: url },
+      ],
+    };
+    const listLd = {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: 'Категории каталога',
+      numberOfItems: categories.length,
+      itemListElement: categories.map((category, i) => ({
+        '@type': 'ListItem', position: i + 1, url: categoryUrl(category.slug), name: category.name,
+      })),
+    };
+
+    const sections = categories.map(category => {
+      const items = byCategory.get(category.slug) || [];
+      return `<section class="catalog-category">
+    <h2><a href="/category/${encodeURIComponent(category.slug)}">${escH(category.name)}</a> <span class="cat-count">${items.length}</span></h2>
+    <p class="category-intro">${escH(categoryIntro(category, items))}</p>
+    <ul class="catalog-product-list">${items.map(item => `<li><a href="/product/${encodeURIComponent(productSlug(item))}">${escH(productName(item))}</a> — ${priceText(retailPrice(item))} ₽</li>`).join('')}</ul>
+  </section>`;
+    }).join('');
+
+    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>${escH(title)}</title><meta name="description" content="${escH(description)}"><link rel="canonical" href="${escH(url)}"><meta property="og:title" content="${escH(title)}"><meta property="og:description" content="${escH(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escH(url)}"><meta property="og:site_name" content="СкладПромо"><script type="application/ld+json">${jsonForScript(breadcrumbLd)}</script><script type="application/ld+json">${jsonForScript(listLd)}</script><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css">${analyticsHtml()}</head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><span>Каталог</span></nav><h1>Каталог товаров со склада</h1><p class="category-intro">${escH(description)}</p>${sections}</main>${footerHtml(contacts)}</body></html>`;
   }
 
   function categoriesFrom(products) {
@@ -369,7 +591,15 @@ ${cartHtml()}
     return map;
   }
 
-  router.get('/', (req, res) => res.send(homePageHtml()));
+  const contactsFile = () => path.join(path.dirname(productsFile), 'contacts.json');
+
+  router.get('/', (req, res) => {
+    res.send(homePageHtml(readJSON(productsFile, []), readJSON(contactsFile(), {})));
+  });
+
+  router.get('/catalog', (req, res) => {
+    res.send(catalogPageHtml(readJSON(productsFile, []), readJSON(contactsFile(), {})));
+  });
 
   // POST /api/wholesale-request теперь в server.js — нужен доступ к
   // CONTACTS_FILE и Telegram-уведомлениям, которых нет в этом роутере.
@@ -392,10 +622,10 @@ ${cartHtml()}
     const products = readJSON(productsFile, []).filter(product => product.visible);
     const category = categoriesFrom(products).get(req.params.slug);
     if (!category) return res.status(404).type('html').send('<!doctype html><title>Категория не найдена</title><h1>Категория не найдена</h1>');
-    res.send(categoryPageHtml(category, products.filter(product => (product.category_slug || 'catalog') === category.slug), readJSON(path.join(path.dirname(productsFile), 'contacts.json'), {})));
+    res.send(categoryPageHtml(category, products.filter(product => (product.category_slug || 'catalog') === category.slug), readJSON(contactsFile(), {}), products));
   });
 
-  router.get('/sale/', (req, res) => {
+  router.get('/sale', (req, res) => {
     const saleProducts = readJSON(productsFile, []).filter(product => product.visible && isValidSale(product));
     if (!saleProducts.length) return res.status(404).type('html').send('<!doctype html><title>Распродажа не проводится</title><h1>Распродажа не проводится</h1>');
     res.send(salePageHtml(saleProducts, readJSON(path.join(path.dirname(productsFile), 'contacts.json'), {})));
@@ -409,11 +639,29 @@ ${cartHtml()}
     const products = readJSON(productsFile, []).filter(product => product.visible);
     const categories = [...categoriesFrom(products).values()];
     const saleProducts = products.filter(isValidSale);
+    // Максимальная дата изменения из набора товаров.
+    // Прежний вариант — .sort().pop() — возвращал undefined, если хотя бы у
+    // одного товара не было обеих дат (sort() всегда уносит undefined в конец),
+    // и тогда <lastmod> молча пропадал у всей категории.
+    const latestChange = items => lastmod(
+      items.map(product => product.seo_updated_at || product.stock_updated_at)
+        .filter(Boolean).sort().pop()
+    );
+    // Дата главной — по самому свежему товару, а не по mtime index.html:
+    // mtime — это время выкладки файла, а не изменения контента.
     const urls = [
-      { loc: `${cleanSiteUrl}/`, priority: '1.0', modified: lastmod(fs.statSync(path.join(publicDir, 'index.html')).mtime) },
-      ...categories.map(category => ({ loc: categoryUrl(category.slug), priority: '0.7', modified: lastmod(products.filter(product => product.category_slug === category.slug).map(product => product.seo_updated_at || product.stock_updated_at).sort().pop()) })),
+      { loc: `${cleanSiteUrl}/`, priority: '1.0', modified: latestChange(products) },
+      { loc: `${cleanSiteUrl}/catalog`, priority: '0.9', modified: latestChange(products) },
+      // Ключ категории строится как `category_slug || 'catalog'` — фильтровать
+      // надо по тому же выражению, иначе синтетическая категория 'catalog'
+      // никогда не найдёт собственные товары.
+      ...categories.map(category => ({
+        loc: categoryUrl(category.slug),
+        priority: '0.7',
+        modified: latestChange(products.filter(product => (product.category_slug || 'catalog') === category.slug)),
+      })),
       ...products.map(product => ({ loc: productUrl(product), priority: '0.8', modified: lastmod(product.seo_updated_at || product.stock_updated_at) })),
-      ...(saleProducts.length ? [{ loc: `${cleanSiteUrl}/sale/`, priority: '0.6', modified: lastmod(saleProducts.map(product => product.seo_updated_at || product.stock_updated_at).sort().pop()) }] : []),
+      ...(saleProducts.length ? [{ loc: `${cleanSiteUrl}/sale`, priority: '0.6', modified: latestChange(saleProducts) }] : []),
     ];
     const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(item => `  <url><loc>${escH(item.loc)}</loc>${item.modified ? `<lastmod>${item.modified}</lastmod>` : ''}<changefreq>weekly</changefreq><priority>${item.priority}</priority></url>`).join('\n')}\n</urlset>`;
     res.type('application/xml').send(xml);
@@ -421,8 +669,47 @@ ${cartHtml()}
 
   router.get('/llms.txt', (req, res) => {
     const products = readJSON(productsFile, []).filter(product => product.visible);
-    const lines = products.map(product => `- [${productName(product)}](${productUrl(product)}) — ${priceText(retailPrice(product))} ₽, ${inStock(product) ? `в наличии ${quantity(product)} шт.` : 'нет в наличии'}, арт. ${product.article}.`);
-    res.type('text/plain').send(`# СкладПромо — товары со склада\n\n> Актуальные цены и остатки. Оптовые условия — по запросу.\n\n## Каталог товаров (${products.length})\n\n${lines.join('\n')}\n`);
+    const categories = sortedCategories(products);
+    const byCategory = groupByCategory(products);
+
+    const categoryLines = categories.map(category => {
+      const items = byCategory.get(category.slug) || [];
+      const s = categoryStats(items);
+      const range = s.min && s.max
+        ? (s.min === s.max ? `${priceText(s.min)} ₽` : `${priceText(s.min)}–${priceText(s.max)} ₽`)
+        : '—';
+      return `- [${category.name}](${categoryUrl(category.slug)}) — ${items.length} ${plural(items.length, 'товар', 'товара', 'товаров')}, ${range}, ${priceText(s.stock)} шт. в наличии.`;
+    });
+
+    const productLines = products.map(product => `- [${productName(product)}](${productUrl(product)}) — ${priceText(retailPrice(product))} ₽, ${inStock(product) ? `в наличии ${quantity(product)} шт.` : 'нет в наличии'}, арт. ${product.article}.`);
+
+    // Дата генерации и дата среза остатков: потребителю (в т.ч. AI) важно
+    // понимать, насколько свежи цифры. Никаких сведений о доставке, регионе,
+    // юрлице и минимальном заказе здесь нет — они не подтверждены.
+    const stockDate = lastmod(products.map(p => p.stock_updated_at).filter(Boolean).sort().pop());
+
+    res.type('text/plain').send(
+`# СкладПромо — товары со склада
+
+> Каталог сувенирной продукции и бизнес-подарков с наличием и ценами со склада.
+> Цены указаны розничные, в рублях. Оптовые условия — по запросу через форму на странице товара.
+
+generated_at: ${new Date().toISOString()}
+stock_updated_at: ${stockDate || 'неизвестно'}
+
+## Навигация
+
+- [Главная](${cleanSiteUrl}/)
+- [Весь каталог](${cleanSiteUrl}/catalog)
+
+## Категории (${categories.length})
+
+${categoryLines.join('\n')}
+
+## Каталог товаров (${products.length})
+
+${productLines.join('\n')}
+`);
   });
 
   function feedDescription(product) { return descriptionFor(product); }

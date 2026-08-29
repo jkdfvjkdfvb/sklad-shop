@@ -5,7 +5,10 @@ let contacts = {};
 
 // ======== PRICES ========
 // Показывается ровно та цена, которая указана в админке — без наценки.
-function fmtPrice(v) { return v.toLocaleString('ru-RU') + ' ₽'; }
+// Неразрывный пробел из toLocaleString заменяем на обычный — ровно так же,
+// как priceText() на сервере. Иначе одна и та же цена выглядит как
+// «1 495 ₽» в SSR и «1 495 ₽» после гидратации, и текст переписывается.
+function fmtPrice(v) { return v.toLocaleString('ru-RU').replace(/ /g, ' ') + ' ₽'; }
 
 // ======== PHONE MASK: +7XXXXXXXXXX ========
 function formatPhoneMask(raw) {
@@ -123,6 +126,7 @@ function addToCart(article) {
   updateCartBadge();
   renderCartItems();
   flashAddBtn(article);
+  window.skladTrack?.('add_to_cart', { item_id: p.article, item_name: p.name, value: p.price, currency: 'RUB' });
 }
 
 function removeFromCart(article) {
@@ -257,6 +261,7 @@ document.getElementById('order-btn').addEventListener('click', async () => {
     if (res.ok) {
       checkoutForm.style.display = 'none';
       orderSuccess.style.display = 'block';
+      window.skladTrack?.('generate_lead', { lead_type: 'order', value: cartTotal(), currency: 'RUB' });
       document.getElementById('order-success-text').textContent =
         `Заказ #${data.orderId} принят. Мы свяжемся с вами в ближайшее время.`;
     } else {

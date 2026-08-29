@@ -17,7 +17,9 @@ const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
 const CONTACTS_FILE = path.join(DATA_DIR, 'contacts.json');
 const ORDERS_FILE   = path.join(DATA_DIR, 'orders.json');
 const WHOLESALE_FILE = path.join(DATA_DIR, 'wholesale-requests.json');
-const DEFAULT_SITE_URL = 'https://skladpromo.ru';
+// Дефолт — конечный боевой домен. Если SITE_URL пропадёт из .env, canonical,
+// sitemap и Offer.url не должны молча уехать на посторонний домен.
+const DEFAULT_SITE_URL = 'https://salegifts.ru';
 const SITE_URL = String(process.env.SITE_URL || DEFAULT_SITE_URL).replace(/\/$/, '');
 
 // Фото/видео, загруженные через админку, живут на Railway Volume (DATA_DIR),
@@ -31,6 +33,7 @@ const UPLOAD_MEDIA_DIR  = path.join(UPLOADS_DIR, 'media');
 const sessions = new Set();
 
 app.set('trust proxy', 1);
+app.disable('x-powered-by');
 app.use(express.json());
 app.use((req, res, next) => {
   const forwardedProtocol = req.get('x-forwarded-proto');
@@ -39,6 +42,29 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// Канонизация URL: один адрес — одна страница.
+// Обязательно ДО SEO-роутера и express.static: иначе /index.html отдаётся
+// статикой в обход homePageHtml(), то есть без canonical и OG-тегов —
+// полноценный индексируемый дубль главной.
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  const qIndex = req.originalUrl.indexOf('?');
+  const pathname = qIndex === -1 ? req.originalUrl : req.originalUrl.slice(0, qIndex);
+  const query    = qIndex === -1 ? '' : req.originalUrl.slice(qIndex);
+
+  if (pathname === '/index.html') return res.redirect(301, `/${query}`);
+  if (pathname.length > 1 && pathname.endsWith('/')) {
+    return res.redirect(301, pathname.replace(/\/+$/, '') + query);
+  }
+  // Служебные страницы закрыты в robots.txt, но остаются доступны по прямой
+  // ссылке — заголовок не даёт им попасть в индекс.
+  if (pathname === '/admin.html' || pathname === '/admin-help.html') {
+    res.set('X-Robots-Tag', 'noindex, nofollow');
+  }
+  next();
+});
+
 app.use(createSeoRouter({ productsFile: PRODUCTS_FILE, publicDir: PUBLIC_DIR, siteUrl: SITE_URL, readJSON, writeJSON, escH }));
 // Персистентные загрузки обслуживаются с приоритетом над одноимёнными
 // файлами из git (public/images, public/media) — так обновлённое фото
@@ -192,14 +218,37 @@ async function sendEmail(order, contacts) {
 
 // ==================== Public API ====================
 
+// Публичный список товаров — строгий вайтлист полей.
+// Раньше отдавался весь объект (44 поля): наружу уезжали внутренняя
+// SEO-разметка (target_cluster), служебные таймстемпы и, главное, устаревшее
+// meta_description с ценой ×3. Здесь только то, что реально использует
+// public/js/shop.js: карточки (article/name/price/qty/image/video/slug)
+// и фасеты фильтров (category/material/color).
+const PUBLIC_PRODUCT_FIELDS = [
+  'article', 'name', 'price', 'qty', 'image', 'video',
+  'category', 'material', 'color',
+];
+function publicProduct(p) {
+  const out = {};
+  for (const key of PUBLIC_PRODUCT_FIELDS) out[key] = p[key];
+  out.slug = productSlug(p);
+  return out;
+}
+
 app.get('/api/products', (req, res) => {
-  res.json(readJSON(PRODUCTS_FILE, []).filter(p => p.visible && p.qty > 0)
-    .map(p => ({ ...p, slug: productSlug(p) })));
+  res.json(readJSON(PRODUCTS_FILE, [])
+    .filter(p => p.visible && p.qty > 0)
+    .map(publicProduct));
 });
+
+// Контакты — тоже вайтлист, а не чёрный список: при чёрном списке любое новое
+// служебное поле в contacts.json автоматически утекало бы в браузер. Так,
+// например, наружу уходили order_email и telegram_chat_id.
+const PUBLIC_CONTACT_FIELDS = ['hero_title', 'hero_text', 'phone', 'email', 'max', 'telegram', 'vk'];
 app.get('/api/contacts', (req, res) => {
   const c = readJSON(CONTACTS_FILE, {});
-  // strip sensitive fields from public endpoint
-  const { smtp_pass, smtp_user, smtp_host, smtp_port, telegram_bot_token, ...pub } = c;
+  const pub = {};
+  for (const key of PUBLIC_CONTACT_FIELDS) if (c[key] !== undefined) pub[key] = c[key];
   res.json(pub);
 });
 
@@ -213,13 +262,44 @@ app.post('/api/order', async (req, res) => {
   if (!PHONE_RE.test(customer.phone)) {
     return res.status(400).json({ error: 'Номер телефона должен быть в формате +7XXXXXXXXXX' });
   }
-  const total = items.reduce((s, i) => s + i.price * i.qty, 0);
+
+  // Цену и название берём из каталога, а не из тела запроса: иначе можно
+  // оформить заказ с любой ценой, и он уйдёт менеджеру как настоящий.
+  // Тот же приём уже используется ниже в /api/wholesale-request.
+  const catalog = readJSON(PRODUCTS_FILE, []);
+  const resolved = [];
+  for (const item of items) {
+    const article = String(item?.article || '');
+    const product = catalog.find(p => String(p.article) === article && p.visible);
+    if (!product) {
+      return res.status(400).json({ error: `Товар с артикулом ${article || '—'} недоступен` });
+    }
+    const qty = parseInt(item?.qty, 10);
+    if (!Number.isFinite(qty) || qty < 1) {
+      return res.status(400).json({ error: `Некорректное количество для артикула ${article}` });
+    }
+    if (qty > Number(product.qty)) {
+      return res.status(400).json({ error: `Недостаточно товара «${product.name}»: в наличии ${product.qty} шт.` });
+    }
+    resolved.push({
+      article: String(product.article),
+      name: product.name,
+      price: Number(product.price),
+      qty,
+    });
+  }
+
+  const total = resolved.reduce((s, i) => s + i.price * i.qty, 0);
   const order = {
     id: Date.now().toString(36).toUpperCase(),
     date: new Date().toISOString(),
     status: 'new',
-    customer,
-    items,
+    customer: {
+      name: String(customer.name).trim().slice(0, 200),
+      phone: String(customer.phone).trim(),
+      comment: String(customer.comment || '').trim().slice(0, 2000),
+    },
+    items: resolved,
     total
   };
   const orders = readJSON(ORDERS_FILE, []);

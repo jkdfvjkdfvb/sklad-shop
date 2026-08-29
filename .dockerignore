@@ -1,0 +1,28 @@
+node_modules
+npm-debug.log*
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# Исходники импорта и мусор эпохи reg.ru: в образ не нужны,
+# а .cer/.key не должны попадать даже в build-контекст.
+Контент/
+docs/
+scripts/__pycache__/
+*.py
+*.ps1
+*.bat
+*.cer
+*.key
+DEPLOY-REG.md
+reg_fullchain.cer
+reg_privkey.key
+
+# Данные тома: сидируются entrypoint-ом из server/data
+server/data/uploads/
+
+# Локальные артефакты
+*.tmp
+*.backup.json

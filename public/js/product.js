@@ -137,6 +137,7 @@ function addToCart() {
   }
   saveCart();
   updateCartBadge();
+  window.skladTrack?.('add_to_cart', { item_id: product?.article, item_name: product?.name, value: product?.price, currency: 'RUB' });
   const btn = document.getElementById('add-btn');
   if (btn) {
     btn.classList.add('added');
@@ -148,6 +149,8 @@ function addToCart() {
 
 const addBtn = document.getElementById('add-btn');
 if (addBtn) addBtn.addEventListener('click', addToCart);
+
+if (product) window.skladTrack?.('view_item', { item_id: product.article, item_name: product.name, value: product.price, currency: 'RUB' });
 
 // ======== ORDER ========
 document.getElementById('order-btn').addEventListener('click', async () => {
@@ -171,6 +174,7 @@ document.getElementById('order-btn').addEventListener('click', async () => {
     if (res.ok) {
       checkoutForm.style.display = 'none';
       orderSuccess.style.display = 'block';
+      window.skladTrack?.('generate_lead', { lead_type: 'order', value: cartTotal(), currency: 'RUB' });
       document.getElementById('order-success-text').textContent =
         `Заказ #${data.orderId} принят. Мы свяжемся с вами в ближайшее время.`;
     } else {
