@@ -17,6 +17,7 @@
     <a href="/" class="logo">Склад<span>Промо</span></a>
 
     <form class="header-search" id="search-form" role="search">
+      <label class="visually-hidden" for="search-input">Поиск по каталогу</label>
       <input type="search" id="search-input" placeholder="Поиск по названию или артикулу…" autocomplete="off">
       <button type="submit" aria-label="Найти">🔍</button>
     </form>
@@ -128,8 +129,11 @@
     </div>
 
     <div class="checkout-form" id="checkout-form">
+      <label class="visually-hidden" for="co-name">Ваше имя</label>
       <input type="text"  id="co-name"    placeholder="Ваше имя *" required>
+      <label class="visually-hidden" for="co-phone">Телефон</label>
       <input type="tel"   id="co-phone"   placeholder="+7XXXXXXXXXX" required pattern="\+7\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX">
+      <label class="visually-hidden" for="co-comment">Комментарий к заказу</label>
       <textarea           id="co-comment" placeholder="Комментарий к заказу"></textarea>
       <button class="order-btn" id="order-btn">Оформить заказ</button>
     </div>

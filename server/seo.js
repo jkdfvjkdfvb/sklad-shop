@@ -33,6 +33,15 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
       : '';
   }
 
+  // <time datetime> с машиночитаемой датой рядом с человекочитаемой — тот же
+  // текст, что и раньше, просто не голый string в разметке.
+  function stockUpdatedTimeHtml(product) {
+    const date = product.stock_updated_at ? new Date(product.stock_updated_at) : null;
+    if (!date || Number.isNaN(date.getTime())) return '';
+    const human = formatStockDate(product.stock_updated_at);
+    return `<time datetime="${date.toISOString().slice(0, 10)}">${escH(human)}</time>`;
+  }
+
   function lastmod(value) {
     const date = value ? new Date(value) : null;
     return date && !Number.isNaN(date.getTime()) ? date.toISOString().slice(0, 10) : '';
@@ -160,16 +169,21 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
 
   function factsHtml(product) {
     const stock = quantity(product);
-    const updated = formatStockDate(product.stock_updated_at);
+    const updatedHtml = stockUpdatedTimeHtml(product);
+    const stockHtml = stock > 0
+      ? `На складе: ${escH(String(stock))} шт.${updatedHtml ? ` (обновлено ${updatedHtml})` : ''}`
+      : `Нет в наличии${updatedHtml ? ` (обновлено ${updatedHtml})` : ''}`;
+    // Наличие собрано как готовый HTML (несёт <time>), остальные факты —
+    // обычный текст; поэтому dd больше не экранирует value поголовно.
     const facts = [
-      ['Артикул', product.article],
-      product.material && ['Материал', product.material],
-      product.color && ['Цвет', product.color],
-      ['Наличие', stock > 0 ? `На складе: ${stock} шт.${updated ? ` (обновлено ${updated})` : ''}` : `Нет в наличии${updated ? ` (обновлено ${updated})` : ''}`],
+      ['Артикул', escH(product.article)],
+      product.material && ['Материал', escH(product.material)],
+      product.color && ['Цвет', escH(product.color)],
+      ['Наличие', stockHtml],
     ].filter(Boolean);
     return `<section class="product-facts" aria-labelledby="facts-heading">
   <h2 id="facts-heading">Коротко о товаре</h2>
-  <dl>${facts.map(([key, value]) => `<div><dt>${escH(key)}</dt><dd>${escH(value)}</dd></div>`).join('')}</dl>
+  <dl>${facts.map(([key, value]) => `<div><dt>${escH(key)}</dt><dd>${value}</dd></div>`).join('')}</dl>
 </section>`;
   }
 
@@ -230,11 +244,11 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
 
   function relatedHtml(product, products) {
     const related = products.filter(candidate => candidate.visible && candidate.article !== product.article && candidate.category_slug === product.category_slug).slice(0, 4);
-    if (!related.length) return `<section class="related-products" aria-labelledby="related-heading"><h2 id="related-heading">Похожие товары</h2><p>В этой категории пока нет других товаров.</p></section>`;
-    return `<section class="related-products" aria-labelledby="related-heading">
+    if (!related.length) return `<aside class="related-products" aria-labelledby="related-heading"><h2 id="related-heading">Похожие товары</h2><p>В этой категории пока нет других товаров.</p></aside>`;
+    return `<aside class="related-products" aria-labelledby="related-heading">
   <h2 id="related-heading">Похожие товары</h2>
   <div class="seo-product-grid">${related.map(item => productCardHtml(item)).join('')}</div>
-</section>`;
+</aside>`;
   }
 
   function cartHtml() {
@@ -244,7 +258,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   <div class="cart-items" id="cart-items"><p class="cart-empty">Корзина пуста</p></div>
   <div class="cart-footer" id="cart-footer" style="display:none">
     <div class="cart-total"><span>Итого:</span><span id="cart-total-val">0 ₽</span></div>
-    <div class="checkout-form" id="checkout-form"><input type="text" id="co-name" placeholder="Ваше имя *" required><input type="tel" id="co-phone" placeholder="+7XXXXXXXXXX" required pattern="\\+7\\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX"><textarea id="co-comment" placeholder="Комментарий к заказу"></textarea><button class="order-btn" id="order-btn">Оформить заказ</button></div>
+    <div class="checkout-form" id="checkout-form"><label class="visually-hidden" for="co-name">Ваше имя</label><input type="text" id="co-name" placeholder="Ваше имя *" required><label class="visually-hidden" for="co-phone">Телефон</label><input type="tel" id="co-phone" placeholder="+7XXXXXXXXXX" required pattern="\\+7\\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX"><label class="visually-hidden" for="co-comment">Комментарий к заказу</label><textarea id="co-comment" placeholder="Комментарий к заказу"></textarea><button class="order-btn" id="order-btn">Оформить заказ</button></div>
     <div class="order-success" id="order-success"><h3>✅ Заказ принят!</h3><p id="order-success-text">Мы свяжемся с вами в ближайшее время.</p><button class="add-to-cart-btn" id="order-new-btn" style="margin-top:12px">Продолжить покупки</button></div>
   </div>
 </div>
@@ -296,7 +310,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
       mainEntity: faq.map(item => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })),
     };
     const attrs = characteristics(product);
-    const updated = formatStockDate(product.stock_updated_at);
+    const updatedTimeHtml = stockUpdatedTimeHtml(product);
     const image = product.image || (product.image_urls && product.image_urls[0]);
     const longDescription = product.description ? `<section class="product-description" aria-labelledby="description-heading"><h2 id="description-heading">Описание</h2><p>${escH(product.description)}</p></section>` : '';
     return `<!DOCTYPE html>
@@ -325,26 +339,28 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
 ${headerHtml(contacts)}
 <main class="product-page-main">
   <div class="product-page-wrap">
-    <nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><a href="/">Каталог</a><span class="bc-sep">›</span><a href="/category/${encodeURIComponent(product.category_slug)}">${escH(categoryName)}</a><span class="bc-sep">›</span><span>${escH(productName(product))}</span></nav>
+    <nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><a href="/catalog">Каталог</a><span class="bc-sep">›</span><a href="/category/${encodeURIComponent(product.category_slug)}">${escH(categoryName)}</a><span class="bc-sep">›</span><span>${escH(productName(product))}</span></nav>
     <article class="product-detail" itemscope itemtype="https://schema.org/Product">
-      <div class="product-detail-media">${image ? `<img src="/${escH(String(image).replace(/^\//, ''))}" alt="${escH(productName(product))}" class="product-detail-img" itemprop="image">` : '<div class="product-detail-no-img">Нет фото</div>'}${product.video_url || product.video ? `<button class="card-video-btn" id="video-btn" data-video="/${escH(String(product.video_url || product.video).replace(/^\//, ''))}">▶ Видео</button>` : ''}</div>
+      ${image
+        ? `<figure class="product-detail-media"><img src="/${escH(String(image).replace(/^\//, ''))}" alt="${escH(productName(product))}" class="product-detail-img" itemprop="image">${product.video_url || product.video ? `<button class="card-video-btn" id="video-btn" data-video="/${escH(String(product.video_url || product.video).replace(/^\//, ''))}">▶ Видео</button>` : ''}<figcaption class="visually-hidden">${escH(productName(product))}, арт. ${escH(product.article)}</figcaption></figure>`
+        : `<div class="product-detail-media"><div class="product-detail-no-img">Нет фото</div>${product.video_url || product.video ? `<button class="card-video-btn" id="video-btn" data-video="/${escH(String(product.video_url || product.video).replace(/^\//, ''))}">▶ Видео</button>` : ''}</div>`}
       <div class="product-detail-info">
         <p class="product-detail-article">Арт. <span itemprop="sku">${escH(product.article)}</span></p>
         <h1 class="product-detail-name" itemprop="name">${escH(productName(product))}</h1>
         <div class="product-detail-prices" itemprop="offers" itemscope itemtype="https://schema.org/Offer">
           <meta itemprop="priceCurrency" content="RUB"><link itemprop="availability" href="${stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}">
           ${sale ? `<p class="pdp-old-price">${priceText(product.old_price)} ₽</p><p class="pdp-sale-note">Скидка ${escH(product.discount_percent)}%. ${escH(product.sale_terms)}</p>` : ''}
-          <p class="pdp-price pdp-retail"><span class="pdp-val" itemprop="price" content="${price}">${priceText(price)} ₽</span></p><p class="pdp-opt-note">Опт — по запросу</p>
+          <p class="pdp-price pdp-retail"><data class="pdp-val" itemprop="price" value="${price}">${priceText(price)} ₽</data></p><p class="pdp-opt-note">Опт — по запросу</p>
         </div>
-        <p class="product-detail-qty ${stock > 0 ? 'in-stock' : 'out-stock'}">${stock > 0 ? `В наличии: ${stock} шт.${updated ? ` Остаток обновлён ${escH(updated)}.` : ''}` : `Нет в наличии${updated ? `. Остаток обновлён ${escH(updated)}.` : ''}`}</p>
+        <p class="product-detail-qty ${stock > 0 ? 'in-stock' : 'out-stock'}">${stock > 0 ? `В наличии: ${escH(String(stock))} шт.${updatedTimeHtml ? ` Остаток обновлён ${updatedTimeHtml}.` : ''}` : `Нет в наличии${updatedTimeHtml ? `. Остаток обновлён ${updatedTimeHtml}.` : ''}`}</p>
         <p class="product-factual-summary" itemprop="description">${escH(description)}</p>
         <div class="product-action-row">${stock > 0 ? `<button class="add-to-cart-btn" id="add-btn" data-article="${escH(product.article)}">В корзину</button>` : ''}<button type="button" class="wholesale-btn" id="wholesale-btn">Запросить оптовые условия</button></div>
       </div>
     </article>
     ${factsHtml(product)}
-    ${attrs.length ? `<section class="product-characteristics" aria-labelledby="characteristics-heading"><h2 id="characteristics-heading">Характеристики</h2><table class="product-attrs">${attrs.map(([key, value]) => `<tr><th>${escH(key)}</th><td>${escH(value)}</td></tr>`).join('')}</table></section>` : ''}
+    ${attrs.length ? `<section class="product-characteristics" aria-labelledby="characteristics-heading"><h2 id="characteristics-heading">Характеристики</h2><table class="product-attrs"><caption class="visually-hidden">Характеристики товара «${escH(productName(product))}»</caption><thead><tr><th scope="col">Параметр</th><th scope="col">Значение</th></tr></thead><tbody>${attrs.map(([key, value]) => `<tr><th scope="row">${escH(key)}</th><td>${escH(value)}</td></tr>`).join('')}</tbody></table></section>` : ''}
     ${longDescription}
-    <section class="product-wholesale" id="wholesale-request" aria-labelledby="wholesale-heading"><h2 id="wholesale-heading">Оптовые условия</h2><p>Оставьте номер телефона — менеджер подтвердит цену и условия для этой модели.</p><form id="wholesale-form"><input name="name" required placeholder="Ваше имя"><input type="tel" name="contact" required placeholder="+7XXXXXXXXXX" pattern="\\+7\\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX"><textarea name="comment" placeholder="Количество и комментарий"></textarea><button type="submit" class="wholesale-btn">Отправить запрос</button><p id="wholesale-status" aria-live="polite"></p></form></section>
+    <section class="product-wholesale" id="wholesale-request" aria-labelledby="wholesale-heading"><h2 id="wholesale-heading">Оптовые условия</h2><p>Оставьте номер телефона — менеджер подтвердит цену и условия для этой модели.</p><form id="wholesale-form"><fieldset><legend class="visually-hidden">Заявка на оптовые условия</legend><label class="visually-hidden" for="wholesale-name">Ваше имя</label><input id="wholesale-name" name="name" required placeholder="Ваше имя"><label class="visually-hidden" for="wholesale-contact">Телефон</label><input id="wholesale-contact" type="tel" name="contact" required placeholder="+7XXXXXXXXXX" pattern="\\+7\\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX"><label class="visually-hidden" for="wholesale-comment">Количество и комментарий</label><textarea id="wholesale-comment" name="comment" placeholder="Количество и комментарий"></textarea><button type="submit" class="wholesale-btn">Отправить запрос</button><p id="wholesale-status" aria-live="polite"></p></fieldset></form></section>
     ${faqHtml(faq)}
     ${relatedHtml(product, products)}
   </div>

@@ -33,6 +33,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin: 0;
 }
 
 .product-detail-img {
@@ -105,8 +106,17 @@
   width: 130px;
   background: transparent;
 }
-.product-attrs tr:last-child th,
-.product-attrs tr:last-child td { border-bottom: none; }
+.product-attrs tbody tr:last-child th,
+.product-attrs tbody tr:last-child td { border-bottom: none; }
+.product-attrs thead th {
+  width: auto;
+  font-size: .78rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--mute);
+  border-bottom: 1px solid var(--hairline-soft);
+}
 
 .product-detail-info .add-to-cart-btn {
   padding: 16px 32px;
@@ -164,6 +174,9 @@
 .product-wholesale { max-width: 700px; }
 .product-wholesale p, .product-description p, .category-intro { line-height: 1.6; color: var(--charcoal); }
 .product-wholesale form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+/* fieldset — только семантическая группировка для форм/скринридеров: без
+   собственного бокса поля формы остаются прямыми grid-item'ами формы. */
+.product-wholesale fieldset { display: contents; }
 .product-wholesale textarea, .product-wholesale form button, .product-wholesale #wholesale-status { grid-column: 1 / -1; }
 .product-wholesale input, .product-wholesale textarea { width: 100%; padding: 12px; border: 1px solid var(--hairline); background: var(--canvas); font: inherit; }
 .product-wholesale textarea { min-height: 90px; resize: vertical; }
