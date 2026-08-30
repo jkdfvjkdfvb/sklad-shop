@@ -54,6 +54,20 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
   const llms = await (await fetch(`${base}/llms.txt`)).text();
   const llmsLines = llms.split('\n');
 
+  // Фиды — ещё две публичные поверхности с ценой и брендом. XML не парсим
+  // отдельным пакетом ради одного поля на артикул — регулярка по <item>/<offer>
+  // достаточна и не тянет новую зависимость.
+  const googleFeed = await (await fetch(`${base}/feeds/google.xml`)).text();
+  const yandexFeed = await (await fetch(`${base}/feeds/yandex.yml`)).text();
+  const googleBrandByArticle = new Map(
+    [...googleFeed.matchAll(/<g:id>([^<]*)<\/g:id>[\s\S]*?<g:brand>([^<]*)<\/g:brand>/g)]
+      .map(([, article, brand]) => [article, brand]),
+  );
+  const yandexBrandByArticle = new Map(
+    [...yandexFeed.matchAll(/<offer id="([^"]*)"[\s\S]*?<vendor>([^<]*)<\/vendor>/g)]
+      .map(([, article, brand]) => [article, brand]),
+  );
+
   for (const product of products) {
     const csv = metaByArticle.get(String(product.article));
     expect(Boolean(csv), `${product.article}: missing CSV metadata`);
@@ -108,7 +122,18 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
     expect(ld && ld.name === csv.h1, `${product.article}: Product JSON-LD name differs from H1`);
     expect(ld && ld.offers.availability === 'https://schema.org/InStock', `${product.article}: Product JSON-LD availability differs`);
     expect(ld && ld.offers.url === canonical, `${product.article}: Product JSON-LD URL differs`);
-    expect(ld && !ld.brand, `${product.article}: unknown brand is emitted`);
+    // brand — обязательное поле в Product-микроразметке Яндекса. Ни у одного
+    // товара нет реального manufacturer_or_brand, поэтому все 69 обязаны
+    // получить один и тот же дефолт — и получить его одинаково на всех трёх
+    // поверхностях, иначе фиды и структурные данные разъедутся так же, как
+    // однажды разъехалась цена.
+    const expectedBrand = product.manufacturer_or_brand || 'salegifts.ru';
+    expect(ld && ld.brand && ld.brand.name === expectedBrand,
+      `${product.article}: Product JSON-LD brand is missing or wrong (expected "${expectedBrand}")`);
+    expect(googleBrandByArticle.get(String(product.article)) === expectedBrand,
+      `${product.article}: Google feed brand is missing or wrong`);
+    expect(yandexBrandByArticle.get(String(product.article)) === expectedBrand,
+      `${product.article}: Yandex feed vendor is missing or wrong`);
     // Позиции хлебных крошек должны вести на разные URL.
     const crumbs = ldOfType(html, 'BreadcrumbList');
     const crumbUrls = crumbs ? crumbs.itemListElement.map(entry => entry.item) : [];

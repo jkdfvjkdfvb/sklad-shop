@@ -19,6 +19,14 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   const inStock = p => quantity(p) > 0;
   const priceText = value => Number(value).toLocaleString('ru-RU').replace(/\u00a0/g, ' ');
   const jsonForScript = value => JSON.stringify(value).replace(/</g, '\\u003c');
+  // Реального производителя в выгрузке поставщика нет ни у одного из 69 SKU
+  // (manufacturer_or_brand пусто везде) — это гап каталога, а не наш выбор.
+  // Яндекс требует brand как обязательное поле в Product-микроразметке; пока
+  // ассортимент не брендированный, используем домен магазина как продавца.
+  // Источник один — как только придёт выгрузка с реальным брендом,
+  // product.manufacturer_or_brand перекроет это значение сам, без правок здесь.
+  const DEFAULT_BRAND = 'salegifts.ru';
+  const brandName = p => p.manufacturer_or_brand || DEFAULT_BRAND;
 
   function slugify(value) {
     const map = { а:'a', б:'b', в:'v', г:'g', д:'d', е:'e', ё:'e', ж:'zh', з:'z', и:'i', й:'y', к:'k', л:'l', м:'m', н:'n', о:'o', п:'p', р:'r', с:'s', т:'t', у:'u', ф:'f', х:'h', ц:'c', ч:'ch', ш:'sh', щ:'sch', ъ:'', ы:'y', ь:'', э:'e', ю:'yu', я:'ya' };
@@ -305,7 +313,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
         itemCondition: 'https://schema.org/NewCondition',
       },
     };
-    if (product.manufacturer_or_brand) productLd.brand = { '@type': 'Brand', name: product.manufacturer_or_brand };
+    productLd.brand = { '@type': 'Brand', name: brandName(product) };
     Object.keys(productLd).forEach(key => productLd[key] === undefined && delete productLd[key]);
     const categoryName = product.category_name || product.category || 'Каталог';
     const breadcrumbLd = {
@@ -763,7 +771,7 @@ ${productLines.join('\n')}
     const products = readJSON(productsFile, []).filter(product => product.visible);
     const items = products.map(product => {
       const image = feedImage(product);
-      return `    <item><g:id>${escH(product.article)}</g:id><g:title>${escH(productName(product))}</g:title><g:description>${escH(feedDescription(product))}</g:description><g:link>${escH(feedProductUrl(product))}</g:link>${image ? `<g:image_link>${escH(feedAssetUrl(image))}</g:image_link>` : ''}<g:availability>${inStock(product) ? 'in_stock' : 'out_of_stock'}</g:availability><g:price>${retailPrice(product)}.00 RUB</g:price><g:condition>new</g:condition>${product.manufacturer_or_brand ? `<g:brand>${escH(product.manufacturer_or_brand)}</g:brand>` : ''}<g:identifier_exists>no</g:identifier_exists></item>`;
+      return `    <item><g:id>${escH(product.article)}</g:id><g:title>${escH(productName(product))}</g:title><g:description>${escH(feedDescription(product))}</g:description><g:link>${escH(feedProductUrl(product))}</g:link>${image ? `<g:image_link>${escH(feedAssetUrl(image))}</g:image_link>` : ''}<g:availability>${inStock(product) ? 'in_stock' : 'out_of_stock'}</g:availability><g:price>${retailPrice(product)}.00 RUB</g:price><g:condition>new</g:condition><g:brand>${escH(brandName(product))}</g:brand><g:identifier_exists>no</g:identifier_exists></item>`;
     }).join('\n');
     res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:g="http://base.google.com/ns/1.0"><channel><title>СкладПромо</title><link>${base}/</link><description>Товары со склада</description>${items}</channel></rss>`);
   });
@@ -776,7 +784,7 @@ ${productLines.join('\n')}
     const categories = [...categoriesFrom(products).values()];
     const ids = Object.fromEntries(categories.map((category, index) => [category.slug, index + 2]));
     const categoriesXml = [`<category id="1">Каталог</category>`, ...categories.map(category => `<category id="${ids[category.slug]}" parentId="1">${escH(category.name)}</category>`)].join('');
-    const offers = products.map(product => { const image = feedImage(product); return `<offer id="${escH(product.article)}" available="${inStock(product)}"><url>${escH(feedProductUrl(product))}</url><price>${retailPrice(product)}</price><currencyId>RUB</currencyId><categoryId>${ids[product.category_slug] || 1}</categoryId>${image ? `<picture>${escH(feedAssetUrl(image))}</picture>` : ''}${product.manufacturer_or_brand ? `<vendor>${escH(product.manufacturer_or_brand)}</vendor>` : ''}<name>${escH(productName(product))}</name><description>${escH(feedDescription(product))}</description></offer>`; }).join('');
+    const offers = products.map(product => { const image = feedImage(product); return `<offer id="${escH(product.article)}" available="${inStock(product)}"><url>${escH(feedProductUrl(product))}</url><price>${retailPrice(product)}</price><currencyId>RUB</currencyId><categoryId>${ids[product.category_slug] || 1}</categoryId>${image ? `<picture>${escH(feedAssetUrl(image))}</picture>` : ''}<vendor>${escH(brandName(product))}</vendor><name>${escH(productName(product))}</name><description>${escH(feedDescription(product))}</description></offer>`; }).join('');
     res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><yml_catalog date="${new Date().toISOString().slice(0, 16).replace('T', ' ')}"><shop><name>СкладПромо</name><company>СкладПромо</company><url>${base}/</url><currencies><currency id="RUB" rate="1"/></currencies><categories>${categoriesXml}</categories><offers>${offers}</offers></shop></yml_catalog>`);
   });
 
