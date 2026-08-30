@@ -47,6 +47,21 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
     return date && !Number.isNaN(date.getTime()) ? date.toISOString().slice(0, 10) : '';
   }
 
+  // Страница — это данные плюс шаблон, а даты в товарах отвечают только за
+  // данные. 30.08.2026 разметка была переписана целиком (SSR-каталог, schema,
+  // семантика карточки), но остатки не трогались с 17.07.2026 — и все 91 URL
+  // ушли в sitemap с июльской датой. Google скачал его и прочитал «с июля
+  // ничего не менялось»: сигнал НЕ переобходить, ровно обратный нужному.
+  //
+  // Дату правим руками и только когда меняется то, что видит робот. Ставить
+  // сюда время выкатки нельзя: lastmod обновлялся бы на каждом деплое, включая
+  // правки, невидимые на странице, — это и есть тот искусственный lastmod,
+  // которому поисковики со временем перестают верить.
+  const TEMPLATE_CHANGED_AT = '2026-08-30';
+  // Обе даты в формате YYYY-MM-DD, поэтому сравнение строк здесь корректно.
+  const pageChanged = dataDate =>
+    (dataDate && dataDate > TEMPLATE_CHANGED_AT ? dataDate : TEMPLATE_CHANGED_AT);
+
   function validUrl(value, disallowed = []) {
     if (!value) return '';
     try {
@@ -666,18 +681,18 @@ ${cartHtml()}
     // Дата главной — по самому свежему товару, а не по mtime index.html:
     // mtime — это время выкладки файла, а не изменения контента.
     const urls = [
-      { loc: `${cleanSiteUrl}/`, priority: '1.0', modified: latestChange(products) },
-      { loc: `${cleanSiteUrl}/catalog`, priority: '0.9', modified: latestChange(products) },
+      { loc: `${cleanSiteUrl}/`, priority: '1.0', modified: pageChanged(latestChange(products)) },
+      { loc: `${cleanSiteUrl}/catalog`, priority: '0.9', modified: pageChanged(latestChange(products)) },
       // Ключ категории строится как `category_slug || 'catalog'` — фильтровать
       // надо по тому же выражению, иначе синтетическая категория 'catalog'
       // никогда не найдёт собственные товары.
       ...categories.map(category => ({
         loc: categoryUrl(category.slug),
         priority: '0.7',
-        modified: latestChange(products.filter(product => (product.category_slug || 'catalog') === category.slug)),
+        modified: pageChanged(latestChange(products.filter(product => (product.category_slug || 'catalog') === category.slug))),
       })),
-      ...products.map(product => ({ loc: productUrl(product), priority: '0.8', modified: lastmod(product.seo_updated_at || product.stock_updated_at) })),
-      ...(saleProducts.length ? [{ loc: `${cleanSiteUrl}/sale`, priority: '0.6', modified: latestChange(saleProducts) }] : []),
+      ...products.map(product => ({ loc: productUrl(product), priority: '0.8', modified: pageChanged(lastmod(product.seo_updated_at || product.stock_updated_at)) })),
+      ...(saleProducts.length ? [{ loc: `${cleanSiteUrl}/sale`, priority: '0.6', modified: pageChanged(latestChange(saleProducts)) }] : []),
     ];
     const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(item => `  <url><loc>${escH(item.loc)}</loc>${item.modified ? `<lastmod>${item.modified}</lastmod>` : ''}<changefreq>weekly</changefreq><priority>${item.priority}</priority></url>`).join('\n')}\n</urlset>`;
     res.type('application/xml').send(xml);
