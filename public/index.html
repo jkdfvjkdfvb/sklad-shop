@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <!-- Подтверждение прав в Яндекс.Вебмастере. Тег стоит здесь, а не в шаблоне
+       head из seo.js: homePageHtml() подменяет только заголовок страницы, всё
+       остальное из этого head сохраняется, поэтому тег попадает и в SSR-вывод
+       главной — единственное, что видит робот, так как /index.html отдаёт 301.
+       В комментарии намеренно нет имени тега заголовка в угловых скобках:
+       подстановка ищет его регуляркой по всему файлу и съела бы этот блок. -->
+  <meta name="yandex-verification" content="d5cd4ab2f590b62c" />
   <title>Сувениры и бизнес-подарки со склада — оптом, в наличии | СкладПромо</title>
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
