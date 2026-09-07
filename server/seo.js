@@ -65,7 +65,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   // сюда время выкатки нельзя: lastmod обновлялся бы на каждом деплое, включая
   // правки, невидимые на странице, — это и есть тот искусственный lastmod,
   // которому поисковики со временем перестают верить.
-  const TEMPLATE_CHANGED_AT = '2026-08-30';
+  const TEMPLATE_CHANGED_AT = '2026-09-07';
   // Обе даты в формате YYYY-MM-DD, поэтому сравнение строк здесь корректно.
   const pageChanged = dataDate =>
     (dataDate && dataDate > TEMPLATE_CHANGED_AT ? dataDate : TEMPLATE_CHANGED_AT);
@@ -122,6 +122,34 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
     // если счётчиков нет, вызов просто не происходит и код не падает.
     const shim = `<script>window.skladTrack=function(name,params){params=params||{};try{if(window.gtag)gtag('event',name,params);if(window.ym)ym(${JSON.stringify(YM_ID || '0')},'reachGoal',name,params);}catch(e){}};</script>`;
     return ga + ym + shim;
+  }
+
+  function faviconHtml() {
+    return '<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/apple-touch-icon.png" type="image/png" sizes="180x180"><link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">';
+  }
+
+  function organizationLd(contacts = {}) {
+    const phone = validPhone(contacts.phone);
+    const email = validEmail(contacts.email);
+    const sameAs = socialLinksFor(contacts).map(([, , url]) => url);
+    const organization = {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      '@id': `${cleanSiteUrl}/#organization`,
+      name: 'СкладПромо',
+      url: `${cleanSiteUrl}/`,
+      logo: `${cleanSiteUrl}/apple-touch-icon.png`,
+    };
+    if (sameAs.length) organization.sameAs = sameAs;
+    if (phone || email) {
+      organization.contactPoint = {
+        '@type': 'ContactPoint',
+        contactType: 'sales',
+        ...(phone ? { telephone: phone } : {}),
+        ...(email ? { email } : {}),
+      };
+    }
+    return organization;
   }
 
   function footerHtml(contacts = {}) {
@@ -224,14 +252,16 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
           : `Сейчас товара нет в наличии.${updated ? ` Остаток обновлён ${updated}.` : ''}`,
       },
       {
-        question: `Какие характеристики у ${name}?`,
-        answer: details ? `В карточке указаны: ${details}.` : `В карточке указан артикул ${product.article}. Другие характеристики не заполнены.`,
-      },
-      {
         question: 'Можно ли купить оптом?',
         answer: 'Да, оставьте заявку: менеджер подтвердит цену и условия.',
       },
     ];
+    if (details) {
+      questions.splice(1, 0, {
+        question: `Какие характеристики у ${name}?`,
+        answer: `В карточке указаны: ${details}.`,
+      });
+    }
     if (product.logo_service_available && product.logo_service_min_qty && product.logo_service_lead_time && Array.isArray(product.logo_service_methods) && product.logo_service_methods.length) {
       questions.push({
         question: 'Можно ли заказать нанесение логотипа?',
@@ -255,7 +285,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
     const saleHtml = sale && isValidSale(product)
       ? `<span class="seo-card-old-price">${priceText(product.old_price)} ₽</span><span class="seo-sale-badge">−${escH(product.discount_percent)}%</span>` : '';
     return `<article class="seo-card">
-  <a href="/product/${encodeURIComponent(productSlug(product))}" class="seo-card-image">${image ? `<img src="/${escH(String(image).replace(/^\//, ''))}" alt="${escH(productName(product))}" loading="lazy">` : '<span>Нет фото</span>'}</a>
+  <a href="/product/${encodeURIComponent(productSlug(product))}" class="seo-card-image" aria-label="${escH(productName(product))}">${image ? `<img src="/${escH(String(image).replace(/^\//, ''))}" alt="${escH(productName(product))}" loading="lazy">` : '<span>Нет фото</span>'}<span class="visually-hidden">${escH(productName(product))}</span></a>
   <div class="seo-card-body">
     <p>Арт. ${escH(product.article)}</p>
     <h2><a href="/product/${encodeURIComponent(productSlug(product))}">${escH(productName(product))}</a></h2>
@@ -267,11 +297,38 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
 
   function relatedHtml(product, products) {
     const related = products.filter(candidate => candidate.visible && candidate.article !== product.article && candidate.category_slug === product.category_slug).slice(0, 4);
-    if (!related.length) return `<aside class="related-products" aria-labelledby="related-heading"><h2 id="related-heading">Похожие товары</h2><p>В этой категории пока нет других товаров.</p></aside>`;
-    return `<aside class="related-products" aria-labelledby="related-heading">
+    if (!related.length) return `<section class="related-products" aria-labelledby="related-heading"><h2 id="related-heading">Похожие товары</h2><p>В этой категории пока нет других товаров.</p></section>`;
+    return `<section class="related-products" aria-labelledby="related-heading">
   <h2 id="related-heading">Похожие товары</h2>
   <div class="seo-product-grid">${related.map(item => productCardHtml(item)).join('')}</div>
-</aside>`;
+</section>`;
+  }
+
+  function productOverviewHtml(product, products) {
+    const categoryName = product.category_name || product.category || 'Каталог';
+    const categoryItems = products.filter(item => item.visible && item.category_slug === product.category_slug);
+    const stock = quantity(product);
+    const details = characteristics(product)
+      .filter(([key]) => !['Артикул', 'Категория'].includes(key))
+      .map(([key, value]) => `${key.toLowerCase()} — ${value}`);
+    const related = categoryItems.filter(item => item.article !== product.article).slice(0, 3);
+    const detailsText = details.length
+      ? `Подтверждённые характеристики: ${details.join('; ')}.`
+      : 'В каталоге пока нет дополнительных подтверждённых характеристик этой модели.';
+    const stockText = stock > 0
+      ? `Сейчас указано ${priceText(stock)} шт. в наличии по цене ${priceText(retailPrice(product))} ₽ за штуку.`
+      : `Сейчас товар отмечен как отсутствующий в наличии; указанная цена — ${priceText(retailPrice(product))} ₽.`;
+    const compare = related.length
+      ? `<p>Для сравнения посмотрите ${related.map(item => `<a href="/product/${encodeURIComponent(productSlug(item))}">${escH(productName(item))}</a>`).join(', ')} в этом же разделе.</p>`
+      : '';
+    const sourceDescription = product.description ? `<p>${escH(product.description)}</p>` : '';
+    return `<section class="product-description product-overview" aria-labelledby="description-heading">
+  <h2 id="description-heading">О товаре</h2>
+  ${sourceDescription}
+  <p>${escH(productName(product))} — товар из раздела <a href="/category/${encodeURIComponent(product.category_slug)}">${escH(categoryName)}</a>. ${escH(detailsText)} ${escH(stockText)}</p>
+  <p>При заявке укажите артикул ${escH(product.article)} — так менеджер точно определит товар. Оптовую цену и условия менеджер подтверждает по запросу.</p>
+  ${compare}
+</section>`;
   }
 
   function cartHtml() {
@@ -311,6 +368,12 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
         price: String(price),
         availability: stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
         itemCondition: 'https://schema.org/NewCondition',
+        seller: {
+          '@type': 'Organization',
+          '@id': `${cleanSiteUrl}/#organization`,
+          name: 'СкладПромо',
+          url: `${cleanSiteUrl}/`,
+        },
       },
     };
     productLd.brand = { '@type': 'Brand', name: brandName(product) };
@@ -327,15 +390,12 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
       ],
     };
     const faq = faqFor(product);
-    const faqLd = {
-      '@context': 'https://schema.org',
-      '@type': 'FAQPage',
-      mainEntity: faq.map(item => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })),
-    };
     const attrs = characteristics(product);
+    const additionalProperty = attrs.filter(([key]) => !['Артикул', 'Категория'].includes(key))
+      .map(([name, value]) => ({ '@type': 'PropertyValue', name, value: String(value) }));
+    if (additionalProperty.length) productLd.additionalProperty = additionalProperty;
     const updatedTimeHtml = stockUpdatedTimeHtml(product);
     const image = product.image || (product.image_urls && product.image_urls[0]);
-    const longDescription = product.description ? `<section class="product-description" aria-labelledby="description-heading"><h2 id="description-heading">Описание</h2><p>${escH(product.description)}</p></section>` : '';
     return `<!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -353,7 +413,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   <meta name="twitter:card" content="summary_large_image">
   <script type="application/ld+json">${jsonForScript(productLd)}</script>
   <script type="application/ld+json">${jsonForScript(breadcrumbLd)}</script>
-  <script type="application/ld+json">${jsonForScript(faqLd)}</script>
+  ${faviconHtml()}
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/product.css">
   ${analyticsHtml()}
@@ -382,7 +442,7 @@ ${headerHtml(contacts)}
     </article>
     ${factsHtml(product)}
     ${attrs.length ? `<section class="product-characteristics" aria-labelledby="characteristics-heading"><h2 id="characteristics-heading">Характеристики</h2><table class="product-attrs"><caption class="visually-hidden">Характеристики товара «${escH(productName(product))}»</caption><thead><tr><th scope="col">Параметр</th><th scope="col">Значение</th></tr></thead><tbody>${attrs.map(([key, value]) => `<tr><th scope="row">${escH(key)}</th><td>${escH(value)}</td></tr>`).join('')}</tbody></table></section>` : ''}
-    ${longDescription}
+    ${productOverviewHtml(product, products)}
     <section class="product-wholesale" id="wholesale-request" aria-labelledby="wholesale-heading"><h2 id="wholesale-heading">Оптовые условия</h2><p>Оставьте номер телефона — менеджер подтвердит цену и условия для этой модели.</p><form id="wholesale-form"><fieldset><legend class="visually-hidden">Заявка на оптовые условия</legend><label class="visually-hidden" for="wholesale-name">Ваше имя</label><input id="wholesale-name" name="name" required placeholder="Ваше имя"><label class="visually-hidden" for="wholesale-contact">Телефон</label><input id="wholesale-contact" type="tel" name="contact" required placeholder="+7XXXXXXXXXX" pattern="\\+7\\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX"><label class="visually-hidden" for="wholesale-comment">Количество и комментарий</label><textarea id="wholesale-comment" name="comment" placeholder="Количество и комментарий"></textarea><button type="submit" class="wholesale-btn">Отправить запрос</button><p id="wholesale-status" aria-live="polite"></p></fieldset></form></section>
     ${faqHtml(faq)}
     ${relatedHtml(product, products)}
@@ -398,8 +458,9 @@ ${cartHtml()}
   }
 
   function categoryPageHtml(category, products, contacts, allProducts = []) {
-    const title = `${category.name} — купить со склада | СкладПромо`;
-    const description = `${category.name} со склада: актуальные цены и наличие товаров. Оптовые условия — по запросу.`;
+    const heading = categoryHeading(category);
+    const title = `${heading} — купить со склада | СкладПромо`;
+    const description = categoryMetaDescription(category, products);
     const intro = categoryIntro(category, products);
     const url = categoryUrl(category.slug);
 
@@ -421,6 +482,20 @@ ${cartHtml()}
         '@type': 'ListItem', position: i + 1, url: productUrl(item), name: productName(item),
       })),
     };
+    const collectionLd = {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: heading,
+      url,
+      description,
+      isPartOf: { '@type': 'WebSite', name: 'СкладПромо', url: `${cleanSiteUrl}/` },
+      mainEntity: {
+        '@type': 'ItemList',
+        name: heading,
+        numberOfItems: products.length,
+        itemListElement: listLd.itemListElement,
+      },
+    };
 
     // Смежные категории: соседи по алфавиту вокруг текущей. Раньше со страницы
     // категории вообще не было ссылок никуда, кроме логотипа и главной.
@@ -428,17 +503,17 @@ ${cartHtml()}
     const idx = sortedCategories(allProducts).findIndex(c => c.slug === category.slug);
     const near = siblings.slice(Math.max(0, idx - 2), Math.max(0, idx - 2) + 4);
     const siblingsHtml = near.length
-      ? `<nav class="category-siblings" aria-labelledby="siblings-heading"><h2 id="siblings-heading">Другие категории</h2><ul>${near.map(c => `<li><a href="/category/${encodeURIComponent(c.slug)}">${escH(c.name)}</a></li>`).join('')}<li><a href="/catalog">Весь каталог</a></li></ul></nav>`
+      ? `<section class="category-siblings" aria-labelledby="siblings-heading"><h2 id="siblings-heading">Другие категории</h2><ul>${near.map(c => `<li><a href="/category/${encodeURIComponent(c.slug)}">${escH(c.name)}</a></li>`).join('')}<li><a href="/catalog">Весь каталог</a></li></ul></section>`
       : '';
 
-    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>${escH(title)}</title><meta name="description" content="${escH(description)}"><link rel="canonical" href="${escH(url)}"><meta property="og:title" content="${escH(title)}"><meta property="og:description" content="${escH(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escH(url)}"><meta property="og:site_name" content="СкладПромо"><script type="application/ld+json">${jsonForScript(breadcrumbLd)}</script><script type="application/ld+json">${jsonForScript(listLd)}</script><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css">${analyticsHtml()}</head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><a href="/catalog">Каталог</a><span class="bc-sep">›</span><span>${escH(category.name)}</span></nav><h1>${escH(category.name)}</h1><p class="category-intro">${escH(intro)}</p><div class="seo-product-grid">${products.map(item => productCardHtml(item)).join('')}</div>${siblingsHtml}</main>${footerHtml(contacts)}${cartHtml()}<script src="/js/product.js"></script></body></html>`;
+    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>${escH(title)}</title><meta name="description" content="${escH(description)}"><link rel="canonical" href="${escH(url)}"><meta property="og:title" content="${escH(title)}"><meta property="og:description" content="${escH(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escH(url)}"><meta property="og:site_name" content="СкладПромо"><script type="application/ld+json">${jsonForScript(breadcrumbLd)}</script><script type="application/ld+json">${jsonForScript(listLd)}</script><script type="application/ld+json">${jsonForScript(collectionLd)}</script>${faviconHtml()}<link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css">${analyticsHtml()}</head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><a href="/catalog">Каталог</a><span class="bc-sep">›</span><span>${escH(category.name)}</span></nav><h1>${escH(heading)}</h1><p class="category-intro">${escH(intro)}</p>${categoryGuideHtml(category, products)}<section class="category-products" aria-labelledby="category-products-heading"><h2 id="category-products-heading">Товары в категории</h2><div class="seo-product-grid">${products.map(item => productCardHtml(item)).join('')}</div></section>${siblingsHtml}</main>${footerHtml(contacts)}${cartHtml()}<script src="/js/product.js"></script></body></html>`;
   }
 
   function salePageHtml(products, contacts) {
     const title = 'Распродажа товаров со склада | СкладПромо';
     const description = 'Товары со склада с подтверждённой скидкой: старая и новая цена, размер скидки и условия акции.';
     const url = `${cleanSiteUrl}/sale`;
-    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${url}"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:type" content="website"><meta property="og:url" content="${url}"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css">${analyticsHtml()}</head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><span>Распродажа</span></nav><h1>Распродажа товаров со склада</h1><div class="seo-product-grid">${products.map(item => productCardHtml(item, { sale: true })).join('')}</div></main>${footerHtml(contacts)}</body></html>`;
+    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${url}"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:type" content="website"><meta property="og:url" content="${url}">${faviconHtml()}<link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css">${analyticsHtml()}</head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><span>Распродажа</span></nav><h1>Распродажа товаров со склада</h1><div class="seo-product-grid">${products.map(item => productCardHtml(item, { sale: true })).join('')}</div></main>${footerHtml(contacts)}</body></html>`;
   }
 
   function plural(n, one, few, many) {
@@ -477,6 +552,77 @@ ${cartHtml()}
     return `${parts.join(', ')}.${updated} Оптовые условия — по запросу.`;
   }
 
+  const categoryHeadings = {
+    'breloki': 'Брелоки для ключей',
+    'meteostancii': 'Метеостанции',
+    'chasy-i-budilniki': 'Настольные и дорожные часы',
+    'ofisnye-aksessuary': 'Офисные аксессуары',
+    'papki': 'Папки для документов',
+    'vizitnicy': 'Визитницы и футляры для карт',
+    'portfeli': 'Портфели',
+    'ruchki-v-futlyarah': 'Ручки в футлярах',
+    'aksessuary': 'Подарочные аксессуары',
+    'otkryvalki': 'Открывалки для бутылок',
+    'nabory-dlya-vina': 'Наборы для вина',
+    'nabory-instrumentov': 'Наборы инструментов',
+    'usb-haby': 'USB-хабы',
+    'dorozhnye-tovary': 'Дорожные товары и аксессуары',
+    'termokruzhki': 'Термокружки',
+    'sumki': 'Сумки-холодильники',
+    'produkty': 'Подарочные продукты',
+    'avtoaksessuary': 'Автомобильные аксессуары',
+    'zonty': 'Зонты-трости',
+    'binokli': 'Театральные бинокли',
+  };
+
+  function categoryHeading(category) {
+    return categoryHeadings[category.slug] || category.name;
+  }
+
+  function categoryMetaDescription(category, items) {
+    const s = categoryStats(items);
+    const heading = categoryHeading(category);
+    const parts = [`${heading} со склада: ${s.count} ${plural(s.count, 'товар', 'товара', 'товаров')}`];
+    if (s.min && s.max) parts.push(s.min === s.max ? `цена ${priceText(s.min)} ₽` : `цены от ${priceText(s.min)} до ${priceText(s.max)} ₽`);
+    if (s.stock > 0) parts.push(`в наличии ${priceText(s.stock)} шт.`);
+    return `${parts.join(', ')}. Оптовые условия — по запросу.`;
+  }
+
+  function valueCounts(items, field) {
+    const counts = new Map();
+    items.forEach(item => {
+      const value = String(item[field] || '').trim();
+      if (value) counts.set(value, (counts.get(value) || 0) + 1);
+    });
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ru'));
+  }
+
+  function categoryGuideHtml(category, items) {
+    const heading = categoryHeading(category);
+    const materials = valueCounts(items, 'material');
+    const colors = valueCounts(items, 'color');
+    const clusters = new Map();
+    items.forEach(item => {
+      const cluster = String(item.target_cluster || '').trim();
+      if (!cluster) return;
+      if (!clusters.has(cluster)) clusters.set(cluster, []);
+      clusters.get(cluster).push(item);
+    });
+    const facets = [
+      materials.length ? `<li><strong>Материалы:</strong> ${materials.map(([value, count]) => `${escH(value)} (${count})`).join(', ')}.</li>` : '',
+      colors.length ? `<li><strong>Цвета:</strong> ${colors.map(([value, count]) => `${escH(value)} (${count})`).join(', ')}.</li>` : '',
+    ].filter(Boolean).join('');
+    const variants = [...clusters.entries()].map(([cluster, products]) =>
+      `<li><strong>${escH(cluster)}:</strong> ${products.map(item => `<a href="/product/${encodeURIComponent(productSlug(item))}">${escH(productName(item))}</a>`).join(', ')}.</li>`
+    ).join('');
+    return `<section class="category-guide" aria-labelledby="category-guide-heading">
+  <h2 id="category-guide-heading">Как выбрать ${escH(heading.toLocaleLowerCase('ru-RU'))}</h2>
+  <p>Сравните товары по данным в карточках: материалу, цвету, цене, артикулу и текущему остатку. Если нужной характеристики нет на странице, уточните её у менеджера до заказа.</p>
+  ${facets ? `<ul class="category-facets">${facets}</ul>` : ''}
+  ${variants ? `<div class="category-variants"><h3>Варианты в каталоге</h3><ul>${variants}</ul></div>` : ''}
+</section>`;
+  }
+
   function groupByCategory(products) {
     const map = new Map();
     products.filter(product => product.visible).forEach(product => {
@@ -502,11 +648,12 @@ ${cartHtml()}
     const name = product.name || productName(product);
     return `
       <div class="product-card">
-        <a href="${url}" class="card-img-link" tabindex="-1" aria-hidden="true">
+        <a href="${url}" class="card-img-link" aria-label="${escH(name)}">
           <div class="card-img-wrap">
             <img src="${escH(image)}" alt="${escH(name)}" loading="lazy"
                  onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23eee%22/></svg>'">
           </div>
+          <span class="visually-hidden">${escH(name)}</span>
         </a>
         <div class="card-body">
           <span class="card-article">Арт. ${escH(product.article)}</span>
@@ -526,11 +673,25 @@ ${cartHtml()}
       const count = (byCategory.get(category.slug) || []).length;
       return `<li><a href="/category/${encodeURIComponent(category.slug)}">${escH(category.name)}</a> <span class="cat-count">${count}</span></li>`;
     }).join('');
-    return `<nav class="category-directory" aria-labelledby="categories-heading">
+    return `<section class="category-directory" aria-labelledby="categories-heading">
     <h2 id="categories-heading">Категории каталога</h2>
     <ul class="category-directory-list">${items}</ul>
     <p><a href="/catalog" class="category-directory-all">Весь каталог — все категории и товары</a></p>
-  </nav>`;
+  </section>`;
+  }
+
+  function homeOverviewHtml(products, categories) {
+    const visible = products.filter(product => product.visible);
+    const available = visible.filter(product => quantity(product) > 0);
+    const stock = available.reduce((sum, product) => sum + quantity(product), 0);
+    const prices = available.map(retailPrice).filter(value => value > 0);
+    const min = prices.length ? Math.min(...prices) : 0;
+    const max = prices.length ? Math.max(...prices) : 0;
+    return `<section class="catalog-overview" aria-labelledby="catalog-overview-heading">
+  <h2 id="catalog-overview-heading">Сувениры оптом: ассортимент, цены и наличие</h2>
+  <p>В каталоге СкладПромо — сувенирная продукция и бизнес-подарки с указанными ценами и остатками. Опубликовано ${visible.length} ${plural(visible.length, 'товар', 'товара', 'товаров')} в ${categories.length} ${plural(categories.length, 'категории', 'категориях', 'категориях')}.</p>
+  <p>${available.length ? `В наличии ${available.length} ${plural(available.length, 'позиция', 'позиции', 'позиций')} — всего ${priceText(stock)} шт.${min && max ? ` Цены в каталоге: от ${priceText(min)} до ${priceText(max)} ₽.` : ''}` : 'Позиций с подтверждённым остатком сейчас нет.'} На страницах товаров указаны артикулы, цены и остатки; оптовые условия подтверждаются менеджером по запросу.</p>
+</section>`;
   }
 
   function homePageHtml(products, contacts = {}) {
@@ -566,8 +727,9 @@ ${cartHtml()}
         name: category.name,
       })),
     };
+    const orgLd = organizationLd(contacts);
 
-    const head = `<title>${escH(title)}</title><meta name="description" content="${escH(description)}"><link rel="canonical" href="${cleanSiteUrl}/"><meta property="og:title" content="${escH(title)}"><meta property="og:description" content="${escH(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${cleanSiteUrl}/"><meta property="og:site_name" content="СкладПромо"><script type="application/ld+json">${jsonForScript(websiteLd)}</script><script type="application/ld+json">${jsonForScript(categoryListLd)}</script>${analyticsHtml()}`;
+    const head = `<title>${escH(title)}</title><meta name="description" content="${escH(description)}"><link rel="canonical" href="${cleanSiteUrl}/"><meta property="og:title" content="${escH(title)}"><meta property="og:description" content="${escH(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${cleanSiteUrl}/"><meta property="og:site_name" content="СкладПромо"><script type="application/ld+json">${jsonForScript(websiteLd)}</script><script type="application/ld+json">${jsonForScript(categoryListLd)}</script><script type="application/ld+json">${jsonForScript(orgLd)}</script>${analyticsHtml()}`;
 
     // Hero берётся из contacts.json с тем же fallback, что и в shop.js:367 —
     // иначе SSR-текст и текст после гидратации расходятся, как только
@@ -578,6 +740,7 @@ ${cartHtml()}
     return index.replace(/<title>[\s\S]*?<\/title>/i, head)
       .replace(/<h1 id="hero-title">[\s\S]*?<\/h1>/i, `<h1 id="hero-title">${escH(heroTitle)}</h1>`)
       .replace(/<p id="hero-text">[\s\S]*?<\/p>/i, `<p id="hero-text">${escH(heroText)}</p>`)
+      .replace('<!-- ====== CATALOG ====== -->', `${homeOverviewHtml(products, categories)}\n\n<!-- ====== CATALOG ====== -->`)
       .replace('<div class="catalog-layout">', `${categoryDirectoryHtml(categories, byCategory)}\n  <div class="catalog-layout">`)
       .replace('<div class="products-grid" id="products-grid"></div>',
         `<div class="products-grid" id="products-grid">${listed.map(homeProductCardHtml).join('')}</div>`);
@@ -608,17 +771,31 @@ ${cartHtml()}
         '@type': 'ListItem', position: i + 1, url: categoryUrl(category.slug), name: category.name,
       })),
     };
+    const collectionLd = {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: 'Каталог сувенирной продукции и бизнес-подарков',
+      url,
+      description,
+      isPartOf: { '@type': 'WebSite', name: 'СкладПромо', url: `${cleanSiteUrl}/` },
+      mainEntity: {
+        '@type': 'ItemList',
+        name: 'Категории каталога',
+        numberOfItems: categories.length,
+        itemListElement: listLd.itemListElement,
+      },
+    };
 
     const sections = categories.map(category => {
       const items = byCategory.get(category.slug) || [];
       return `<section class="catalog-category">
-    <h2><a href="/category/${encodeURIComponent(category.slug)}">${escH(category.name)}</a> <span class="cat-count">${items.length}</span></h2>
+    <h2><a href="/category/${encodeURIComponent(category.slug)}">${escH(categoryHeading(category))}</a> <span class="cat-count">${items.length}</span></h2>
     <p class="category-intro">${escH(categoryIntro(category, items))}</p>
     <ul class="catalog-product-list">${items.map(item => `<li><a href="/product/${encodeURIComponent(productSlug(item))}">${escH(productName(item))}</a> — ${priceText(retailPrice(item))} ₽</li>`).join('')}</ul>
   </section>`;
     }).join('');
 
-    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>${escH(title)}</title><meta name="description" content="${escH(description)}"><link rel="canonical" href="${escH(url)}"><meta property="og:title" content="${escH(title)}"><meta property="og:description" content="${escH(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escH(url)}"><meta property="og:site_name" content="СкладПромо"><script type="application/ld+json">${jsonForScript(breadcrumbLd)}</script><script type="application/ld+json">${jsonForScript(listLd)}</script><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css">${analyticsHtml()}</head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><span>Каталог</span></nav><h1>Каталог товаров со склада</h1><p class="category-intro">${escH(description)}</p>${sections}</main>${footerHtml(contacts)}</body></html>`;
+    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>${escH(title)}</title><meta name="description" content="${escH(description)}"><link rel="canonical" href="${escH(url)}"><meta property="og:title" content="${escH(title)}"><meta property="og:description" content="${escH(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escH(url)}"><meta property="og:site_name" content="СкладПромо"><script type="application/ld+json">${jsonForScript(breadcrumbLd)}</script><script type="application/ld+json">${jsonForScript(listLd)}</script><script type="application/ld+json">${jsonForScript(collectionLd)}</script>${faviconHtml()}<link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css">${analyticsHtml()}</head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><span>Каталог</span></nav><h1>Каталог сувенирной продукции и бизнес-подарков</h1><p class="category-intro">${escH(description)}</p>${sections}</main>${footerHtml(contacts)}</body></html>`;
   }
 
   function categoriesFrom(products) {

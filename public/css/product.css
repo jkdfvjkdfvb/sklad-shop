@@ -197,4 +197,15 @@
 .seo-card-old-price, .pdp-old-price { color: var(--mute); text-decoration: line-through; margin: 0; }
 .seo-sale-badge, .pdp-sale-note { color: var(--sale); font-size: .85rem; margin: 0; }
 .category-page { margin: 40px auto; padding: 0 24px; }
+.product-overview p, .category-guide p, .catalog-overview p { line-height: 1.65; color: var(--charcoal); }
+.product-overview a, .category-guide a, .category-siblings a, .category-directory a, .catalog-category a { color: var(--ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.category-guide, .category-products, .category-siblings { margin-top: 32px; }
+.category-guide, .catalog-overview { padding: 24px; background: var(--soft-cloud); border: 1px solid var(--hairline-soft); }
+.category-guide h2, .category-products h2, .category-siblings h2, .category-directory h2, .catalog-overview h2 { margin: 0 0 14px; font-size: 1.25rem; }
+.category-guide h3 { margin: 20px 0 8px; font-size: 1rem; }
+.category-guide ul, .category-siblings ul, .category-directory ul, .catalog-product-list { line-height: 1.6; }
+.category-directory { margin-bottom: 28px; }
+.category-directory-list { columns: 3 220px; padding-left: 20px; }
+.category-directory-list li { break-inside: avoid; margin-bottom: 7px; }
+.catalog-overview { max-width: 1180px; margin: 32px auto; }
 @media (max-width: 560px) { .product-wholesale form { grid-template-columns: 1fr; } }

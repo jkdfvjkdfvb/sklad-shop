@@ -486,3 +486,15 @@ a { color: inherit; }
 @media (max-width: 480px) {
   .cart-drawer { width: 100vw; }
 }
+.catalog-overview, .category-directory { max-width: 1180px; margin: 32px auto; padding: 24px; }
+.catalog-overview { background: var(--soft-cloud); border: 1px solid var(--hairline-soft); }
+.catalog-overview h2, .category-directory h2 { margin: 0 0 14px; font-size: 1.25rem; }
+.catalog-overview p { line-height: 1.65; color: var(--charcoal); }
+.category-directory { margin-top: 0; margin-bottom: 28px; padding-left: 0; padding-right: 0; }
+.category-directory-list { columns: 3 220px; padding-left: 20px; line-height: 1.6; }
+.category-directory-list li { break-inside: avoid; margin-bottom: 7px; }
+.category-directory a { color: var(--ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+
+@media (max-width: 1228px) {
+  .catalog-overview { margin-left: 24px; margin-right: 24px; }
+}

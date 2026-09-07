@@ -122,6 +122,11 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
     expect(ld && ld.name === csv.h1, `${product.article}: Product JSON-LD name differs from H1`);
     expect(ld && ld.offers.availability === 'https://schema.org/InStock', `${product.article}: Product JSON-LD availability differs`);
     expect(ld && ld.offers.url === canonical, `${product.article}: Product JSON-LD URL differs`);
+    expect(ld && ld.offers.seller && ld.offers.seller.name === 'СкладПромо', `${product.article}: Offer seller is missing`);
+    expect(!ldOfType(html, 'FAQPage'), `${product.article}: deprecated FAQPage JSON-LD must not be emitted`);
+    expect(html.includes('class="product-description product-overview"'), `${product.article}: factual product overview is missing`);
+    expect(html.includes(`<a href="/category/${product.category_slug}">`), `${product.article}: contextual category link is missing`);
+    expect(html.includes('sizes="180x180"'), `${product.article}: large favicon declaration is missing`);
     // brand — обязательное поле в Product-микроразметке Яндекса. Ни у одного
     // товара нет реального manufacturer_or_brand, поэтому все 69 обязаны
     // получить один и тот же дефолт — и получить его одинаково на всех трёх
@@ -146,17 +151,31 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
   expect(descriptions.size === 69, `Descriptions are not unique (${descriptions.size}/69)`);
 
   // --- Категории: schema и уникальность интро ---
-  const categorySlugs = ['breloki', 'chasy-i-budilniki', 'vizitnicy', 'papki', 'portfeli', 'otkryvalki', 'nabory-dlya-vina', 'usb-haby', 'dorozhnye-tovary', 'ofisnye-aksessuary'];
+  const categorySlugs = [...new Set(products.filter(product => product.visible).map(product => product.category_slug))];
   const categoryIntros = new Set();
+  const categoryTitles = new Set();
+  const categoryDescriptions = new Set();
   for (const slug of categorySlugs) {
     const response = await fetch(`${base}/category/${slug}`);
     const html = await response.text();
+    const title = extract(html, /<title>([\s\S]*?)<\/title>/);
+    const description = extract(html, /<meta name="description" content="([\s\S]*?)">/);
     expect(response.status === 200, `Category ${slug}: expected 200, received ${response.status}`);
     expect(Boolean(ldOfType(html, 'BreadcrumbList')), `Category ${slug}: BreadcrumbList JSON-LD is missing`);
     expect(Boolean(ldOfType(html, 'ItemList')), `Category ${slug}: ItemList JSON-LD is missing`);
+    expect(Boolean(ldOfType(html, 'CollectionPage')), `Category ${slug}: CollectionPage JSON-LD is missing`);
+    expect(html.includes('class="category-guide"'), `Category ${slug}: data-driven guide is missing`);
+    expect(html.includes('class="category-products"'), `Category ${slug}: product body section is missing`);
+    expect(html.includes('class="visually-hidden"'), `Category ${slug}: accessible card anchors are missing`);
+    expect(title.length <= 60, `Category ${slug}: title is too long (${title.length})`);
+    expect(description.length >= 70 && description.length <= 160, `Category ${slug}: description length is ${description.length}`);
     categoryIntros.add(extract(html, /<p class="category-intro">([\s\S]*?)<\/p>/));
+    categoryTitles.add(title);
+    categoryDescriptions.add(description);
   }
   expect(categoryIntros.size === categorySlugs.length, `Category intros are not unique (${categoryIntros.size}/${categorySlugs.length})`);
+  expect(categoryTitles.size === categorySlugs.length, `Category titles are not unique (${categoryTitles.size}/${categorySlugs.length})`);
+  expect(categoryDescriptions.size === categorySlugs.length, `Category descriptions are not unique (${categoryDescriptions.size}/${categorySlugs.length})`);
 
   // --- Главная: каталог должен быть в исходном HTML, без JavaScript ---
   const home = await (await fetch(`${base}/`)).text();
@@ -164,10 +183,17 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
   expect((home.match(/href="\/category\//g) || []).length >= 20, 'Home does not server-render category links');
   expect((home.match(/href="\/product\//g) || []).length >= 20, 'Home does not server-render product links');
   expect(Boolean(ldOfType(home, 'WebSite')), 'Home WebSite JSON-LD is missing');
+  expect(Boolean(ldOfType(home, 'Organization')), 'Home Organization JSON-LD is missing');
+  expect(home.includes('class="catalog-overview"'), 'Home factual catalog overview is missing');
+  expect(home.includes('<section class="category-directory"'), 'Home category links are not in a body section');
+  expect(home.includes('sizes="180x180"'), 'Home large favicon declaration is missing');
   expect(!home.includes('+7 (000)') && !home.includes('t.me/username') && !home.includes('vk.com/username'), 'Test contacts are exposed on home');
 
   const catalog = await fetch(`${base}/catalog`);
   expect(catalog.status === 200, `/catalog: expected 200, received ${catalog.status}`);
+  const catalogHtml = await catalog.text();
+  expect(Boolean(ldOfType(catalogHtml, 'CollectionPage')), '/catalog: CollectionPage JSON-LD is missing');
+  expect(catalogHtml.includes('<h1>Каталог сувенирной продукции и бизнес-подарков</h1>'), '/catalog: descriptive H1 is missing');
 
   // --- Канонизация URL ---
   for (const [url, expected] of [['/index.html', '/'], ['/category/breloki/', '/category/breloki']]) {
@@ -182,6 +208,8 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
   expect(sitemap.includes(`${canonicalBase}/product/`), 'sitemap has no canonical product URLs');
   expect(!/<loc>http:\/\//.test(sitemap), 'sitemap contains HTTP page URLs');
   expect(!/<loc>[^<]*<\/loc><changefreq>/.test(sitemap), 'sitemap has URLs without lastmod');
+  expect((sitemap.match(/<loc>/g) || []).length === 91, 'sitemap must contain 91 unique public URLs');
+  expect(sitemap.includes('<lastmod>2026-09-07</lastmod>'), 'sitemap template lastmod was not updated');
   const sale = await fetch(`${base}/sale`);
   expect(sale.status === 404, `Empty sale section must not index as a sale page, received ${sale.status}`);
 
@@ -189,6 +217,6 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
     console.error(`${errors.length} problem(s):\n${errors.join('\n')}`);
     process.exitCode = 1;
   } else {
-    console.log(`SEO verification passed: ${products.length} products, ${titles.size} unique titles, ${descriptions.size} unique descriptions, price parity across HTML/JSON-LD/llms.txt/API.`);
+    console.log(`SEO verification passed: ${products.length} products, ${categorySlugs.length} categories, ${titles.size} unique titles, ${descriptions.size} unique descriptions, price parity across HTML/JSON-LD/llms.txt/API.`);
   }
 })().catch(error => { console.error(error.stack || error); process.exitCode = 1; });

@@ -436,11 +436,12 @@ function renderProducts(list) {
     const url = `/product/${escAttr(p.slug || p.article)}`;
     return `
       <div class="product-card">
-        <a href="${url}" class="card-img-link" tabindex="-1" aria-hidden="true">
+        <a href="${url}" class="card-img-link" aria-label="${escHtml(p.name)}">
           <div class="card-img-wrap">
             <img src="${escAttr(p.image)}" alt="${escHtml(p.name)}" loading="lazy"
                  onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23eee%22/></svg>'">
           </div>
+          <span class="visually-hidden">${escHtml(p.name)}</span>
         </a>
         <div class="card-body">
           <span class="card-article">Арт. ${p.article}</span>
