@@ -169,6 +169,19 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
     expect(html.includes('class="visually-hidden"'), `Category ${slug}: accessible card anchors are missing`);
     expect(title.length <= 60, `Category ${slug}: title is too long (${title.length})`);
     expect(description.length >= 70 && description.length <= 160, `Category ${slug}: description length is ${description.length}`);
+    // target_cluster — сырая поисковая фраза для внутренней SEO-разметки
+    // («метеостанция купить», «визитница купить»), уже запрещённая к утечке
+    // через /api/products. Один раз она попала в видимый HTML отдельной
+    // подписью (блок «Варианты в каталоге»: <strong>метеостанция купить:</strong>).
+    // Проверяем именно этот паттерн подписи, а не любое вхождение строки —
+    // часть кластеров совпадает подстрокой с настоящим названием товара
+    // («куб для бумаги» входит в «Пластиковый куб для бумаги»), и такое
+    // совпадение законно: это описание товара, а не утечка ярлыка.
+    for (const cluster of new Set(products.filter(p => p.category_slug === slug && p.target_cluster).map(p => p.target_cluster))) {
+      const label = `<strong>${cluster}:</strong>`;
+      expect(!html.includes(label), `Category ${slug}: raw target_cluster label "${cluster}:" leaks into page HTML`);
+    }
+    expect(!html.includes('category-variants'), `Category ${slug}: removed category-variants block reappeared`);
     categoryIntros.add(extract(html, /<p class="category-intro">([\s\S]*?)<\/p>/));
     categoryTitles.add(title);
     categoryDescriptions.add(description);

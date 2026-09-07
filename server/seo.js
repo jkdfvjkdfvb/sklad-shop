@@ -601,25 +601,21 @@ ${cartHtml()}
     const heading = categoryHeading(category);
     const materials = valueCounts(items, 'material');
     const colors = valueCounts(items, 'color');
-    const clusters = new Map();
-    items.forEach(item => {
-      const cluster = String(item.target_cluster || '').trim();
-      if (!cluster) return;
-      if (!clusters.has(cluster)) clusters.set(cluster, []);
-      clusters.get(cluster).push(item);
-    });
     const facets = [
       materials.length ? `<li><strong>Материалы:</strong> ${materials.map(([value, count]) => `${escH(value)} (${count})`).join(', ')}.</li>` : '',
       colors.length ? `<li><strong>Цвета:</strong> ${colors.map(([value, count]) => `${escH(value)} (${count})`).join(', ')}.</li>` : '',
     ].filter(Boolean).join('');
-    const variants = [...clusters.entries()].map(([cluster, products]) =>
-      `<li><strong>${escH(cluster)}:</strong> ${products.map(item => `<a href="/product/${encodeURIComponent(productSlug(item))}">${escH(productName(item))}</a>`).join(', ')}.</li>`
-    ).join('');
+    // Блок «Варианты в каталоге» здесь раньше группировал товары по
+    // product.target_cluster — сырой поисковой фразе для внутренней
+    // SEO-разметки («метеостанция купить», «визитница купить»), а не
+    // человекочитаемому названию. Это же поле специально исключено из
+    // /api/products как внутреннее — на страницу оно тем более не должно
+    // было попасть буквальным текстом. Удалено целиком, а не заменено:
+    // material/color здесь уже дают весь подтверждённый факт о вариантах.
     return `<section class="category-guide" aria-labelledby="category-guide-heading">
   <h2 id="category-guide-heading">Как выбрать ${escH(heading.toLocaleLowerCase('ru-RU'))}</h2>
   <p>Сравните товары по данным в карточках: материалу, цвету, цене, артикулу и текущему остатку. Если нужной характеристики нет на странице, уточните её у менеджера до заказа.</p>
   ${facets ? `<ul class="category-facets">${facets}</ul>` : ''}
-  ${variants ? `<div class="category-variants"><h3>Варианты в каталоге</h3><ul>${variants}</ul></div>` : ''}
 </section>`;
   }
 
