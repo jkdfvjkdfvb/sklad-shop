@@ -634,6 +634,23 @@ ${cartHtml()}
       .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
   }
 
+  // Hero-контактная сетка (Концепт 1 «Инвентарный журнал», раздел 11 ТЗ
+  // редизайна): реальные товарные фото вместо декоративной картинки. Берётся
+  // тот же список и порядок, что и products-grid ниже, — первые карточки
+  // каталога, без отдельной курации, чтобы не рассинхронизироваться при
+  // изменении ассортимента.
+  function heroContactSheetHtml(products) {
+    return products.map(product => {
+      const url = `/product/${encodeURIComponent(productSlug(product))}`;
+      const image = product.image || (product.image_urls && product.image_urls[0]) || '';
+      const name = product.name || productName(product);
+      return `<a class="hero-sheet-tile" href="${url}">
+        <span class="hero-sheet-photo">${image ? `<img src="${escH(image)}" alt="${escH(name)}" loading="lazy">` : ''}</span>
+        <span class="hero-sheet-caption"><span class="hero-sheet-article">Арт. ${escH(product.article)}</span><span class="hero-sheet-price">${priceText(retailPrice(product))} ₽</span></span>
+      </a>`;
+    }).join('');
+  }
+
   // Карточка SSR-грида главной. Разметка намеренно повторяет ту, что строит
   // renderProducts() в public/js/shop.js: грид перерисовывается на клиенте, и
   // при расхождении разметки пользователь увидел бы скачок при гидратации.
@@ -664,10 +681,24 @@ ${cartHtml()}
       </div>`;
   }
 
+  // Плитки категорий с реальным товарным фото (раздел 6 ТЗ редизайна:
+  // «Плитки с реальными товарами, а не абстрактными иллюстрациями») —
+  // картинка берётся у первого товара категории с фото, без отдельного
+  // подбора, чтобы не рассинхронизироваться при изменении ассортимента.
   function categoryDirectoryHtml(categories, byCategory) {
     const items = categories.map(category => {
-      const count = (byCategory.get(category.slug) || []).length;
-      return `<li><a href="/category/${encodeURIComponent(category.slug)}">${escH(category.name)}</a> <span class="cat-count">${count}</span></li>`;
+      const items = byCategory.get(category.slug) || [];
+      const count = items.length;
+      const withImage = items.find(item => item.image || (item.image_urls && item.image_urls[0]));
+      const image = withImage ? (withImage.image || withImage.image_urls[0]) : '';
+      const heading = categoryHeading(category);
+      return `<li class="category-tile">
+      <a href="/category/${encodeURIComponent(category.slug)}">
+        <span class="category-tile-photo">${image ? `<img src="${escH(image)}" alt="" loading="lazy">` : ''}</span>
+        <span class="category-tile-name">${escH(heading)}</span>
+        <span class="category-tile-count">${count}</span>
+      </a>
+    </li>`;
     }).join('');
     return `<section class="category-directory" aria-labelledby="categories-heading">
     <h2 id="categories-heading">Категории каталога</h2>
@@ -736,6 +767,8 @@ ${cartHtml()}
     return index.replace(/<title>[\s\S]*?<\/title>/i, head)
       .replace(/<h1 id="hero-title">[\s\S]*?<\/h1>/i, `<h1 id="hero-title">${escH(heroTitle)}</h1>`)
       .replace(/<p id="hero-text">[\s\S]*?<\/p>/i, `<p id="hero-text">${escH(heroText)}</p>`)
+      .replace('<div class="hero-contact-sheet" id="hero-contact-sheet"></div>',
+        `<div class="hero-contact-sheet" id="hero-contact-sheet">${heroContactSheetHtml(listed.slice(0, 8))}</div>`)
       .replace('<!-- ====== CATALOG ====== -->', `${homeOverviewHtml(products, categories)}\n\n<!-- ====== CATALOG ====== -->`)
       .replace('<div class="catalog-layout">', `${categoryDirectoryHtml(categories, byCategory)}\n  <div class="catalog-layout">`)
       .replace('<div class="products-grid" id="products-grid"></div>',
