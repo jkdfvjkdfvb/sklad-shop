@@ -1,0 +1,492 @@
+<!doctype html>
+<!-- ПРОТОТИП, не продакшн. Вопрос: какой из двух hero-концептов первого экрана
+     («Инвентарный журнал» vs «Полка крупным планом») лучше подходит СкладПромо.
+     См. docs/Codex/REDESIGN_BRIEF_SKLADPROMO_2026-09-08.md, раздел 11.
+     Переключение: ?variant=1|2, плавающая панель внизу экрана, стрелки ←/→. -->
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>ПРОТОТИП — Hero-концепты СкладПромо</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { overflow-x: hidden; }
+  img { max-width: 100%; display: block; }
+
+  :root {
+    --ink: #111111;
+    --canvas: #ffffff;
+    --soft-cloud: #f5f5f5;
+    --charcoal: #39393b;
+    --muted: #707072;
+    --hairline: #cacacb;
+    --hairline-soft: #e5e5e5;
+    --sale: #d30005;
+    --success: #007d48;
+
+    --font-display: 'Bebas Neue', 'Arial Narrow', Arial, sans-serif;
+    --font-ui: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    --radius-pill: 9999px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  body {
+    font-family: var(--font-ui);
+    color: var(--ink);
+    background: var(--canvas);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ====== флаг прототипа ====== */
+  .proto-flag {
+    background: var(--ink);
+    color: var(--canvas);
+    text-align: center;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .03em;
+    padding: 6px 12px;
+  }
+  .proto-flag a { color: var(--canvas); text-decoration: underline; }
+
+  /* ====== шапка (для контекста, не для оценки) ====== */
+  .site-header {
+    background: var(--canvas);
+    box-shadow: inset 0 -1px 0 var(--hairline-soft);
+    position: sticky; top: 0; z-index: 40;
+  }
+  .header-inner {
+    max-width: 1440px; margin: 0 auto;
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px; height: 60px;
+  }
+  .logo {
+    font-family: var(--font-display);
+    font-size: 1.6rem; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--ink);
+    white-space: nowrap; line-height: 1;
+    flex: none;
+  }
+  .header-search {
+    flex: 1 1 auto; min-width: 0; max-width: 360px;
+    display: flex; align-items: center;
+    border-radius: var(--radius-pill);
+    background: var(--soft-cloud);
+    height: 40px; padding: 0 16px;
+    color: var(--muted); font-size: .9rem;
+  }
+  .header-search-text {
+    overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .header-cart {
+    margin-left: auto; flex: none;
+    display: flex; align-items: center; gap: 4px;
+    background: var(--ink); color: var(--canvas);
+    border-radius: var(--radius-pill);
+    padding: 8px 18px; font-size: .9rem; font-weight: 500;
+    white-space: nowrap;
+  }
+  @media (max-width: 599px) {
+    .header-inner { gap: 8px; padding: 0 16px; }
+    .logo { font-size: 1.25rem; }
+    .header-search { flex: 1 1 auto; max-width: none; padding: 0 14px; }
+    .header-search-text { display: none; }
+    .header-search::before { content: '🔍'; font-size: .85rem; }
+    .header-cart { padding: 8px 14px; font-size: .8rem; }
+    .header-cart-text { display: none; }
+  }
+
+  /* ====== общие элементы ====== */
+  .cta-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--ink); color: var(--canvas);
+    font-weight: 500; font-size: 1rem;
+    padding: 14px 32px; border-radius: var(--radius-pill);
+    text-decoration: none; white-space: nowrap;
+  }
+  .eyebrow {
+    font-size: .8rem; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .stock-tag {
+    font-size: .7rem; font-weight: 600; color: var(--success);
+  }
+  .price-tag { font-weight: 600; }
+  .max-w { max-width: 1440px; margin: 0 auto; padding: 0 24px; }
+
+  /* ====================================================================
+     КОНЦЕПТ 1 — «Инвентарный журнал»
+     Спокойный заголовок слева, строгая контактная сетка справа.
+     ==================================================================== */
+  #concept-1 .hero {
+    display: grid;
+    grid-template-columns: minmax(280px, 420px) 1fr;
+    gap: 48px;
+    max-width: 1440px; margin: 0 auto;
+    padding: 56px 24px;
+    align-items: center;
+  }
+  #concept-1 .hero-copy h1 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2.4rem, 3.4vw, 3.4rem);
+    line-height: 0.95;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin-bottom: 20px;
+  }
+  #concept-1 .hero-copy p {
+    font-size: 1.05rem; line-height: 1.55; color: var(--charcoal);
+    max-width: 42ch; margin-bottom: 28px;
+  }
+  #concept-1 .contact-sheet {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    background: var(--hairline-soft);
+    border: 1px solid var(--hairline-soft);
+  }
+  #concept-1 .sheet-tile {
+    background: var(--canvas);
+    display: flex; flex-direction: column;
+  }
+  #concept-1 .sheet-photo {
+    aspect-ratio: 1 / 1;
+    background: var(--soft-cloud);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  #concept-1 .sheet-photo img { width: 100%; height: 100%; object-fit: contain; padding: 6px; }
+  #concept-1 .sheet-caption {
+    padding: 8px 10px 10px;
+    font-size: .72rem; line-height: 1.35;
+  }
+  #concept-1 .sheet-article { color: var(--muted); display: block; }
+  #concept-1 .sheet-price { color: var(--ink); font-weight: 600; }
+
+  @media (max-width: 1023px) {
+    #concept-1 .hero { grid-template-columns: 1fr; gap: 32px; padding: 40px 24px; }
+    #concept-1 .contact-sheet { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 599px) {
+    #concept-1 .contact-sheet { grid-template-columns: repeat(2, 1fr); }
+    #concept-1 .hero { padding: 32px 16px; }
+    #concept-1 .hero-copy h1 { max-width: none; }
+  }
+
+  /* ====================================================================
+     КОНЦЕПТ 2 — «Полка крупным планом»
+     Мозаика товаров на весь экран, поверх — компактный светлый блок.
+     ==================================================================== */
+  #concept-2 .hero {
+    position: relative;
+    max-width: 1440px; margin: 0 auto;
+    min-height: 640px;
+    display: flex;
+    align-items: stretch;
+  }
+  #concept-2 .shelf-mosaic {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-auto-rows: 1fr;
+    grid-auto-flow: dense;
+    gap: 3px;
+    background: var(--hairline-soft);
+    width: 100%;
+  }
+  #concept-2 .shelf-tile {
+    background: var(--soft-cloud);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  #concept-2 .shelf-tile img { width: 100%; height: 100%; object-fit: contain; padding: 10px; }
+  #concept-2 .shelf-tile.big { grid-column: span 2; grid-row: span 2; }
+
+  #concept-2 .info-island {
+    position: absolute;
+    left: 24px; bottom: 24px;
+    max-width: 380px;
+    background: var(--canvas);
+    padding: 28px 28px 32px;
+    box-shadow: 0 0 0 1px var(--hairline-soft);
+  }
+  #concept-2 .info-island h1 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2rem, 3.2vw, 3rem);
+    line-height: 0.95;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin-bottom: 14px;
+  }
+  #concept-2 .info-island p {
+    font-size: .95rem; line-height: 1.5; color: var(--charcoal);
+    margin-bottom: 22px;
+  }
+
+  @media (max-width: 1023px) {
+    #concept-2 .hero { min-height: 560px; }
+    #concept-2 .shelf-mosaic { grid-template-columns: repeat(4, 1fr); }
+  }
+  @media (max-width: 599px) {
+    #concept-2 .hero { min-height: 0; display: block; }
+    #concept-2 .shelf-mosaic { grid-template-columns: repeat(3, 1fr); grid-auto-rows: 88px; }
+    #concept-2 .shelf-tile.big { grid-column: span 2; grid-row: span 2; }
+    #concept-2 .info-island {
+      position: static;
+      max-width: none;
+      margin: 0;
+      box-shadow: inset 0 1px 0 var(--hairline-soft);
+    }
+  }
+
+  /* ====== общий блок категорий под hero (контекст, одинаковый для обоих) ====== */
+  .categories-preview { padding: 48px 24px; max-width: 1440px; margin: 0 auto; }
+  .categories-preview h2 {
+    font-size: 1.4rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: -.01em; margin-bottom: 20px;
+  }
+  .categories-row {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
+  }
+  .category-chip {
+    background: var(--soft-cloud); border-radius: var(--radius-pill);
+    padding: 10px 16px; font-size: .85rem; text-align: center;
+    color: var(--ink);
+  }
+  @media (max-width: 768px) {
+    .categories-row { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .site-footer {
+    padding: 32px 24px; text-align: center;
+    color: var(--muted); font-size: .8rem;
+    border-top: 1px solid var(--hairline-soft);
+  }
+
+  /* ====== плавающая панель переключения вариантов ====== */
+  .variant-switcher {
+    position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+    z-index: 100;
+    display: flex; align-items: center; gap: 4px;
+    background: var(--ink); color: var(--canvas);
+    border-radius: var(--radius-pill);
+    padding: 6px 6px 6px 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.28);
+    font-family: var(--font-ui); font-size: .85rem;
+  }
+  .variant-switcher button {
+    all: unset; cursor: pointer;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius-pill);
+    color: var(--canvas); font-size: 1rem;
+  }
+  .variant-switcher button:hover,
+  .variant-switcher button:focus-visible {
+    background: rgba(255,255,255,.18);
+    outline: none;
+  }
+  .variant-switcher .variant-label {
+    padding: 0 10px; white-space: nowrap; font-weight: 500;
+  }
+  .variant-switcher .variant-hint {
+    display: block; font-size: .68rem; color: var(--stone, #9e9ea0); font-weight: 400;
+  }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="proto-flag">
+  ПРОТОТИП — сравнение hero-концептов, не продакшн. ТЗ: docs/Codex/REDESIGN_BRIEF_SKLADPROMO_2026-09-08.md, раздел 11
+</div>
+
+<header class="site-header">
+  <div class="header-inner">
+    <span class="logo">СкладПромо</span>
+    <div class="header-search"><span class="header-search-text">Поиск по названию или артикулу</span></div>
+    <div class="header-cart"><span class="header-cart-text">Корзина ·</span>&nbsp;0</div>
+  </div>
+</header>
+
+<main>
+  <!-- ================= КОНЦЕПТ 1 ================= -->
+  <section id="concept-1">
+    <div class="hero">
+      <div class="hero-copy">
+        <h1>Инвентарь под контролем</h1>
+        <p>Каталог сувенирной продукции для B2B: реальные фото, актуальная цена и остаток по каждой позиции. Соберите заказ за несколько минут.</p>
+        <a class="cta-pill" href="/catalog">Выбрать товары</a>
+      </div>
+      <div class="contact-sheet" data-grid="1"></div>
+    </div>
+  </section>
+
+  <!-- ================= КОНЦЕПТ 2 ================= -->
+  <section id="concept-2" hidden>
+    <div class="hero">
+      <div class="shelf-mosaic" data-grid="2"></div>
+      <div class="info-island">
+        <h1>Весь склад — на расстоянии одного клика</h1>
+        <p>Крупные фото товаров, честные остатки и цены. Оформите заказ, не отвлекаясь на лишнее.</p>
+        <a class="cta-pill" href="/catalog">Выбрать товары</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="categories-preview">
+    <h2>Основные категории</h2>
+    <div class="categories-row">
+      <div class="category-chip">Брелоки</div>
+      <div class="category-chip">Часы</div>
+      <div class="category-chip">Портфели</div>
+      <div class="category-chip">Наборы</div>
+      <div class="category-chip">Косметички</div>
+      <div class="category-chip">Зонты</div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  Прототип для внутреннего сравнения. Публичный сайт не изменён.
+</footer>
+
+<div class="variant-switcher" role="group" aria-label="Переключение hero-концептов">
+  <button type="button" id="prev" aria-label="Предыдущий концепт">←</button>
+  <span class="variant-label" id="label">
+    Концепт 1 · Инвентарный журнал
+    <span class="variant-hint">← → для переключения</span>
+  </span>
+  <button type="button" id="next" aria-label="Следующий концепт">→</button>
+</div>
+
+<script>
+(function () {
+  // Курируемый список реальных товаров (article из server/data/products.json,
+  // все visible=true, qty>0, реальное фото есть на диске). Один и тот же
+  // набор для обоих концептов — сравниваем композицию, а не ассортимент.
+  var ARTICLES = [
+    '282423', // Метеостанция "Престиж"
+    '501385', // Глобус настольный каменный
+    '510201', // Портфель кожаный "Клуб лайн гранд"
+    '480423', // Визитница "Рефлекс" металл
+    '282631', // Часы-будильник "Флип"
+    '940631', // Бинокль "Опера" складной
+    '431223', // Калькулятор 5в1 цветной дисплей
+    '640391', // Косметичка дорожная
+    '700105', // Сумка-холодильник
+    '510701', // Футляр для авторучек кожа
+    '880216', // Платок шейный корпоративный
+    '220323'  // Брелок "Зеркало" металл
+  ];
+
+  var FALLBACK = [
+    {article:'282423', name:'Метеостанция «Престиж»', price:9000, image:'images/282423.jpeg'},
+    {article:'501385', name:'Глобус настольный каменный', price:832, image:'images/501385.jpeg'},
+    {article:'510201', name:'Портфель кожаный «Клуб лайн гранд»', price:28000, image:'images/510201.jpeg'},
+    {article:'480423', name:'Визитница «Рефлекс» металл', price:1300, image:'images/480423.jpeg'},
+    {article:'282631', name:'Часы-будильник «Флип»', price:360, image:'images/282631.jpeg'},
+    {article:'940631', name:'Бинокль «Опера» складной', price:360, image:'images/940631.jpeg'},
+    {article:'431223', name:'Калькулятор 5в1', price:1350, image:'images/431223.jpeg'},
+    {article:'640391', name:'Косметичка дорожная', price:1000, image:'images/640391.jpeg'},
+    {article:'700105', name:'Сумка-холодильник', price:1500, image:'images/700105.jpeg'},
+    {article:'510701', name:'Футляр для авторучек', price:1600, image:'images/510701.jpeg'},
+    {article:'880216', name:'Платок шейный корпоративный', price:3600, image:'images/880216.jpeg'},
+    {article:'220323', name:'Брелок «Зеркало» металл', price:550, image:'images/220323.jpeg'}
+  ];
+
+  function renderConcept1(products) {
+    var grid = document.querySelector('[data-grid="1"]');
+    grid.innerHTML = products.map(function (p) {
+      return '<div class="sheet-tile">' +
+        '<div class="sheet-photo"><img src="/' + p.image + '" alt="' + escapeHtml(p.name) + '" loading="lazy"></div>' +
+        '<div class="sheet-caption">' +
+          '<span class="sheet-article">Арт. ' + escapeHtml(p.article) + '</span>' +
+          '<span class="sheet-price">' + p.price.toLocaleString('ru-RU') + ' ₽</span>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderConcept2(products) {
+    var grid = document.querySelector('[data-grid="2"]');
+    grid.innerHTML = products.map(function (p, i) {
+      var big = (i === 0 || i === 5) ? ' big' : '';
+      return '<div class="shelf-tile' + big + '">' +
+        '<img src="/' + p.image + '" alt="' + escapeHtml(p.name) + '" loading="lazy">' +
+      '</div>';
+    }).join('');
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function loadProducts() {
+    return fetch('/api/products')
+      .then(function (r) { if (!r.ok) throw new Error('bad response'); return r.json(); })
+      .then(function (all) {
+        var byArticle = {};
+        all.forEach(function (p) { byArticle[String(p.article)] = p; });
+        var picked = ARTICLES.map(function (art) { return byArticle[art]; }).filter(Boolean);
+        return picked.length === ARTICLES.length ? picked : FALLBACK;
+      })
+      .catch(function () { return FALLBACK; });
+  }
+
+  loadProducts().then(function (products) {
+    renderConcept1(products);
+    renderConcept2(products);
+  });
+
+  // ====== переключатель концептов ======
+  var VARIANTS = [
+    { id: 'concept-1', label: 'Концепт 1 · Инвентарный журнал' },
+    { id: 'concept-2', label: 'Концепт 2 · Полка крупным планом' }
+  ];
+
+  function currentIndex() {
+    var v = new URLSearchParams(location.search).get('variant');
+    var idx = VARIANTS.findIndex(function (x) { return x.id === 'concept-' + v; });
+    return idx === -1 ? 0 : idx;
+  }
+
+  function showVariant(idx) {
+    idx = (idx + VARIANTS.length) % VARIANTS.length;
+    VARIANTS.forEach(function (v, i) {
+      document.getElementById(v.id).hidden = i !== idx;
+    });
+    document.getElementById('label').innerHTML =
+      VARIANTS[idx].label + '<span class="variant-hint">← → для переключения</span>';
+    var params = new URLSearchParams(location.search);
+    params.set('variant', idx + 1);
+    history.replaceState(null, '', location.pathname + '?' + params.toString());
+  }
+
+  var idx = currentIndex();
+  showVariant(idx);
+
+  document.getElementById('prev').addEventListener('click', function () { showVariant(currentIndex() - 1); });
+  document.getElementById('next').addEventListener('click', function () { showVariant(currentIndex() + 1); });
+
+  document.addEventListener('keydown', function (e) {
+    var tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement.isContentEditable) return;
+    if (e.key === 'ArrowLeft') showVariant(currentIndex() - 1);
+    if (e.key === 'ArrowRight') showVariant(currentIndex() + 1);
+  });
+})();
+</script>
+
+</body>
+</html>

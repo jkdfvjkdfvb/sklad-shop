@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Презентация проекта редизайна витрины СкладПромо для руководителя отдела.">
+  <title>СкладПромо — редизайн без переписывания системы</title>
+  <style>
+    :root {
+      --ink: #111111;
+      --canvas: #ffffff;
+      --cloud: #f5f5f5;
+      --smoke: #e8e8e8;
+      --line: #c9c9c9;
+      --muted: #6f6f6f;
+      --success: #087a49;
+      --danger: #c70e16;
+      --max: 1440px;
+      --gutter: clamp(18px, 3vw, 48px);
+      --section: clamp(72px, 10vw, 150px);
+      --radius-pill: 999px;
+      --display: "Arial Narrow", "Roboto Condensed", Arial, sans-serif;
+      --body: Inter, Arial, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: var(--body);
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    img { display: block; max-width: 100%; }
+    a { color: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { font: inherit; }
+    :focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
+
+    .progress {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 20;
+      height: 4px;
+      transform-origin: left;
+      transform: scaleX(var(--scroll, 0));
+      background: var(--ink);
+      pointer-events: none;
+    }
+    .wrap { width: min(100%, var(--max)); margin-inline: auto; padding-inline: var(--gutter); }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before { content: ""; width: 28px; height: 1px; background: currentColor; }
+    .display {
+      margin: 0;
+      font-family: var(--display);
+      font-size: clamp(52px, 7.1vw, 112px);
+      font-weight: 900;
+      line-height: .87;
+      letter-spacing: -.055em;
+      text-transform: uppercase;
+    }
+    .section-title {
+      max-width: 850px;
+      margin: 22px 0 0;
+      font-family: var(--display);
+      font-size: clamp(40px, 5.5vw, 82px);
+      font-weight: 900;
+      line-height: .95;
+      letter-spacing: -.045em;
+      text-transform: uppercase;
+    }
+    .lead { max-width: 680px; margin: 28px 0 0; color: #353535; font-size: clamp(18px, 2vw, 25px); line-height: 1.45; }
+    .muted { color: var(--muted); }
+    .button-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 34px; }
+    .button {
+      min-height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: 1px solid var(--ink);
+      border-radius: var(--radius-pill);
+      padding: 13px 24px;
+      background: var(--ink);
+      color: var(--canvas);
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform .16s ease, background .16s ease, color .16s ease;
+    }
+    .button:hover { transform: translateY(-2px); }
+    .button.secondary { background: var(--canvas); color: var(--ink); }
+    .button .arrow { font-size: 20px; line-height: 1; }
+
+    .topbar { border-bottom: 1px solid var(--smoke); background: rgba(255,255,255,.92); }
+    .topbar-inner { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { font-family: var(--display); font-size: 23px; font-weight: 900; letter-spacing: -.03em; text-transform: uppercase; }
+    .docket { display: flex; align-items: center; gap: 22px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .docket b { color: var(--success); font-weight: 800; }
+
+    .hero { padding: clamp(46px, 6vw, 90px) 0 var(--section); }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1.06fr) minmax(390px, .94fr); gap: clamp(36px, 6vw, 92px); align-items: start; }
+    .hero-copy { padding-top: 18px; }
+    .hero .display span { display: block; white-space: nowrap; }
+    .hero .display .outline { color: transparent; -webkit-text-stroke: 1.5px var(--ink); }
+    .hero-note { max-width: 610px; margin: 30px 0 0; font-size: clamp(18px, 1.8vw, 23px); color: #393939; }
+    .assurance { display: flex; flex-wrap: wrap; gap: 8px; margin: 30px 0 0; padding: 0; list-style: none; }
+    .assurance li { border: 1px solid var(--line); border-radius: var(--radius-pill); padding: 8px 13px; font-size: 13px; font-weight: 700; }
+
+    .contact-sheet { display: grid; grid-template-columns: 1.1fr .9fr; grid-template-rows: 220px 190px 220px; gap: 8px; position: relative; }
+    .product-shot { position: relative; overflow: hidden; background: var(--cloud); }
+    .product-shot:first-child { grid-row: 1 / 3; }
+    .product-shot:nth-child(4) { grid-column: 1 / 3; }
+    .product-shot img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; transition: transform .45s ease; }
+    .product-shot:hover img { transform: scale(1.035); }
+    .product-shot figcaption {
+      position: absolute;
+      inset: auto 10px 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,.92);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .sheet-stamp {
+      position: absolute;
+      top: -18px;
+      right: -16px;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      width: 92px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: var(--ink);
+      color: white;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-align: center;
+      text-transform: uppercase;
+      transform: rotate(8deg);
+    }
+
+    .facts { border-block: 1px solid var(--ink); }
+    .facts-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .fact { min-height: 200px; padding: 34px var(--gutter) 38px 0; }
+    .fact + .fact { border-left: 1px solid var(--ink); padding-left: var(--gutter); }
+    .fact-number { display: block; font-family: var(--display); font-size: clamp(58px, 7vw, 102px); font-weight: 900; line-height: .85; letter-spacing: -.05em; }
+    .fact p { max-width: 300px; margin: 20px 0 0; font-weight: 600; }
+
+    .section { padding-block: var(--section); }
+    .section.cloud { background: var(--cloud); }
+    .section.ink { background: var(--ink); color: var(--canvas); }
+    .section.ink .eyebrow, .section.ink .muted { color: #bcbcbc; }
+
+    .decision-grid { display: grid; grid-template-columns: .82fr 1.18fr; gap: clamp(44px, 8vw, 130px); margin-top: 68px; }
+    .decision-intro { position: sticky; top: 32px; align-self: start; }
+    .decision-intro p { max-width: 420px; font-size: 20px; color: #3f3f3f; }
+    .decision-list { border-top: 1px solid var(--ink); }
+    .decision-item { display: grid; grid-template-columns: 52px 1fr; gap: 24px; padding: 28px 0; border-bottom: 1px solid var(--line); }
+    .decision-index { font-family: var(--display); font-size: 29px; font-weight: 900; }
+    .decision-item h3 { margin: 0; font-size: 21px; line-height: 1.2; }
+    .decision-item p { max-width: 620px; margin: 10px 0 0; color: var(--muted); }
+
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; margin-top: 64px; border: 1px solid var(--ink); }
+    .comparison article { padding: clamp(28px, 4vw, 56px); }
+    .comparison article + article { border-left: 1px solid var(--ink); background: var(--ink); color: var(--canvas); }
+    .comparison h3 { margin: 0 0 28px; font-family: var(--display); font-size: clamp(34px, 4vw, 52px); line-height: 1; text-transform: uppercase; }
+    .comparison ul { display: grid; gap: 18px; margin: 0; padding: 0; list-style: none; }
+    .comparison li { display: grid; grid-template-columns: 22px 1fr; gap: 12px; }
+    .comparison li::before { content: "—"; font-weight: 900; }
+    .comparison article + article li::before { content: "✓"; color: #72e1ad; }
+
+    .product-rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 64px; }
+    .rail-card { margin: 0; background: var(--canvas); }
+    .rail-card .image { aspect-ratio: 1; background: #ececec; overflow: hidden; }
+    .rail-card img { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+    .rail-card figcaption { padding: 16px 2px 4px; }
+    .rail-card .sku { display: block; margin-bottom: 6px; color: var(--muted); font: 700 11px/1 var(--body); letter-spacing: .08em; text-transform: uppercase; }
+    .rail-card b { display: block; font-size: 15px; line-height: 1.3; }
+
+    .scope-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; margin-top: 64px; background: #4b4b4b; border: 1px solid #4b4b4b; }
+    .scope-card { min-height: 300px; padding: clamp(28px, 4vw, 54px); background: var(--ink); }
+    .scope-card .scope-code { color: #9d9d9d; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    .scope-card h3 { max-width: 420px; margin: 68px 0 0; font-family: var(--display); font-size: clamp(35px, 4vw, 55px); line-height: .92; text-transform: uppercase; }
+    .scope-card p { max-width: 500px; margin: 18px 0 0; color: #bcbcbc; }
+
+    .route-map { margin-top: 62px; border-top: 1px solid var(--line); }
+    .route { display: grid; grid-template-columns: 170px 1fr 160px; align-items: center; gap: 24px; padding: 24px 0; border-bottom: 1px solid var(--line); }
+    .route code { font: 800 13px/1.4 Consolas, monospace; }
+    .route p { margin: 0; color: var(--muted); }
+    .route strong { justify-self: end; color: var(--success); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+
+    .timeline { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 68px; border-top: 1px solid var(--canvas); }
+    .phase { min-height: 300px; padding: 26px 28px 32px 0; border-bottom: 1px solid #444; }
+    .phase + .phase { border-left: 1px solid #444; padding-left: 28px; }
+    .phase .state { color: #8f8f8f; font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .phase.done .state { color: #72e1ad; }
+    .phase h3 { margin: 88px 0 0; font-family: var(--display); font-size: 34px; line-height: .95; text-transform: uppercase; }
+    .phase p { margin: 16px 0 0; color: #bcbcbc; }
+
+    .risk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin-top: 64px; background: var(--line); border: 1px solid var(--line); }
+    .risk { min-height: 300px; padding: 34px; background: var(--canvas); }
+    .risk .label { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .risk h3 { margin: 78px 0 0; font-size: 23px; line-height: 1.15; }
+    .risk p { margin: 16px 0 0; color: var(--muted); }
+
+    .approval { position: relative; overflow: hidden; }
+    .approval-grid { display: grid; grid-template-columns: 1fr .76fr; gap: clamp(42px, 8vw, 120px); align-items: end; }
+    .approval-copy { position: relative; z-index: 1; }
+    .approval-copy .section-title { max-width: 920px; }
+    .approval-panel { border: 1px solid #555; padding: 30px; }
+    .approval-panel h3 { margin: 0; font-size: 17px; }
+    .approval-panel ul { display: grid; gap: 16px; margin: 24px 0 0; padding: 0; list-style: none; color: #c8c8c8; }
+    .approval-panel li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; }
+    .approval-panel li::before { content: "✓"; color: #72e1ad; font-weight: 900; }
+    .approval .button { background: var(--canvas); color: var(--ink); border-color: var(--canvas); }
+    .approval .button.secondary { background: transparent; color: var(--canvas); }
+    .copy-status { min-height: 22px; margin: 14px 0 0; color: #9fddb9; font-size: 13px; }
+
+    footer { padding: 28px 0; border-top: 1px solid var(--smoke); }
+    .footer-inner { display: flex; justify-content: space-between; gap: 24px; color: var(--muted); font-size: 12px; }
+
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity .7s ease, transform .7s ease; }
+    .reveal.visible { opacity: 1; transform: none; }
+
+    @media (max-width: 980px) {
+      .hero-grid, .decision-grid, .approval-grid { grid-template-columns: 1fr; }
+      .decision-intro { position: static; }
+      .facts-grid { grid-template-columns: 1fr; }
+      .fact { padding-inline: 0; }
+      .fact + .fact { border-left: 0; border-top: 1px solid var(--ink); padding-left: 0; }
+      .timeline, .product-rail { grid-template-columns: repeat(2, 1fr); }
+      .phase:nth-child(3) { border-left: 0; padding-left: 0; }
+      .risk-grid { grid-template-columns: 1fr; }
+      .risk { min-height: 240px; }
+      .risk h3 { margin-top: 46px; }
+    }
+
+    @media (max-width: 680px) {
+      .docket span { display: none; }
+      .hero { padding-top: 32px; }
+      .hero-grid { gap: 52px; }
+      .hero-copy { padding-top: 0; }
+      .hero .display span { white-space: normal; }
+      .contact-sheet { grid-template-rows: 165px 145px 165px; }
+      .sheet-stamp { width: 76px; right: -8px; }
+      .comparison, .scope-grid, .timeline, .product-rail { grid-template-columns: 1fr; }
+      .comparison article + article { border-left: 0; border-top: 1px solid var(--ink); }
+      .phase + .phase { border-left: 0; padding-left: 0; }
+      .route { grid-template-columns: 1fr; gap: 8px; }
+      .route strong { justify-self: start; }
+      .button-row { flex-direction: column; align-items: stretch; }
+      .button { width: 100%; }
+      .footer-inner { flex-direction: column; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+      .reveal { opacity: 1; transform: none; }
+    }
+
+    @media print {
+      .progress, .button-row { display: none; }
+      .section, .hero { padding-block: 48px; }
+      .reveal { opacity: 1; transform: none; }
+      .section.ink { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="brand">СкладПромо / Проект редизайна</div>
+      <div class="docket"><span>На рассмотрении руководителя</span><b>Готово к решению</b></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Управленческое предложение · 2026</p>
+          <h1 class="display" id="hero-title">
+            <span>Сильнее</span>
+            <span class="outline">витрина.</span>
+            <span>Та же система.</span>
+          </h1>
+          <p class="hero-note">Обновить СкладПромо как современный B2B-каталог — без переписывания Express, без переноса бизнес-логики и без риска для действующих SEO-маршрутов.</p>
+          <ul class="assurance" aria-label="Границы проекта">
+            <li>Express сохраняется</li>
+            <li>SEO сохраняется</li>
+            <li>Реальные фото товаров</li>
+          </ul>
+          <div class="button-row">
+            <a class="button" href="#decision">Посмотреть решение <span class="arrow" aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="REDESIGN_BRIEF_SKLADPROMO_2026-09-08.md">Открыть полное ТЗ</a>
+          </div>
+        </div>
+
+        <div class="contact-sheet" aria-label="Примеры товаров из действующего каталога">
+          <div class="sheet-stamp">Только<br>реальный<br>каталог</div>
+          <figure class="product-shot">
+            <img src="../../public/images/900705.jpeg" alt="Синий зонт-трость из каталога СкладПромо">
+            <figcaption><span>Зонты</span><span>арт. 900705</span></figcaption>
+          </figure>
+          <figure class="product-shot">
+            <img src="../../public/images/510201.jpeg" alt="Чёрный кожаный портфель из каталога СкладПромо">
+            <figcaption><span>Портфели</span><span>арт. 510201</span></figcaption>
+          </figure>
+          <figure class="product-shot">
+            <img src="../../public/images/720613.jpeg" alt="Подарочные конфеты в стеклянной банке из каталога СкладПромо">
+            <figcaption><span>Подарки</span><span>арт. 720613</span></figcaption>
+          </figure>
+          <figure class="product-shot">
+            <img src="../../public/images/660223.jpeg" alt="Набор термокружек на стойке из каталога СкладПромо">
+            <figcaption><span>Термокружки</span><span>арт. 660223</span></figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="facts" aria-label="Ключевые параметры предложения">
+      <div class="wrap facts-grid">
+        <article class="fact reveal">
+          <span class="fact-number">01</span>
+          <p>Действующий технологический стек остаётся основой проекта.</p>
+        </article>
+        <article class="fact reveal">
+          <span class="fact-number">04</span>
+          <p>Ключевых пользовательских контура в первой очереди.</p>
+        </article>
+        <article class="fact reveal">
+          <span class="fact-number">00</span>
+          <p>Новых UI-фреймворков и необязательных миграций.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="decision" aria-labelledby="decision-title">
+      <div class="wrap">
+        <p class="eyebrow">Задача руководителя</p>
+        <h2 class="section-title" id="decision-title">Согласовать не картинку, а управляемое улучшение витрины</h2>
+
+        <div class="decision-grid">
+          <div class="decision-intro reveal">
+            <p>Редизайн должен помочь закупщику быстрее пройти путь от поиска товара до оформления заказа — и не разрушить то, что уже работает.</p>
+          </div>
+          <div class="decision-list">
+            <article class="decision-item reveal">
+              <span class="decision-index">A</span>
+              <div><h3>Сделать ассортимент понятнее</h3><p>Категории, поиск, фильтры, цена и наличие складываются в одну предсказуемую систему выбора.</p></div>
+            </article>
+            <article class="decision-item reveal">
+              <span class="decision-index">B</span>
+              <div><h3>Выстроить один путь к заказу</h3><p>«Выбрать товары» → «В корзину» → «Оформить заказ» — без конкурирующих призывов на каждом экране.</p></div>
+            </article>
+            <article class="decision-item reveal">
+              <span class="decision-index">C</span>
+              <div><h3>Сохранить техническую опору</h3><p>Express, API, серверный HTML, публичные URL и SEO-разметка остаются в проекте.</p></div>
+            </article>
+            <article class="decision-item reveal">
+              <span class="decision-index">D</span>
+              <div><h3>Отделить факты от обещаний</h3><p>Неподтверждённые условия доставки, оплаты, нанесения и сроков не используются как продающие аргументы.</p></div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section cloud" aria-labelledby="change-title">
+      <div class="wrap">
+        <p class="eyebrow">Контролируемый scope</p>
+        <h2 class="section-title" id="change-title">Меняем впечатление. Сохраняем фундамент.</h2>
+
+        <div class="comparison reveal">
+          <article>
+            <h3>Меняем</h3>
+            <ul>
+              <li>первый экран и товарную подачу;</li>
+              <li>визуальную иерархию каталога;</li>
+              <li>состояния фильтров и поиска;</li>
+              <li>карточку товара и путь в корзину;</li>
+              <li>mobile-сценарии и доступность.</li>
+            </ul>
+          </article>
+          <article>
+            <h3>Сохраняем</h3>
+            <ul>
+              <li>Express и vanilla JavaScript;</li>
+              <li>API товаров, контактов и заказов;</li>
+              <li>существующие публичные маршруты;</li>
+              <li>серверный HTML, metadata и JSON-LD;</li>
+              <li>текущую модель данных и деплой.</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="visual-title">
+      <div class="wrap">
+        <p class="eyebrow">Визуальный принцип</p>
+        <h2 class="section-title" id="visual-title">Инвентарная точность как современный товарный журнал</h2>
+        <p class="lead">Выразительность создаёт ассортимент: крупные фотографии, артикулы и категории. Интерфейс остаётся спокойным, плоским и почти монохромным.</p>
+
+        <div class="product-rail" aria-label="Товарный визуальный язык">
+          <figure class="rail-card reveal">
+            <div class="image"><img src="../../public/images/721103.jpeg" alt="Серый автомобильный скребок в рукавице"></div>
+            <figcaption><span class="sku">Автоаксессуары · 721103</span><b>Фото становится главным аргументом</b></figcaption>
+          </figure>
+          <figure class="rail-card reveal">
+            <div class="image"><img src="../../public/images/282631.jpeg" alt="Настольные часы-будильник"></div>
+            <figcaption><span class="sku">Часы · 282631</span><b>Данные читаются без визуального шума</b></figcaption>
+          </figure>
+          <figure class="rail-card reveal">
+            <div class="image"><img src="../../public/images/510201.jpeg" alt="Чёрный кожаный портфель"></div>
+            <figcaption><span class="sku">Портфели · 510201</span><b>B2B-подача остаётся деловой</b></figcaption>
+          </figure>
+          <figure class="rail-card reveal">
+            <div class="image"><img src="../../public/images/900705.jpeg" alt="Синий зонт-трость"></div>
+            <figcaption><span class="sku">Зонты · 900705</span><b>Цвет живёт в товаре, не в интерфейсе</b></figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="section ink" aria-labelledby="scope-title">
+      <div class="wrap">
+        <p class="eyebrow">Первая очередь</p>
+        <h2 class="section-title" id="scope-title">Четыре контура, которые ведут к заказу</h2>
+
+        <div class="scope-grid">
+          <article class="scope-card reveal">
+            <span class="scope-code">01 · Главная</span>
+            <h3>Понять и войти в каталог</h3>
+            <p>Короткий тезис, реальные товары, основные категории и один переход к выбору.</p>
+          </article>
+          <article class="scope-card reveal">
+            <span class="scope-code">02 · Каталог и категории</span>
+            <h3>Найти и сузить выбор</h3>
+            <p>Поиск, фильтры, сортировка, число результатов и устойчивые состояния выдачи.</p>
+          </article>
+          <article class="scope-card reveal">
+            <span class="scope-code">03 · Карточка товара</span>
+            <h3>Проверить и добавить</h3>
+            <p>Фото, артикул, цена, остаток, характеристики и ясный primary CTA.</p>
+          </article>
+          <article class="scope-card reveal">
+            <span class="scope-code">04 · Корзина</span>
+            <h3>Собрать и оформить</h3>
+            <p>Состав, количества, итог, проверяемая форма и понятное состояние отправки.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="routes-title">
+      <div class="wrap">
+        <p class="eyebrow">Техническая граница</p>
+        <h2 class="section-title" id="routes-title">Редизайн идёт по существующим маршрутам</h2>
+
+        <div class="route-map">
+          <div class="route reveal"><code>/</code><p>Главная витрина и вход в ассортимент</p><strong>Сохраняется</strong></div>
+          <div class="route reveal"><code>/catalog</code><p>Индексируемая структура каталога</p><strong>Сохраняется</strong></div>
+          <div class="route reveal"><code>/category/:slug</code><p>Категории и внутренние переходы</p><strong>Сохраняется</strong></div>
+          <div class="route reveal"><code>/product/:slug</code><p>Карточка товара, факты и JSON-LD</p><strong>Сохраняется</strong></div>
+          <div class="route reveal"><code>/api/*</code><p>Товары, контакты, заказы и оптовые заявки</p><strong>Сохраняется</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section ink" aria-labelledby="process-title">
+      <div class="wrap">
+        <p class="eyebrow">Процесс без большого скачка</p>
+        <h2 class="section-title" id="process-title">Сначала решение. Затем один вертикальный срез.</h2>
+
+        <div class="timeline">
+          <article class="phase done reveal"><span class="state">Готово</span><h3>Бриф и границы</h3><p>Аудитория, действие, стиль, ассеты и scope зафиксированы.</p></article>
+          <article class="phase reveal"><span class="state">После утверждения</span><h3>Два hero-концепта</h3><p>Отдельный HTML-прототип без изменения production-файлов.</p></article>
+          <article class="phase reveal"><span class="state">После выбора</span><h3>Один маршрут целиком</h3><p>Главная или каталог с mobile, состояниями и проверкой доступности.</p></article>
+          <article class="phase reveal"><span class="state">После проверки</span><h3>Остальные экраны</h3><p>PDP, корзина, регрессия SEO и отдельное решение о выпуске.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section cloud" aria-labelledby="risk-title">
+      <div class="wrap">
+        <p class="eyebrow">Риски под контролем</p>
+        <h2 class="section-title" id="risk-title">Что может пойти не так — и как это ограничить</h2>
+
+        <div class="risk-grid">
+          <article class="risk reveal"><span class="label">Риск 01</span><h3>Редизайн заденет SEO</h3><p>Сохраняем маршруты, SSR-контент, metadata и JSON-LD; проверяем паритет до выпуска.</p></article>
+          <article class="risk reveal"><span class="label">Риск 02</span><h3>Фото не выдержат крупный формат</h3><p>Используем контактную сетку и 1:1-контейнеры; не растягиваем слабые исходники.</p></article>
+          <article class="risk reveal"><span class="label">Риск 03</span><h3>Дизайн начнёт обещать лишнее</h3><p>Доставка, сроки, оптовые условия и доверительные сигналы появляются только после подтверждения.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section ink approval" aria-labelledby="approval-title">
+      <div class="wrap approval-grid">
+        <div class="approval-copy">
+          <p class="eyebrow">Решение на этом этапе</p>
+          <h2 class="section-title" id="approval-title">Утвердить направление и разрешить прототип двух концепций</h2>
+          <p class="lead muted">Это не разрешение на изменение сайта или деплой. Следующий результат — изолированный HTML-прототип для сравнения.</p>
+          <div class="button-row">
+            <button class="button" type="button" id="copy-approval">Скопировать формулировку решения</button>
+            <a class="button secondary" href="REDESIGN_PLAN_SHADCN_NIKE_2026-09-08.md">Открыть план</a>
+          </div>
+          <p class="copy-status" id="copy-status" role="status" aria-live="polite"></p>
+        </div>
+
+        <aside class="approval-panel" aria-label="Что именно утверждается">
+          <h3>На согласование</h3>
+          <ul>
+            <li>сохранить Express, SEO и текущие API;</li>
+            <li>развивать самостоятельную editorial-эстетику;</li>
+            <li>сделать заказ главным пользовательским действием;</li>
+            <li>использовать только реальные товарные фото;</li>
+            <li>перейти к двум изолированным hero-прототипам.</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap footer-inner">
+      <span>СкладПромо · предложение по редизайну</span>
+      <span>Документ для внутреннего согласования · 08.09.2026</span>
+    </div>
+  </footer>
+
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const updateProgress = () => {
+        const max = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+        root.style.setProperty('--scroll', Math.min(1, scrollY / max));
+      };
+      addEventListener('scroll', updateProgress, { passive: true });
+      updateProgress();
+
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const reveals = document.querySelectorAll('.reveal');
+      if (reduced || !('IntersectionObserver' in window)) {
+        reveals.forEach((item) => item.classList.add('visible'));
+      } else {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.12 });
+        reveals.forEach((item) => observer.observe(item));
+      }
+
+      const copyButton = document.getElementById('copy-approval');
+      const copyStatus = document.getElementById('copy-status');
+      const approvalText = 'Утверждаю направление редизайна СкладПромо: сохранить Express, SEO, маршруты и API; подготовить два изолированных HTML-прототипа hero без изменения production-кода.';
+      copyButton.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(approvalText);
+          copyStatus.textContent = 'Формулировка решения скопирована.';
+        } catch {
+          copyStatus.textContent = approvalText;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
