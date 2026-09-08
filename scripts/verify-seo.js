@@ -14,6 +14,8 @@ const path = require('path');
 
 const root = path.join(__dirname, '..');
 const products = JSON.parse(fs.readFileSync(path.join(root, 'server/data/products.json'), 'utf8'));
+const visibleProducts = products.filter(product => product.visible);
+const listedProducts = visibleProducts.filter(product => Number(product.qty) > 0);
 const meta = fs.readFileSync(path.join(root, 'docs/product-meta-tags.csv'), 'utf8').trim().split(/\r?\n/)
   .slice(1).map(line => { const [url, article, h1, title, meta_description, target_cluster] = line.split(';'); return { url, article, h1, title, meta_description, target_cluster }; });
 const metaByArticle = new Map(meta.map(row => [row.article, row]));
@@ -42,6 +44,8 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
   // что наружу не уехали внутренние поля.
   const apiProducts = await (await fetch(`${base}/api/products`)).json();
   const apiByArticle = new Map(apiProducts.map(item => [String(item.article), item]));
+  expect(apiProducts.length === listedProducts.length,
+    `/api/products count differs from visible in-stock catalog (${apiProducts.length}/${listedProducts.length})`);
   const apiFields = Object.keys(apiProducts[0] || {});
   for (const leaked of ['meta_description', 'meta_description_template', 'target_cluster', 'wholesale_price_from', 'seo_updated_at']) {
     expect(!apiFields.includes(leaked), `/api/products leaks internal field "${leaked}"`);
@@ -68,7 +72,7 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
       .map(([, article, brand]) => [article, brand]),
   );
 
-  for (const product of products) {
+  for (const product of visibleProducts) {
     const csv = metaByArticle.get(String(product.article));
     expect(Boolean(csv), `${product.article}: missing CSV metadata`);
     if (!csv) continue;
@@ -147,11 +151,18 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
     titles.add(title); descriptions.add(description);
   }
 
-  expect(titles.size === 69, `Titles are not unique (${titles.size}/69)`);
-  expect(descriptions.size === 69, `Descriptions are not unique (${descriptions.size}/69)`);
+  expect(titles.size === visibleProducts.length, `Titles are not unique (${titles.size}/${visibleProducts.length})`);
+  expect(descriptions.size === visibleProducts.length, `Descriptions are not unique (${descriptions.size}/${visibleProducts.length})`);
+
+  // Скрытые в админке позиции остаются в исходном каталоге, но не должны
+  // создавать индексируемые карточки или случайно возвращаться в sitemap.
+  for (const product of products.filter(product => !product.visible)) {
+    const response = await fetch(`${base}/product/${encodeURIComponent(product.slug)}`);
+    expect(response.status === 404, `${product.article}: hidden product must return 404, received ${response.status}`);
+  }
 
   // --- Категории: schema и уникальность интро ---
-  const categorySlugs = [...new Set(products.filter(product => product.visible).map(product => product.category_slug))];
+  const categorySlugs = [...new Set(visibleProducts.map(product => product.category_slug))];
   const categoryIntros = new Set();
   const categoryTitles = new Set();
   const categoryDescriptions = new Set();
@@ -221,7 +232,9 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
   expect(sitemap.includes(`${canonicalBase}/product/`), 'sitemap has no canonical product URLs');
   expect(!/<loc>http:\/\//.test(sitemap), 'sitemap contains HTTP page URLs');
   expect(!/<loc>[^<]*<\/loc><changefreq>/.test(sitemap), 'sitemap has URLs without lastmod');
-  expect((sitemap.match(/<loc>/g) || []).length === 91, 'sitemap must contain 91 unique public URLs');
+  const expectedSitemapUrls = 2 + categorySlugs.length + visibleProducts.length;
+  expect((sitemap.match(/<loc>/g) || []).length === expectedSitemapUrls,
+    `sitemap must contain ${expectedSitemapUrls} unique public URLs`);
   expect(sitemap.includes('<lastmod>2026-09-07</lastmod>'), 'sitemap template lastmod was not updated');
   const sale = await fetch(`${base}/sale`);
   expect(sale.status === 404, `Empty sale section must not index as a sale page, received ${sale.status}`);
@@ -230,6 +243,6 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
     console.error(`${errors.length} problem(s):\n${errors.join('\n')}`);
     process.exitCode = 1;
   } else {
-    console.log(`SEO verification passed: ${products.length} products, ${categorySlugs.length} categories, ${titles.size} unique titles, ${descriptions.size} unique descriptions, price parity across HTML/JSON-LD/llms.txt/API.`);
+    console.log(`SEO verification passed: ${products.length} catalog products (${visibleProducts.length} public), ${categorySlugs.length} categories, ${titles.size} unique titles, ${descriptions.size} unique descriptions, price parity across HTML/JSON-LD/llms.txt/API.`);
   }
 })().catch(error => { console.error(error.stack || error); process.exitCode = 1; });
