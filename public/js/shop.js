@@ -85,6 +85,17 @@ const selected = { category: new Set(), material: new Set(), color: new Set() };
 // ======== SORT STATE ========
 let sortState = { field: null, dir: 'asc' };
 
+// ======== CATALOG PAGINATION ========
+// Держит в DOM только первые PAGE_SIZE карточек, остальные открываются по
+// «Показать ещё». PAGE_SIZE обязан совпадать с HOME_PAGE_SIZE в server/seo.js
+// (homeProductCardHtml) — там столько же карточек рендерится видимыми при
+// первой отдаче страницы, а лишние помечены атрибутом hidden. Если числа
+// разойдутся, высота страницы подпрыгнет в момент гидратации (замена
+// SSR-грида на клиентский с другим количеством видимых карточек).
+const PAGE_SIZE = 20;
+let currentList = [];
+let visibleCount = PAGE_SIZE;
+
 // ======== FILTER ICONS (SVG) ========
 const FILTER_ICONS = {
   // categories
@@ -336,7 +347,9 @@ function buildFilters() {
     }
   }
 
-  const GROUP_LIMIT = 6;
+  // 5, а не 6: с шестью пунктами на группу (Категория+Материал+Цвет) сайдбар
+  // не помещался в viewport по высоте без внутреннего скролла.
+  const GROUP_LIMIT = 5;
 
   document.querySelectorAll('.filter-group').forEach(group => {
     const key = group.dataset.key;
@@ -438,7 +451,21 @@ function applyFilters() {
     const dir = sortState.dir === 'asc' ? 1 : -1;
     result = result.slice().sort((a, b) => (a[f] - b[f]) * dir);
   }
-  renderProducts(result);
+  // Любое изменение поиска/фильтра/сортировки — это новый список, показываем
+  // его заново с первой страницы, а не продолжаем со старого visibleCount.
+  currentList = result;
+  visibleCount = PAGE_SIZE;
+  renderProducts(currentList.slice(0, visibleCount));
+  updateLoadMoreButton();
+}
+
+function updateLoadMoreButton() {
+  const btn = document.getElementById('catalog-load-more');
+  if (!btn) return;
+  const remaining = currentList.length - visibleCount;
+  if (remaining <= 0) { btn.style.display = 'none'; return; }
+  btn.style.display = '';
+  btn.textContent = `Показать ещё (+${Math.min(PAGE_SIZE, remaining)})`;
 }
 
 // ======== DATA LOADING ========
@@ -522,21 +549,15 @@ function renderContacts() {
   if (contactEmailValue) contactEmailValue.textContent = isEmail ? email : '—';
   setLink('ct-max', c.max); setLink('ct-tg', c.telegram); setLink('ct-vk', c.vk);
 }
-function renderProducts(list) {
-  const grid  = document.getElementById('products-grid');
-  const empty = document.getElementById('empty-msg');
-  if (!list.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
-  empty.style.display = 'none';
-
-  grid.innerHTML = list.map(p => {
-    const inStock = p.qty > 0;
-    const qtyLabel = inStock
-      ? `<span class="card-qty in-stock">В наличии: ${p.qty} шт.</span>`
-      : `<span class="card-qty out-stock">Нет в наличии</span>`;
-    const videoBtn = p.video
-      ? `<a href="#" class="card-video-btn" data-video="${escAttr(p.video)}">&#9654; Видео</a>` : '';
-    const url = `/product/${escAttr(p.slug || p.article)}`;
-    return `
+function productCardHtml(p) {
+  const inStock = p.qty > 0;
+  const qtyLabel = inStock
+    ? `<span class="card-qty in-stock">В наличии: ${p.qty} шт.</span>`
+    : `<span class="card-qty out-stock">Нет в наличии</span>`;
+  const videoBtn = p.video
+    ? `<a href="#" class="card-video-btn" data-video="${escAttr(p.video)}">&#9654; Видео</a>` : '';
+  const url = `/product/${escAttr(p.slug || p.article)}`;
+  return `
       <div class="product-card">
         <a href="${url}" class="card-img-link" aria-label="${escHtml(p.name)}">
           <div class="card-img-wrap">
@@ -557,16 +578,53 @@ function renderProducts(list) {
           ${inStock ? `<button class="add-to-cart-btn" data-article="${escAttr(p.article)}">В корзину</button>` : ''}
         </div>
       </div>`;
-  }).join('');
+}
 
-  grid.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+// Навешивает обработчики только на карточки внутри переданного контейнера —
+// используется и на полной перерисовке (весь grid), и на догрузке «Показать
+// ещё» (только что вставленный фрагмент). Если бы догрузка перевешивала
+// обработчики на весь grid заново, старые карточки получали бы второй
+// (новый по ссылке) слушатель клика поверх первого — «В корзину» на уже
+// показанной карточке начало бы добавлять товар в корзину дважды за клик.
+function bindProductCardEvents(root) {
+  root.querySelectorAll('.add-to-cart-btn').forEach(btn => {
     btn.addEventListener('click', () => addToCart(btn.dataset.article));
   });
-  grid.querySelectorAll('[data-video]').forEach(btn => {
+  root.querySelectorAll('[data-video]').forEach(btn => {
     btn.addEventListener('click', e => { e.preventDefault(); openVideoModal(btn.dataset.video); });
   });
-  observeReveal(grid);
+  observeReveal(root);
 }
+
+function renderProducts(list) {
+  const grid  = document.getElementById('products-grid');
+  const empty = document.getElementById('empty-msg');
+  if (!list.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = list.map(productCardHtml).join('');
+  bindProductCardEvents(grid);
+}
+
+// Клик «Показать ещё»: дорисовывает только новый хвост списка, не трогая уже
+// отрисованные карточки — полная перерисовка грида заново проиграла бы
+// scroll-reveal анимацию для уже видимых карточек и потребовала бы либо
+// повторного навешивания обработчиков на них (см. bindProductCardEvents),
+// либо более сложного diff'а. Временный контейнер нужен, чтобы querySelectorAll
+// в bindProductCardEvents видел только новые узлы, а не весь grid.
+function appendProducts(list) {
+  const grid = document.getElementById('products-grid');
+  const temp = document.createElement('div');
+  temp.innerHTML = list.map(productCardHtml).join('');
+  bindProductCardEvents(temp);
+  while (temp.firstChild) grid.appendChild(temp.firstChild);
+}
+
+document.getElementById('catalog-load-more')?.addEventListener('click', () => {
+  const start = visibleCount;
+  visibleCount = Math.min(visibleCount + PAGE_SIZE, currentList.length);
+  appendProducts(currentList.slice(start, visibleCount));
+  updateLoadMoreButton();
+});
 
 // ======== SEARCH ========
 document.getElementById('search-form').addEventListener('submit', e => { e.preventDefault(); applyFilters(); });

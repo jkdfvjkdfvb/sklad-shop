@@ -241,7 +241,7 @@ a { color: inherit; }
 }
 .filter-head {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 16px; padding-bottom: 12px;
+  margin-bottom: 10px; padding-bottom: 10px;
   border-bottom: 1px solid var(--hairline);
 }
 .filter-head-title { font-weight: 600; font-size: 1rem; color: var(--ink); text-transform: uppercase; letter-spacing: .01em; }
@@ -251,16 +251,23 @@ a { color: inherit; }
   text-decoration: underline; text-underline-offset: 2px;
 }
 .filter-reset:hover { color: var(--ink); }
-.filter-group { margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--hairline-soft); }
+/* Три группы фильтров (Категория/Материал/Цвет) по 5 пунктов должны
+   помещаться в .filter-sidebar без внутреннего скролла — при обычных
+   16/18px отступах последний пункт последней группы («Серый») и её
+   «Показать ещё» уезжали за max-height на невысоких окнах (~760px и
+   ниже, не редкость на ноутбуках с браузерным chrome). Отступы уплотнены
+   ровно настолько, чтобы это исправить, замер — не на глаз: при 5 пунктах
+   на группу overflow был 43px на viewport 760px, эта правка убирает ~80px. */
+.filter-group { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--hairline-soft); }
 .filter-group:last-child { margin-bottom: 0; border-bottom: none; }
 .filter-group-title {
   font-size: .95rem; font-weight: 600; color: var(--ink);
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
-.filter-options { display: flex; flex-direction: column; gap: 6px; }
+.filter-options { display: flex; flex-direction: column; gap: 4px; }
 .filter-option {
   display: flex; align-items: center; gap: 8px;
-  cursor: pointer; font-size: .92rem; padding: 2px 0;
+  cursor: pointer; font-size: .92rem; padding: 1px 0;
 }
 .filter-option:hover .filter-option-name { color: var(--ink); }
 /* accent-color раньше давал верный чёрный цвет, но форма чекбокса
@@ -292,7 +299,7 @@ a { color: inherit; }
 
 .filter-show-more {
   background: none; border: none; cursor: pointer;
-  font-size: .82rem; color: var(--ink); padding: 6px 0 0;
+  font-size: .82rem; color: var(--ink); padding: 4px 0 0;
   text-decoration: underline; text-underline-offset: 2px;
   text-align: left; display: block;
 }
@@ -317,6 +324,17 @@ a { color: inherit; }
 .sort-bar {
   display: flex; align-items: center; gap: 8px;
   margin-bottom: 20px; flex-wrap: wrap;
+  /* Закреплена на время скролла каталога, встык под хедером (top: header,
+     без зазора) — сайт-хедер уже sticky (top:0, z-index:100), поэтому 100
+     здесь недопустим, сорт-бар должен уезжать ПОД хедер, а не поверх него.
+     Зазор в 16px (как у .filter-sidebar) здесь не подходит: сорт-бар и грид
+     товаров — в одной колонке, и карточки, доскроллившие до этой полосы,
+     были видны в зазоре поверх хедера снизу и под сорт-баром сверху —
+     ни один из двух sticky-элементов его не перекрывает. Непрозрачный фон
+     обязателен по той же причине: без него карточки просвечивали бы сквозь
+     саму панель, а не только в зазоре над ней. */
+  position: sticky; top: var(--header-h); z-index: 20;
+  background: var(--canvas); padding: 12px 0;
 }
 .sort-label { font-size: .85rem; color: var(--mute); font-weight: 500; }
 .sort-btn {
@@ -337,6 +355,16 @@ a { color: inherit; }
   gap: 8px;
 }
 
+/* ====== LOAD MORE (пагинация каталога, 20 карточек за раз) ====== */
+.catalog-load-more {
+  display: block; margin: 28px auto 0; padding: 12px 32px;
+  border-radius: var(--radius-pill); border: 1px solid var(--hairline);
+  background: var(--canvas); color: var(--ink); font-family: inherit;
+  font-size: .92rem; font-weight: 500; cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.catalog-load-more:hover { border-color: var(--ink); background: var(--soft-cloud); }
+
 /* ====== CARD (flat, photo-first) ====== */
 .product-card {
   background: var(--canvas); border-radius: 0;
@@ -352,6 +380,13 @@ a { color: inherit; }
 }
 .product-card:hover .card-img-wrap img { transform: scale(1.04); }
 .card-body { padding: 12px 0 6px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+/* Название карточки — от 1 до 3 строк (line-clamp), поэтому без явного
+   прижатия кнопки к низу «В корзину» съезжала вверх у товаров с короткими
+   названиями, и ряд карточек выглядел неровным. .card-body растянут на всю
+   высоту строки грида (products-grid не задаёт align-items — по умолчанию
+   stretch), margin-top:auto выбирает всё оставшееся место и прижимает кнопку
+   к общему нижнему краю независимо от длины названия и наличия видео-кнопки. */
+.card-body .add-to-cart-btn { margin-top: auto; }
 .card-img-link { display: block; text-decoration: none; }
 .card-article { font-size: .8rem; color: var(--mute); }
 .card-name {
@@ -476,6 +511,11 @@ a { color: inherit; }
      рекомендуемых 44px. Строка сама растягивается, чекбокс остаётся 16px
      визуально, но кликабельная область всей label — не только квадрата. */
   .filter-option { padding: 12px 0; min-height: 44px; }
+  /* Закрепление сортировки — задача десктопа (двухколоночная раскладка
+     с сайдбаром). На мобильном сайдбар превращается в drawer поверх
+     контента, а второй sticky-элемент сразу под и без того sticky-хедером
+     съедал бы заметную часть узкого экрана — оставляем как в потоке. */
+  .sort-bar { position: static; background: none; padding: 0; }
 }
 
 @media (max-width: 640px) {

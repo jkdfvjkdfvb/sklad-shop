@@ -679,13 +679,25 @@ ${cartHtml()}
   // Карточка SSR-грида главной. Разметка намеренно повторяет ту, что строит
   // renderProducts() в public/js/shop.js: грид перерисовывается на клиенте, и
   // при расхождении разметки пользователь увидел бы скачок при гидратации.
-  function homeProductCardHtml(product) {
+  // На главной сначала показывается только HOME_PAGE_SIZE карточек, остальные
+  // открываются по клику «Показать ещё». Карточки сверх лимита остаются в
+  // HTML — атрибут hidden убирает только отображение, ссылки на них
+  // по-прежнему присутствуют в исходном коде страницы и доступны обходчику
+  // (verify-seo.js считает count(href="/product/") по исходному HTML, а не
+  // по видимости, так что регресс это не сломает). Совпадение с клиентским
+  // PAGE_SIZE в shop.js обязательно: иначе после гидратации высота страницы
+  // подпрыгнет (то самое «мигание при гидратации», о котором предупреждает
+  // комментарий выше про listed — full-таблица здесь работает по тому же
+  // принципу, просто для новой функции пагинации, а не для порядка/среза.
+  const HOME_PAGE_SIZE = 20;
+
+  function homeProductCardHtml(product, hiddenBeyondPage) {
     const stock = quantity(product);
     const url = `/product/${encodeURIComponent(productSlug(product))}`;
     const image = product.image || (product.image_urls && product.image_urls[0]) || '';
     const name = product.name || productName(product);
     return `
-      <div class="product-card">
+      <div class="product-card"${hiddenBeyondPage ? ' hidden' : ''}>
         <a href="${url}" class="card-img-link" aria-label="${escH(name)}">
           <div class="card-img-wrap">
             <img src="${escH(image)}" alt="${escH(name)}" loading="lazy"
@@ -797,7 +809,7 @@ ${cartHtml()}
       .replace('<!-- ====== CATALOG ====== -->', `${homeOverviewHtml(products, categories)}\n\n<!-- ====== CATALOG ====== -->`)
       .replace('<div class="catalog-layout">', `${categoryDirectoryHtml(categories, byCategory)}\n  <div class="catalog-layout">`)
       .replace('<div class="products-grid" id="products-grid"></div>',
-        `<div class="products-grid" id="products-grid">${listed.map(homeProductCardHtml).join('')}</div>`);
+        `<div class="products-grid" id="products-grid">${listed.map((p, i) => homeProductCardHtml(p, i >= HOME_PAGE_SIZE)).join('')}</div>${listed.length > HOME_PAGE_SIZE ? '<noscript><style>#products-grid .product-card[hidden]{display:flex!important}</style></noscript>' : ''}`);
   }
 
   function catalogPageHtml(products, contacts) {
