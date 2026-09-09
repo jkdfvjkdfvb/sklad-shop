@@ -438,6 +438,30 @@ app.post('/api/admin/products/bulk-delete', authMiddleware, (req, res) => {
   res.json({ ok: true, deleted: toRemove.length });
 });
 
+// Порядок в products.json — это и есть порядок показа в каталоге (/api/products
+// и /api/admin/products отдают массив как есть, без сортировки), поэтому
+// ручная сортировка — это просто запись каталога в новом порядке строк, без
+// отдельного поля sort_order. Маршрут обязан стоять раньше PUT /:article —
+// иначе Express принял бы «reorder» за артикул товара.
+app.put('/api/admin/products/reorder', authMiddleware, (req, res) => {
+  const { articles } = req.body;
+  if (!Array.isArray(articles) || !articles.length) return res.status(400).json({ error: 'Некорректные данные' });
+  const products = readJSON(PRODUCTS_FILE, []);
+  // Новый порядок обязан содержать РОВНО тот же набор артикулов, что уже
+  // в каталоге. Без этой проверки устаревший снимок на клиенте (открытая
+  // вкладка админки, пока другой человек добавил или удалил товар) при
+  // перетаскивании молча стёр бы часть каталога перезаписью products.json.
+  const current  = new Set(products.map(p => p.article));
+  const incoming = articles.map(String);
+  const sameSet = incoming.length === current.size && incoming.every(a => current.has(a)) && new Set(incoming).size === current.size;
+  if (!sameSet) {
+    return res.status(409).json({ error: 'Список артикулов не совпадает с текущим каталогом — обновите страницу и повторите' });
+  }
+  const byArticle = new Map(products.map(p => [p.article, p]));
+  writeJSON(PRODUCTS_FILE, incoming.map(a => byArticle.get(a)));
+  res.json({ ok: true });
+});
+
 app.put('/api/admin/products/:article', authMiddleware, (req, res) => {
   const products = readJSON(PRODUCTS_FILE, []);
   const idx = products.findIndex(p => p.article === req.params.article);

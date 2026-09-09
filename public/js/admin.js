@@ -231,13 +231,20 @@ async function loadProducts() {
   renderTable(allProducts);
 }
 
-function renderTable(products) {
+function renderTable(products, opts = {}) {
   const tbody = document.getElementById('products-tbody');
-  tbody.innerHTML = products.map(p => productRow(p)).join('');
-  attachRowListeners();
+  // Перетаскивание меняет порядок products.json (см. эндпоинт reorder) —
+  // при активном поиске #products-tbody показывает только отфильтрованное
+  // подмножество, и «перетащить строку выше другой» не имеет однозначного
+  // смысла для полного массива. Проще и надёжнее запретить drag, чем
+  // придумывать, как переносить относительный порядок обратно в полный
+  // список — при выключенном поиске это ровно то же самое действие.
+  const draggable = !opts.filtered;
+  tbody.innerHTML = products.map(p => productRow(p, draggable)).join('');
+  attachRowListeners(draggable);
 }
 
-function productRow(p) {
+function productRow(p, draggable) {
   const imgEl = p.image
     ? `<img class="thumb" src="${escAttr(p.image)}" alt="" onerror="this.style.display='none'">`
     : `<div class="thumb-placeholder">нет фото</div>`;
@@ -245,8 +252,12 @@ function productRow(p) {
     ? `<a class="video-link" href="${escAttr(p.video)}" target="_blank">▶ видео</a>`
     : `<span style="color:#9ca3af;font-size:.75rem">нет</span>`;
   const feedImgEl = feedImageStatusHtml(p);
+  const dragHandle = draggable
+    ? `<td class="drag-handle" draggable="true" title="Перетащите, чтобы изменить порядок в каталоге">⠿</td>`
+    : `<td></td>`;
 
   return `<tr data-article="${escAttr(p.article)}">
+    ${dragHandle}
     <td><input type="checkbox" class="row-checkbox" value="${escAttr(p.article)}"></td>
     <td>${escHtml(p.article)}</td>
     <td>${imgEl}</td>
@@ -302,7 +313,8 @@ function attachFeedImgRemoveListener(row, art) {
   });
 }
 
-function attachRowListeners() {
+function attachRowListeners(draggable) {
+  if (draggable) attachDragReorder();
   document.querySelectorAll('#products-tbody tr').forEach(row => {
     const art = row.dataset.article;
     row.querySelector('.save-row-btn').addEventListener('click', () => saveRow(row, art));
@@ -353,6 +365,66 @@ function attachRowListeners() {
   document.getElementById('select-all-checkbox').checked = false;
   document.getElementById('select-all-checkbox').indeterminate = false;
   updateBulkToolbar();
+}
+
+// ======== PRODUCTS: DRAG-AND-DROP REORDER ========
+// Порядок в products.json — это порядок показа в каталоге (сервер отдаёт
+// массив как есть, без сортировки), поэтому перетаскивание строки в таблице
+// и есть ручная сортировка выдачи. Реализовано на нативном HTML5 DnD без
+// библиотек: .dragging — единственный источник истины «что сейчас тащат»,
+// а не отдельная JS-переменная — так позиция не рассинхронизируется между
+// перерисовками таблицы (renderTable вызывается из многих мест).
+function attachDragReorder() {
+  document.querySelectorAll('#products-tbody tr[data-article]').forEach(row => {
+    const handle = row.querySelector('.drag-handle');
+    if (!handle) return;
+
+    handle.addEventListener('dragstart', e => {
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      // Firefox не начинает перетаскивание без setData, даже если само
+      // значение не используется — итоговый порядок читается из DOM.
+      e.dataTransfer.setData('text/plain', row.dataset.article);
+      // draggable=true стоит на ячейке-ручке, а не на всей строке (иначе
+      // drag норовил бы начаться с текстовых полей qty/price внутри строки);
+      // без этого браузер тащил бы «призрак» одной ⠿-ячейки вместо строки.
+      e.dataTransfer.setDragImage(row, 20, 20);
+    });
+    handle.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      persistNewOrder();
+    });
+
+    row.addEventListener('dragover', e => {
+      const dragging = document.querySelector('#products-tbody tr.dragging');
+      if (!dragging || dragging === row) return;
+      e.preventDefault(); // разрешает drop именно на эту строку
+      const rect = row.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      row.parentNode.insertBefore(dragging, before ? row : row.nextSibling);
+    });
+  });
+}
+
+async function persistNewOrder() {
+  const rows = Array.from(document.querySelectorAll('#products-tbody tr[data-article]'));
+  const articles = rows.map(tr => tr.dataset.article);
+  const previousOrder = allProducts.slice();
+  const byArticle = new Map(allProducts.map(p => [p.article, p]));
+  allProducts = articles.map(a => byArticle.get(a)).filter(Boolean);
+  try {
+    const res = await apiFetch('/api/admin/products/reorder', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ articles }),
+    });
+    if (!res.ok) throw new Error('bad status');
+  } catch {
+    // Откатываем локально и перерисовываем — иначе таблица показывала бы
+    // порядок, которого на самом деле нет в products.json на сервере.
+    allProducts = previousOrder;
+    renderTable(allProducts);
+    alert('Не удалось сохранить новый порядок. Список восстановлен, попробуйте ещё раз.');
+  }
 }
 
 async function saveRow(row, art) {
@@ -418,7 +490,10 @@ function showStatus(art, ok, text) {
 
 document.getElementById('table-search').addEventListener('input', function () {
   const q = this.value.toLowerCase().trim();
-  renderTable(q ? allProducts.filter(p => p.name.toLowerCase().includes(q) || p.article.includes(q)) : allProducts);
+  renderTable(
+    q ? allProducts.filter(p => p.name.toLowerCase().includes(q) || p.article.includes(q)) : allProducts,
+    { filtered: Boolean(q) },
+  );
 });
 
 // ======== PRODUCTS: BULK SELECTION / ACTIONS ========
