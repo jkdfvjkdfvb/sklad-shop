@@ -384,24 +384,54 @@ function buildFilters() {
   });
 }
 
+// Счётчики в сайдбаре считались один раз от полного каталога и не menялись
+// при поиске/других фильтрах — жюри: «брелок металл» сужает выдачу до 4,
+// а счётчик «Брелоки: 10» остаётся прежним. Пересчитываем при каждом
+// applyFilters() от товаров, прошедших поиск и ВСЕ ОСТАЛЬНЫЕ фасеты, кроме
+// того, чей счётчик считаем сейчас, — так можно расширить выбор внутри
+// одного фасета (мульти-select), а не только сужать его до нуля.
+function updateFilterCounts(q) {
+  const facetKeys = ['category', 'material', 'color'];
+  for (const key of facetKeys) {
+    const otherKeys = facetKeys.filter(k => k !== key);
+    const counts = {};
+    for (const p of allProducts) {
+      if (!matchesSearch(p, q)) continue;
+      if (!otherKeys.every(k => !selected[k].size || selected[k].has(p[k]))) continue;
+      if (p[key]) counts[p[key]] = (counts[p[key]] || 0) + 1;
+    }
+    document.querySelectorAll(`.filter-group[data-key="${key}"] .filter-option`).forEach(label => {
+      const input = label.querySelector('input[type=checkbox]');
+      const countEl = label.querySelector('.filter-option-count');
+      if (input && countEl) countEl.textContent = String(counts[input.dataset.value] || 0);
+    });
+  }
+}
+
+// Разбиваем запрос на слова и требуем совпадения каждого (AND), а не всей
+// фразы целиком подстрокой — иначе «брелок компас» не находил товар
+// «Брелок «Компас», в виде пробки», хотя оба слова по отдельности находят.
+// Вынесено отдельно от applyFilters, чтобы тем же правилом пересчитывать
+// счётчики в сайдбаре фильтров (updateFilterCounts).
+function matchesSearch(p, q) {
+  if (!q) return true;
+  const qTokens = q.split(/\s+/).filter(Boolean);
+  if (!qTokens.length) return true;
+  if (p.article.includes(q)) return true;
+  const name = p.name.toLowerCase();
+  return qTokens.every(t => name.includes(t));
+}
+
 function applyFilters() {
   const q = document.getElementById('search-input').value.toLowerCase().trim();
-  // Разбиваем запрос на слова и требуем совпадения каждого (AND), а не всей
-  // фразы целиком подстрокой — иначе «брелок компас» не находил товар
-  // «Брелок «Компас», в виде пробки», хотя оба слова по отдельности находят.
-  const qTokens = q.split(/\s+/).filter(Boolean);
   let result = allProducts.filter(p => {
-    if (qTokens.length) {
-      const name = p.name.toLowerCase();
-      const matchesArticle = p.article.includes(q);
-      const matchesAllTokens = qTokens.every(t => name.includes(t));
-      if (!matchesArticle && !matchesAllTokens) return false;
-    }
+    if (!matchesSearch(p, q)) return false;
     for (const key of ['category', 'material', 'color']) {
       if (selected[key].size && !selected[key].has(p[key])) return false;
     }
     return true;
   });
+  updateFilterCounts(q);
   if (sortState.field) {
     const f = sortState.field;
     const dir = sortState.dir === 'asc' ? 1 : -1;
