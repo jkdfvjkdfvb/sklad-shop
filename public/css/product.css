@@ -70,7 +70,7 @@
 }
 
 .product-detail-prices { display: flex; flex-direction: column; gap: 6px; }
-.pdp-retail .pdp-val { font-size: 1.75rem; font-weight: 600; color: var(--ink); }
+.pdp-retail .pdp-val { font-size: 1.75rem; font-weight: 600; color: var(--brand-accent); }
 .pdp-opt-note { font-size: .92rem; color: var(--mute); line-height: 1.5; }
 
 .product-detail-qty        { font-size: .9rem; font-weight: 500; }
@@ -199,6 +199,7 @@
 }
 .seo-card-body h2 a { color: inherit; text-decoration: none; }
 .seo-card-price { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.seo-card-price strong { color: var(--brand-accent); }
 .seo-card-old-price, .pdp-old-price { color: var(--mute); text-decoration: line-through; margin: 0; }
 .seo-sale-badge, .pdp-sale-note { color: var(--sale); font-size: .85rem; margin: 0; }
 .category-page { margin: 40px auto; padding: 0 24px; }

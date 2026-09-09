@@ -20,33 +20,34 @@ try {
 } catch {}
 
 // ======== REVEAL ON SCROLL ========
-// Один осмысленный момент motion (раздел 5 ТЗ редизайна: «спокойное
-// появление контактной полосы hero») — короткое появление плиток hero и
-// категорий при входе во вьюпорт. Уважает prefers-reduced-motion. Стоит
-// первым в файле и в try/catch: если код ниже упадёт, плитки всё равно
-// не должны остаться невидимыми навсегда (opacity:0 по умолчанию в CSS).
-try {
-  (function initRevealOnScroll() {
-    const targets = document.querySelectorAll('.hero-sheet-tile, .category-tile');
-    if (!targets.length) return;
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduceMotion || !('IntersectionObserver' in window)) {
-      targets.forEach(el => el.classList.add('is-visible'));
-      return;
-    }
-    const observer = new IntersectionObserver((entries, obs) => {
-      entries.forEach(entry => {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add('is-visible');
-        obs.unobserve(entry.target);
-      });
-    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+// Плавное появление карточек при входе во вьюпорт — hero-плитки и
+// категории SSR'ятся один раз, а карточки товаров перерисовываются при
+// каждом поиске/фильтре/сортировке, поэтому observeReveal() вызывается
+// повторно из renderProducts(), а не один раз при загрузке скрипта.
+// Уважает prefers-reduced-motion. Обёрнуто в try/catch с фолбэком:
+// если что-то упадёт, элементы не должны остаться невидимыми навсегда
+// (opacity:0 по умолчанию в CSS).
+const REVEAL_SELECTOR = '.hero-sheet-tile, .category-tile, .product-card';
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const revealObserver = (reduceMotion || !('IntersectionObserver' in window)) ? null : new IntersectionObserver((entries, obs) => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    entry.target.classList.add('is-visible');
+    obs.unobserve(entry.target);
+  });
+}, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+function observeReveal(root) {
+  try {
+    const targets = (root || document).querySelectorAll(REVEAL_SELECTOR);
+    if (!revealObserver) { targets.forEach(el => el.classList.add('is-visible')); return; }
     targets.forEach((el, i) => {
       el.style.transitionDelay = `${Math.min(i % 8, 7) * 40}ms`;
-      observer.observe(el);
+      revealObserver.observe(el);
     });
-  })();
-} catch { document.querySelectorAll('.hero-sheet-tile, .category-tile').forEach(el => el.classList.add('is-visible')); }
+  } catch { (root || document).querySelectorAll(REVEAL_SELECTOR).forEach(el => el.classList.add('is-visible')); }
+}
+observeReveal();
 
 let allProducts = [];
 let contacts = {};
@@ -564,6 +565,7 @@ function renderProducts(list) {
   grid.querySelectorAll('[data-video]').forEach(btn => {
     btn.addEventListener('click', e => { e.preventDefault(); openVideoModal(btn.dataset.video); });
   });
+  observeReveal(grid);
 }
 
 // ======== SEARCH ========

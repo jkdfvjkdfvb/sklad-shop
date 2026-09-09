@@ -27,6 +27,14 @@ img, svg, video { max-width: 100%; }
   --hairline-soft: #e5e5e5;
   --sale: #d30005;
   --success: #007d48;
+  /* Акцентный цвет — по решению владельца сайта, сознательное отклонение
+     от раздела 5 мега-ТЗ («акцент не вводить в первой версии»): жюри
+     design-jury в нескольких независимых прогонах отмечало, что чистый
+     чёрно-бело-серый монохром читается «холодно» и без бренд-якоря.
+     Значение — уже определённый, но неиспользуемый токен info/info-deep
+     из DESIGN-nike.md, а не цвет с нуля. */
+  --brand-accent: #1151ff;
+  --brand-accent-deep: #0034e3;
 
   /* Обратная совместимость со старыми переменными (product.css, шаблоны SSR) */
   --primary: #111111;
@@ -174,7 +182,7 @@ a { color: inherit; }
 .hero-sheet-photo img { width: 100%; height: 100%; object-fit: contain; padding: 6px; }
 .hero-sheet-caption { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px 10px; font-size: .72rem; line-height: 1.35; }
 .hero-sheet-article { color: var(--mute); }
-.hero-sheet-price { color: var(--ink); font-weight: 600; }
+.hero-sheet-price { color: var(--brand-accent); font-weight: 600; }
 .hero-sheet-tile:hover .hero-sheet-photo img { transform: scale(1.04); }
 .hero-sheet-photo img { transition: transform .3s ease; }
 
@@ -182,13 +190,13 @@ a { color: inherit; }
    скролле (раздел 5 ТЗ). initRevealOnScroll() в shop.js добавляет
    .is-visible через IntersectionObserver; здесь же — safety-net для
    prefers-reduced-motion, если он подключится позже CSS. */
-.hero-sheet-tile, .category-tile {
+.hero-sheet-tile, .category-tile, .product-card, .seo-card {
   opacity: 0; transform: translateY(12px);
   transition: opacity .32s ease, transform .32s ease;
 }
-.hero-sheet-tile.is-visible, .category-tile.is-visible { opacity: 1; transform: none; }
+.hero-sheet-tile.is-visible, .category-tile.is-visible, .product-card.is-visible, .seo-card.is-visible { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) {
-  .hero-sheet-tile, .category-tile { opacity: 1; transform: none; transition: none; }
+  .hero-sheet-tile, .category-tile, .product-card, .seo-card { opacity: 1; transform: none; transition: none; }
 }
 
 @media (max-width: 1023px) {
@@ -266,7 +274,7 @@ a { color: inherit; }
   position: relative; transition: border-color .15s;
 }
 .filter-option input[type=checkbox]:hover { border-color: var(--ink); }
-.filter-option input[type=checkbox]:checked { border-color: var(--ink); }
+.filter-option input[type=checkbox]:checked { border-color: var(--brand-accent); }
 /* Галочка нарочно тёмная на светлом фоне (не светлая на инвертированной
    заливке): у native-чекбокса background-color не всегда переопределяется
    даже с appearance:none — тёмная галочка остаётся читаемой независимо
@@ -274,13 +282,13 @@ a { color: inherit; }
 .filter-option input[type=checkbox]:checked::after {
   content: ''; position: absolute; left: 3px; top: 0;
   width: 5px; height: 9px;
-  border-style: solid; border-color: var(--ink);
+  border-style: solid; border-color: var(--brand-accent);
   border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
-.filter-option input[type=checkbox]:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.filter-option input[type=checkbox]:focus-visible { outline: 2px solid var(--brand-accent); outline-offset: 2px; }
 .filter-option-name { flex: 1; color: var(--charcoal); }
 .filter-option-count { font-size: .8rem; color: var(--mute); }
-.filter-option input:checked ~ .filter-option-name { color: var(--ink); font-weight: 600; }
+.filter-option input:checked ~ .filter-option-name { color: var(--brand-accent); font-weight: 600; }
 
 .filter-show-more {
   background: none; border: none; cursor: pointer;
@@ -297,7 +305,7 @@ a { color: inherit; }
 }
 .filter-icon svg { width: 14px; height: 14px; }
 .filter-option:hover .filter-icon { color: var(--ink); }
-.filter-option input:checked ~ .filter-icon { color: var(--ink); }
+.filter-option input:checked ~ .filter-icon { color: var(--brand-accent); }
 .filter-color-dot {
   width: 14px; height: 14px; border-radius: var(--radius-pill);
   flex-shrink: 0; display: inline-block;
@@ -319,7 +327,7 @@ a { color: inherit; }
   display: inline-flex; align-items: center;
 }
 .sort-btn:hover { border-color: var(--ink); }
-.sort-btn.active { border-color: var(--ink); color: var(--canvas); background: var(--ink); font-weight: 500; }
+.sort-btn.active { border-color: var(--brand-accent); color: var(--canvas); background: var(--brand-accent); font-weight: 500; }
 .sort-arrow { font-size: .85rem; }
 
 /* ====== GRID ====== */
@@ -352,10 +360,10 @@ a { color: inherit; }
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
   overflow: hidden; text-overflow: ellipsis;
 }
-.card-name:hover { text-decoration: underline; text-underline-offset: 2px; }
+.card-name:hover { text-decoration: underline; text-underline-offset: 2px; color: var(--brand-accent); }
 
 .card-prices { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
-.card-price { font-size: 1.05rem; font-weight: 600; color: var(--ink); }
+.card-price { font-size: 1.05rem; font-weight: 600; color: var(--brand-accent); }
 .card-opt-note { font-size: .78rem; color: var(--mute); }
 
 .card-qty { font-size: .82rem; }
@@ -643,9 +651,11 @@ a { color: inherit; }
 }
 .category-tile-photo img { width: 100%; height: 100%; object-fit: contain; padding: 10px; transition: transform .3s ease; }
 .category-tile a:hover .category-tile-photo img { transform: scale(1.04); }
-.category-tile-name { font-size: .88rem; font-weight: 500; line-height: 1.3; }
+.category-tile-name { font-size: .88rem; font-weight: 500; line-height: 1.3; transition: color .15s; }
+.category-tile a:hover .category-tile-name { color: var(--brand-accent); }
 .category-tile-count { font-size: .78rem; color: var(--mute); margin-top: 2px; }
 .category-directory-all { color: var(--ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.category-directory-all:hover { color: var(--brand-accent); }
 
 @media (max-width: 1023px) {
   .category-directory-list { grid-template-columns: repeat(4, 1fr); }

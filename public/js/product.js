@@ -17,6 +17,34 @@ try {
   })();
 } catch {}
 
+// ======== REVEAL ON SCROLL ========
+// Карточки на PDP/категории (.seo-card — похожие товары, товары раздела)
+// SSR'ятся один раз и не перерисовываются, поэтому одноразовый observer
+// достаточен (см. public/js/shop.js: там та же логика, но повторно
+// вызывается из renderProducts из-за динамической перерисовки грида).
+try {
+  (function initRevealOnScroll() {
+    const targets = document.querySelectorAll('.seo-card');
+    if (!targets.length) return;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion || !('IntersectionObserver' in window)) {
+      targets.forEach(el => el.classList.add('is-visible'));
+      return;
+    }
+    const observer = new IntersectionObserver((entries, obs) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-visible');
+        obs.unobserve(entry.target);
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+    targets.forEach((el, i) => {
+      el.style.transitionDelay = `${Math.min(i % 8, 7) * 40}ms`;
+      observer.observe(el);
+    });
+  })();
+} catch { document.querySelectorAll('.seo-card').forEach(el => el.classList.add('is-visible')); }
+
 const product = window.PRODUCT_DATA;
 
 // ======== CART ========
