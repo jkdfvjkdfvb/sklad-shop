@@ -15,6 +15,7 @@ const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : SEE
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
 const CONTACTS_FILE = path.join(DATA_DIR, 'contacts.json');
+const COMPANY_FILE  = path.join(DATA_DIR, 'company.json');
 const ORDERS_FILE   = path.join(DATA_DIR, 'orders.json');
 const WHOLESALE_FILE = path.join(DATA_DIR, 'wholesale-requests.json');
 // Дефолт — конечный боевой домен. Если SITE_URL пропадёт из .env, canonical,
@@ -139,6 +140,16 @@ const feedImgStorage = multer.diskStorage({
 const uploadImg     = multer({ storage: imgStorage,     limits: { fileSize: 20 * 1024 * 1024 } });
 const uploadVid     = multer({ storage: vidStorage,     limits: { fileSize: 200 * 1024 * 1024 } });
 const uploadFeedImg = multer({ storage: feedImgStorage, limits: { fileSize: 20 * 1024 * 1024 } });
+
+// Фото склада — галерея, а не один слот на артикул: имя файла не может
+// повторяться от загрузки к загрузке, иначе вторая фотография тихо
+// перезаписала бы первую на диске.
+const COMPANY_PHOTOS_DIR = path.join(UPLOAD_IMAGES_DIR, 'company');
+const companyPhotoStorage = multer.diskStorage({
+  destination: COMPANY_PHOTOS_DIR,
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${crypto.randomBytes(4).toString('hex')}${path.extname(file.originalname)}`),
+});
+const uploadCompanyPhoto = multer({ storage: companyPhotoStorage, limits: { fileSize: 20 * 1024 * 1024 } });
 
 // ==================== Notifications ====================
 
@@ -653,6 +664,55 @@ app.put('/api/admin/contacts', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
+// ==================== Admin: Company ====================
+// Юрлицо, реквизиты, склад и его фото — источник для футера, Schema.org
+// Organization/Store и блока «Склад и самовывоз» на главной. Ничего из этого
+// не выводится на сайте, пока поле не заполнено: пустая строка/массив — это
+// «нет данных», а не повод рендерить пустой или наполовину пустой блок.
+
+const COMPANY_FIELDS = [
+  'legal_name', 'inn', 'kpp', 'ogrn', 'legal_address',
+  'bank_name', 'bank_account', 'bank_corr_account', 'bank_bik',
+  'warehouse_city', 'warehouse_address', 'warehouse_lat', 'warehouse_lng',
+  'working_days', 'working_hours_from', 'working_hours_to', 'pickup_terms',
+];
+
+app.get('/api/admin/company', authMiddleware, (req, res) => res.json(readJSON(COMPANY_FILE, {})));
+
+app.put('/api/admin/company', authMiddleware, (req, res) => {
+  const company = readJSON(COMPANY_FILE, {});
+  for (const key of COMPANY_FIELDS) {
+    if (req.body[key] !== undefined) company[key] = req.body[key];
+  }
+  writeJSON(COMPANY_FILE, company);
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/company/photo', authMiddleware, uploadCompanyPhoto.single('photo'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Файл не получен' });
+  const company = readJSON(COMPANY_FILE, {});
+  const photos = Array.isArray(company.photos) ? company.photos : [];
+  photos.push(`images/company/${req.file.filename}`);
+  company.photos = photos;
+  writeJSON(COMPANY_FILE, company);
+  res.json({ photos: company.photos });
+});
+
+app.delete('/api/admin/company/photo', authMiddleware, (req, res) => {
+  const { file } = req.body || {};
+  if (!file) return res.status(400).json({ error: 'Не указан файл' });
+  const company = readJSON(COMPANY_FILE, {});
+  const photos = Array.isArray(company.photos) ? company.photos : [];
+  if (!photos.includes(file)) return res.status(404).json({ error: 'Фото не найдено' });
+  company.photos = photos.filter(p => p !== file);
+  writeJSON(COMPANY_FILE, company);
+  // Имя файла пришло из собственного company.json, а не от пользователя
+  // напрямую — но на всякий случай не выходим за пределы папки фото склада.
+  const safeName = path.basename(file);
+  fs.unlink(path.join(UPLOAD_IMAGES_DIR, 'company', safeName), () => {});
+  res.json({ photos: company.photos });
+});
+
 // ==================== Admin: статус фидов ====================
 
 app.get('/api/admin/feeds/status', authMiddleware, (req, res) => {
@@ -680,6 +740,7 @@ function ensureDataFile(filename, fallback) {
 ensureDataFile('products.json', []);
 ensureDataFile('contacts.json', {});
 ensureDataFile('orders.json', []);
+ensureDataFile('company.json', {});
 
 // Сидируем персистентную папку загрузок фото/видео из git-репозитория один раз
 // (если она ещё пуста, т.е. volume только что примонтирован) — так уже
@@ -695,6 +756,7 @@ function ensureUploadsSeeded(uploadDir, seedDir) {
 }
 ensureUploadsSeeded(UPLOAD_IMAGES_DIR, path.join(PUBLIC_DIR, 'images'));
 ensureUploadsSeeded(UPLOAD_MEDIA_DIR,  path.join(PUBLIC_DIR, 'media'));
+fs.mkdirSync(COMPANY_PHOTOS_DIR, { recursive: true });
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Магазин запущен на порту ${PORT}`);

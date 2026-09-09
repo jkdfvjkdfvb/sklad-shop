@@ -38,7 +38,7 @@ async function showAdmin() {
   document.getElementById('login-section').style.display = 'none';
   document.getElementById('admin-section').style.display = '';
   renderFeeds();
-  await Promise.all([loadOrders(), loadProducts(), loadContacts(), loadWholesaleRequests()]);
+  await Promise.all([loadOrders(), loadProducts(), loadContacts(), loadCompany(), loadWholesaleRequests()]);
 }
 
 if (token) {
@@ -734,6 +734,93 @@ document.getElementById('notify-tg-form').addEventListener('submit', async e => 
     body: JSON.stringify(body)
   });
   showSaveStatus('save-tg-status', res.ok);
+});
+
+// ======== COMPANY ========
+function renderCompanyGallery(photos) {
+  const gallery = document.getElementById('company-gallery');
+  gallery.innerHTML = (photos || []).map(file => `
+    <div class="company-photo" data-file="${escAttr(file)}">
+      <img src="/${escAttr(file)}" alt="">
+      <button type="button" title="Удалить">✕</button>
+    </div>`).join('');
+  gallery.querySelectorAll('.company-photo button').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const file = btn.closest('.company-photo').dataset.file;
+      const res = await apiFetch('/api/admin/company/photo', {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file })
+      });
+      if (res.ok) renderCompanyGallery((await res.json()).photos);
+    });
+  });
+}
+
+async function loadCompany() {
+  const res = await apiFetch('/api/admin/company');
+  const c = await res.json();
+  document.getElementById('co-legal-name').value = c.legal_name || '';
+  document.getElementById('co-inn').value = c.inn || '';
+  document.getElementById('co-kpp').value = c.kpp || '';
+  document.getElementById('co-ogrn').value = c.ogrn || '';
+  document.getElementById('co-legal-address').value = c.legal_address || '';
+  document.getElementById('co-bank-name').value = c.bank_name || '';
+  document.getElementById('co-bank-account').value = c.bank_account || '';
+  document.getElementById('co-bank-corr').value = c.bank_corr_account || '';
+  document.getElementById('co-bank-bik').value = c.bank_bik || '';
+  document.getElementById('co-wh-city').value = c.warehouse_city || '';
+  document.getElementById('co-wh-address').value = c.warehouse_address || '';
+  document.getElementById('co-wh-lat').value = c.warehouse_lat || '';
+  document.getElementById('co-wh-lng').value = c.warehouse_lng || '';
+  document.getElementById('co-wh-from').value = c.working_hours_from || '';
+  document.getElementById('co-wh-to').value = c.working_hours_to || '';
+  document.getElementById('co-wh-terms').value = c.pickup_terms || '';
+  const days = new Set(c.working_days || []);
+  document.querySelectorAll('#co-wh-days input[type=checkbox]').forEach(cb => { cb.checked = days.has(cb.value); });
+  renderCompanyGallery(c.photos);
+}
+
+document.getElementById('company-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const workingDays = [...document.querySelectorAll('#co-wh-days input:checked')].map(cb => cb.value);
+  const res = await apiFetch('/api/admin/company', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      legal_name: document.getElementById('co-legal-name').value,
+      inn: document.getElementById('co-inn').value,
+      kpp: document.getElementById('co-kpp').value,
+      ogrn: document.getElementById('co-ogrn').value,
+      legal_address: document.getElementById('co-legal-address').value,
+      bank_name: document.getElementById('co-bank-name').value,
+      bank_account: document.getElementById('co-bank-account').value,
+      bank_corr_account: document.getElementById('co-bank-corr').value,
+      bank_bik: document.getElementById('co-bank-bik').value,
+      warehouse_city: document.getElementById('co-wh-city').value,
+      warehouse_address: document.getElementById('co-wh-address').value,
+      warehouse_lat: document.getElementById('co-wh-lat').value,
+      warehouse_lng: document.getElementById('co-wh-lng').value,
+      working_days: workingDays,
+      working_hours_from: document.getElementById('co-wh-from').value,
+      working_hours_to: document.getElementById('co-wh-to').value,
+      pickup_terms: document.getElementById('co-wh-terms').value,
+    })
+  });
+  showSaveStatus('save-company-status', res.ok);
+});
+
+document.getElementById('co-photo-input').addEventListener('change', async function () {
+  if (!this.files[0]) return;
+  const fd = new FormData(); fd.append('photo', this.files[0]);
+  const statusEl = document.getElementById('company-photo-status');
+  statusEl.textContent = 'Загрузка…'; statusEl.style.display = 'inline'; statusEl.style.color = '';
+  const res = await apiFetch('/api/admin/company/photo', { method: 'POST', body: fd });
+  if (res.ok) {
+    renderCompanyGallery((await res.json()).photos);
+    statusEl.style.display = 'none';
+  } else {
+    statusEl.textContent = '✗ Не удалось загрузить'; statusEl.style.color = '#dc2626';
+  }
+  this.value = '';
 });
 
 function showSaveStatus(id, ok) {

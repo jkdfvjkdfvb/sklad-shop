@@ -36,6 +36,7 @@
       <button class="nav-btn" data-tab="wholesale">Заявки на опт <span class="orders-badge" id="wholesale-badge" style="display:none"></span></button>
       <button class="nav-btn" data-tab="products">Товары</button>
       <button class="nav-btn" data-tab="contacts">Контакты</button>
+      <button class="nav-btn" data-tab="company">Компания</button>
       <button class="nav-btn" data-tab="feeds">Фиды</button>
       <button class="nav-btn" data-tab="notify">Уведомления</button>
     </nav>
@@ -204,6 +205,70 @@
             <span id="save-contacts-status" class="save-contacts-status"></span>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- TAB: Компания -->
+    <div class="tab-panel" id="tab-company">
+      <h2 class="section-title">Компания</h2>
+      <p class="notify-hint" style="margin-bottom:18px;max-width:720px">
+        Эти данные попадают на сайт только там, где заполнены: реквизиты — в футер каждой страницы,
+        адрес и часы работы склада — в блок «Склад и самовывоз» на главной и в микроразметку Organization/Store
+        для поисковиков. Пустое поле нигде не показывается и не выдумывается — заполняйте по мере готовности.
+      </p>
+      <div class="contacts-form-wrap" style="max-width:720px">
+        <form class="contacts-form" id="company-form">
+          <h3 class="contacts-section-title">Юридическое лицо</h3>
+          <div class="form-group"><label>Наименование (ООО «…» / ИП Фамилия Имя Отчество)</label><input type="text" id="co-legal-name" placeholder="ИП Иванов Иван Иванович"></div>
+          <div class="form-group"><label>ИНН</label><input type="text" id="co-inn" placeholder="781012345678"></div>
+          <div class="form-group"><label>КПП (пусто для ИП)</label><input type="text" id="co-kpp" placeholder="781001001"></div>
+          <div class="form-group"><label>ОГРН / ОГРНИП</label><input type="text" id="co-ogrn" placeholder="312784700012345"></div>
+          <div class="form-group"><label>Юридический адрес</label><input type="text" id="co-legal-address" placeholder="г. Санкт-Петербург, ул. …, д. …"></div>
+
+          <h3 class="contacts-section-title">Банковские реквизиты</h3>
+          <div class="form-group"><label>Банк</label><input type="text" id="co-bank-name" placeholder="АО «Банк»"></div>
+          <div class="form-group"><label>Расчётный счёт</label><input type="text" id="co-bank-account" placeholder="40802810…"></div>
+          <div class="form-group"><label>Корр. счёт</label><input type="text" id="co-bank-corr" placeholder="30101810…"></div>
+          <div class="form-group"><label>БИК</label><input type="text" id="co-bank-bik" placeholder="044030225"></div>
+
+          <h3 class="contacts-section-title">Склад и самовывоз</h3>
+          <div class="form-group"><label>Город</label><input type="text" id="co-wh-city" placeholder="Санкт-Петербург"></div>
+          <div class="form-group"><label>Адрес склада</label><input type="text" id="co-wh-address" placeholder="ул. …, д. …"></div>
+          <div class="form-group" style="display:flex;gap:12px">
+            <div style="flex:1"><label>GPS широта</label><input type="text" id="co-wh-lat" placeholder="59.9311"></div>
+            <div style="flex:1"><label>GPS долгота</label><input type="text" id="co-wh-lng" placeholder="30.3609"></div>
+          </div>
+          <div class="form-group">
+            <label>Дни работы</label>
+            <div class="company-days" id="co-wh-days">
+              <label><input type="checkbox" value="mon">Пн</label>
+              <label><input type="checkbox" value="tue">Вт</label>
+              <label><input type="checkbox" value="wed">Ср</label>
+              <label><input type="checkbox" value="thu">Чт</label>
+              <label><input type="checkbox" value="fri">Пт</label>
+              <label><input type="checkbox" value="sat">Сб</label>
+              <label><input type="checkbox" value="sun">Вс</label>
+            </div>
+          </div>
+          <div class="form-group" style="display:flex;gap:12px">
+            <div style="flex:1"><label>Часы работы с</label><input type="time" id="co-wh-from"></div>
+            <div style="flex:1"><label>Часы работы до</label><input type="time" id="co-wh-to"></div>
+          </div>
+          <div class="form-group"><label>Условия самовывоза (пропуск, парковка и т.п.)</label><textarea id="co-wh-terms" rows="2" placeholder="Пропуск по паспорту, звонок за 30 минут"></textarea></div>
+
+          <div class="form-footer">
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+            <span id="save-company-status" class="save-contacts-status"></span>
+          </div>
+        </form>
+
+        <h3 class="contacts-section-title">Фото склада</h3>
+        <div class="company-gallery" id="company-gallery"></div>
+        <label class="btn btn-sm" style="display:inline-block;cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#1a1a2e">
+          + Добавить фото
+          <input type="file" id="co-photo-input" accept="image/*" style="display:none">
+        </label>
+        <span id="company-photo-status" class="save-contacts-status"></span>
       </div>
     </div>
 

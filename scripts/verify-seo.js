@@ -30,7 +30,14 @@ function ldBlocks(html) {
     .map(match => { try { return JSON.parse(match[1]); } catch { return null; } })
     .filter(Boolean);
 }
-function ldOfType(html, type) { return ldBlocks(html).find(value => value['@type'] === type); }
+// '@type' — либо строка, либо массив (Organization становится
+// ["Organization","Store"], как только заполнен адрес склада) — matchType
+// понимает оба варианта, иначе поиск начинает молчаливо "терять" блок в
+// тот день, когда владелец наконец заполнит вкладку «Компания».
+function ldOfType(html, type) {
+  const matchType = value => Array.isArray(value['@type']) ? value['@type'].includes(type) : value['@type'] === type;
+  return ldBlocks(html).find(matchType);
+}
 const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ');
 
 (async () => {
@@ -222,6 +229,18 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
   expect(home.includes('<section class="category-directory"'), 'Home category links are not in a body section');
   expect(home.includes('sizes="180x180"'), 'Home large favicon declaration is missing');
   expect(!home.includes('+7 (000)') && !home.includes('t.me/username') && !home.includes('vk.com/username'), 'Test contacts are exposed on home');
+  expect(home.includes('<article class="product-card"'), 'Home product cards are not <article>');
+  expect(home.includes('itemscope itemtype="https://schema.org/Product"'), 'Home product cards lack Product microdata');
+  // company.json пуст по умолчанию (юрлицо/склад заполняются владельцем через
+  // админку) — до этого момента реквизиты, блок склада и Store-тип в
+  // Organization не должны появляться. Если это когда-нибудь станет
+  // неверным (данные внесли), тест ниже начнёт честно падать, а не молчать —
+  // тогда проверку нужно будет заменить на позитивную.
+  const homeOrg = ldOfType(home, 'Organization');
+  expect(homeOrg && homeOrg['@type'] === 'Organization', 'Organization must not claim Store type without a confirmed warehouse address');
+  expect(!homeOrg?.address && !homeOrg?.geo, 'Organization must not have address/geo while company data is empty');
+  expect(!home.includes('site-requisites') && !home.includes('class="warehouse"'),
+    'Home renders company requisites/warehouse block despite empty company.json — investigate before assuming this is real data');
 
   const catalog = await fetch(`${base}/catalog`);
   expect(catalog.status === 200, `/catalog: expected 200, received ${catalog.status}`);
