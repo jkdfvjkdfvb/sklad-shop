@@ -22,10 +22,13 @@ const WHOLESALE_FILE = path.join(DATA_DIR, 'wholesale-requests.json');
 const DEFAULT_SITE_URL = 'https://salegifts.ru';
 const SITE_URL = String(process.env.SITE_URL || DEFAULT_SITE_URL).replace(/\/$/, '');
 
-// Фото/видео, загруженные через админку, живут на Railway Volume (DATA_DIR),
-// а не в public/ — иначе они сбрасывались бы при каждом редеплое (public/
-// разворачивается из git). Фиды (Google/Яндекс) и карточки товара продолжают
-// ссылаться на /images/... и /media/..., эти пути теперь обслуживаются отсюда.
+// Фото/видео, загруженные через админку, живут в именованном Docker-томе
+// (DATA_DIR, том sklad-data — см. docker-compose.yml), а не в public/ — иначе
+// они сбрасывались бы при каждой пересборке образа (public/ разворачивается
+// из git). Фиды (Google/Яндекс) и карточки товара продолжают ссылаться на
+// /images/... и /media/..., эти пути теперь обслуживаются отсюда.
+// (До 27.08.2026 сайт хостился на Railway и том назывался Railway Volume —
+// сейчас это не так, если увидите такое упоминание в старом коде, оно устарело.)
 const UPLOADS_DIR       = path.join(DATA_DIR, 'uploads');
 const UPLOAD_IMAGES_DIR = path.join(UPLOADS_DIR, 'images');
 const UPLOAD_MEDIA_DIR  = path.join(UPLOADS_DIR, 'media');
@@ -649,7 +652,7 @@ function ensureDataFile(filename, fallback) {
   else writeJSON(destination, fallback);
 }
 
-// A mounted Railway Volume starts empty: seed it once, then preserve admin changes.
+// A freshly mounted volume starts empty: seed it once, then preserve admin changes.
 ensureDataFile('products.json', []);
 ensureDataFile('contacts.json', {});
 ensureDataFile('orders.json', []);

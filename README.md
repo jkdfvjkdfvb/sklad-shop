@@ -78,7 +78,7 @@ npm start
   - **`/feeds/google.xml`** — Google Merchant Center / Google Shopping (RSS 2.0, namespace `g:`)
   - **`/feeds/yandex.yml`** — Яндекс.Вебмастер «Товары и цены» / Яндекс.Маркет (YML, `yml_catalog`)
   - Оба фида генерируются из каталога (цена, наличие, ЧПУ-ссылки, изображения) и всегда актуальны; ссылки на них указываются в кабинетах один раз. On-page разметку JSON-LD **Product/Offer/BreadcrumbList** Google Search Console считывает со страниц автоматически.
-  - Все ссылки в фидах (товар, изображение) строятся от **домена, с которого фид фактически запросили** (`req.get('host')`), а не от фиксированного `SITE_URL` — так фид сразу рабочий и через технический домен Railway, и через основной домен, без переключения в коде.
+  - Все ссылки в фидах (товар, изображение) строятся от **домена, с которого фид фактически запросили** (`req.get('host')`), а не от фиксированного `SITE_URL` — так фид сразу рабочий и через технический домен хостинга, и через основной домен, без переключения в коде.
   - Для каждого товара можно загрузить **отдельное фото для фида** (обложка/инфографика) в админке — вкладка «Товары» → колонка «Медиа» → «🖼️ Фото для фида». Если оно загружено, фиды используют именно его вместо обычного фото товара; на странице товара по-прежнему показывается обычное фото.
 
 ---
@@ -108,24 +108,57 @@ python scripts/import_data.py
 
 ---
 
-## Деплой на Railway
+## Деплой
 
-1. Создайте репозиторий на GitHub и загрузите код
-2. Зайдите на [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
-3. Укажите порт `3000` когда Railway спросит
-4. В **Variables** добавьте `ADMIN_PASSWORD`, `PORT=3000` и `SITE_URL=https://ваш-домен.ru`
-5. В **Settings → Networking → Generate Domain** получите публичный URL
+**Сайт больше не на Railway.** Railway использовался до 27.08.2026; с этой даты
+salegifts.ru работает на собственном VPS Timeweb (Docker Compose, nginx общий с
+соседним проектом `avtoservice` на том же сервере). Оставшийся в репозитории
+`railway.toml` был мёртвым файлом с самого первого коммита и не отражал
+реальный деплой — удалён; если он всплывёт в истории или в старой ветке,
+это не инструкция к действию.
 
-> **Важно:** добавьте Railway Volume с путём `/data` и переменную `DATA_DIR=/data` (см. раздел «Персистентность данных» ниже). Один и тот же volume хранит `products.json`/`contacts.json`/`orders.json` **и** фото/видео, загруженные через админку (`/data/uploads/…`). Без volume все правки и загрузки сбросятся при следующем деплое.
+Текущая схема:
 
-> **Важно:** токены сессии AdminPanel хранятся в памяти сервера и сбрасываются при каждом деплое/перезапуске. После деплоя нужно войти заново.
+- **Сервер:** VPS Timeweb, Docker Compose. Каталог `/opt/sklad` **не является
+  git-репозиторием** — код туда попадает архивом (`git archive HEAD`), не
+  через `git pull`.
+- **nginx общий с соседним проектом.** vhost для salegifts.ru лежит в
+  `/opt/nginx-vhosts/salegifts.conf`, живёт в контейнере `avtoservice-nginx-1`
+  из соседнего compose-проекта. Порты 80/443 занимает только он. Любое
+  изменение `deploy/nginx-salegifts.conf` перед `reload` обязано пройти
+  `docker exec avtoservice-nginx-1 nginx -t` — битый конфиг положит и соседний
+  сайт тоже.
+- **Данные — в именованном Docker-томе** `sklad-data`, смонтированном в
+  `/data` (см. `docker-compose.yml`). Пересборка образа его не трогает; см.
+  «Персистентность данных» ниже.
+- **Порядок выкатки:** `git archive` → `scp` архива на сервер → распаковка
+  поверх `/opt/sklad` → (если менялся nginx-конфиг) `nginx -t` до reload →
+  `docker compose up -d --build` → `docker exec avtoservice-nginx-1 nginx -s
+  reload`.
+- Shell-скрипты в архиве обязаны быть в LF (`.gitattributes` это закрепляет:
+  `*.sh text eol=lf`) — CRLF в shebang `docker-entrypoint.sh` делает
+  интерпретатором несуществующий `/bin/sh\r`, и контейнер уходит в цикл
+  перезапуска.
+
+> **Важно:** токены сессии AdminPanel хранятся в памяти сервера и сбрасываются
+> при каждом деплое/перезапуске. После деплоя нужно войти заново.
 
 ### SEO-проверка перед публикацией
 
-- SITE_URL должен содержать конечный основной HTTPS-домен. Не используйте временный технический домен Railway как canonical, если для сайта подключён отдельный домен.
-- SEO-метаданные 69 SKU находятся в docs/product-meta-tags.csv; импорт выполняется скриптом node scripts/import-product-meta.js.
-- Проверка server-rendered карточек, категорий, sitemap и robots: node scripts/verify-seo.js (запустите приложение локально на порту 3101).
-- /sale/ появляется только при товарах с заполненными старой и новой ценой, размером скидки и условиями/сроком акции.
+- `SITE_URL` в `.env` на сервере должен содержать конечный основной
+  HTTPS-домен (`https://salegifts.ru`) — canonical, sitemap и товарные фиды
+  строятся от него.
+- SEO-метаданные 69 SKU находятся в docs/product-meta-tags.csv; импорт
+  выполняется скриптом node scripts/import-product-meta.js.
+- Проверка server-rendered карточек, категорий, sitemap и robots:
+  `node scripts/verify-seo.js` (локально — против `preview_start` на порту
+  3000/3101; на проде — `SEO_TEST_BASE=https://salegifts.ru node
+  scripts/verify-seo.js`). Локальный `server/data/products.json` может
+  отставать от боевых цен/остатков/видимости, которые правятся через
+  админку независимо от git — при расхождении верить проду, а не локальному
+  файлу.
+- `/sale/` появляется только при товарах с заполненными старой и новой ценой,
+  размером скидки и условиями/сроком акции.
 
 ---
 
@@ -221,8 +254,26 @@ scripts/
 | nodemailer | Отправка email-уведомлений |
 
 
-## Persistent Railway data
+## Persistent data (Docker volume, not Railway)
 
-In production, attach a Railway Volume at `/data` and set `DATA_DIR=/data`. The application seeds an empty volume once from `server/data`, then contacts, products, and orders saved in the admin panel persist across deployments.
+In production the app runs under Docker Compose with a named volume,
+`sklad-data`, mounted at `/data` (`DATA_DIR=/data`, set in the server's
+`.env`) — see `docker-compose.yml`. `docker-entrypoint.sh` seeds an empty
+volume once from `server/data`, copying each `*.json` file only if it doesn't
+already exist at the destination; contacts, products, and orders saved
+through the admin panel are never overwritten by a redeploy, because the
+image's copy of `server/data` is irrelevant once the volume already has its
+own file.
 
-The same volume also stores files uploaded through the admin panel: `${DATA_DIR}/uploads/images` and `${DATA_DIR}/uploads/media`. On first boot each is seeded once from `public/images` / `public/media` (the git-tracked seed photos), then anything uploaded afterwards is served from the volume with priority over the seed files, so it survives redeploys — including the images referenced by the Google Merchant (`/feeds/google.xml`, `<g:image_link>`) and Яндекс.Вебмастер (`/feeds/yandex.yml`, `<picture>`) feeds.
+The same volume also stores files uploaded through the admin panel:
+`${DATA_DIR}/uploads/images` and `${DATA_DIR}/uploads/media`. On first boot
+each is seeded once from `public/images` / `public/media` (the git-tracked
+seed photos), then anything uploaded afterwards is served from the volume
+with priority over the seed files, so it survives redeploys — including the
+images referenced by the Google Merchant (`/feeds/google.xml`,
+`<g:image_link>`) and Яндекс.Вебмастер (`/feeds/yandex.yml`, `<picture>`)
+feeds.
+
+This is unrelated to Railway — there is no Railway Volume in the current
+setup. If you see "Railway Volume" in an old comment or commit message, it
+describes the pre-27.08.2026 hosting and does not apply anymore.
