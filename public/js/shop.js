@@ -408,9 +408,23 @@ async function loadData() {
   contacts    = await contRes.json();
   renderContacts();
   buildFilters();
+  applySearchFromUrl();
   applyFilters();
   updateCartBadge();
   renderCartItems();
+}
+
+// Поиск с PDP/категории/распродажи ведёт сюда с ?q=... (см. headerHtml()
+// в server/seo.js — там своего товарного грида для фильтрации нет).
+// Подставляем значение в то же поле поиска, которым управляет applyFilters,
+// и сразу показываем каталог, чтобы результат был виден без лишнего клика.
+function applySearchFromUrl() {
+  const q = new URLSearchParams(location.search).get('q');
+  if (!q) return;
+  const input = document.getElementById('search-input');
+  if (!input) return;
+  input.value = q;
+  document.getElementById('catalog')?.scrollIntoView();
 }
 
 function renderContacts() {

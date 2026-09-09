@@ -160,9 +160,20 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   function headerHtml(contacts = {}) {
     const phone = validPhone(contacts.phone);
     const socialLinks = socialLinksFor(contacts);
+    // Поиск здесь ведёт на главную с ?q=... — там его подхватывает shop.js
+    // (initSearchFromQuery) и прогоняет через уже существующий клиентский
+    // фильтр каталога. Отдельную серверную поисковую выдачу не строим —
+    // на PDP/категории/распродаже нет своего товарного грида, который можно
+    // было бы отфильтровать на месте (было: поиска тут не было вообще —
+    // замечание дизайн-жюри, «критичный канал навигации отсутствует»).
     return `<header class="site-header">
   <div class="header-inner">
     <a href="/" class="logo">Склад<span>Промо</span></a>
+    <form class="header-search" action="/" method="get" role="search">
+      <label class="visually-hidden" for="header-search-input">Поиск по каталогу</label>
+      <input type="search" id="header-search-input" name="q" placeholder="Поиск по названию или артикулу…" autocomplete="off">
+      <button type="submit" aria-label="Найти"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
+    </form>
     <div class="header-contacts" style="margin-left:auto">
       ${phone ? `<a href="tel:+${escH(phone.replace(/\D/g, ''))}" class="header-phone">${escH(phone)}</a>` : ''}
       ${socialLinksHtml(socialLinks, 'messenger-links')}

@@ -192,7 +192,11 @@
 .seo-card-image:hover img { transform: scale(1.04); }
 .seo-card-body { padding: 14px; display: grid; gap: 8px; }
 .seo-card-body p { margin: 0; color: var(--mute); font-size: .8rem; }
-.seo-card-body h2 { margin: 0; font-size: 1rem; line-height: 1.3; }
+.seo-card-body h2 {
+  margin: 0; font-size: 1rem; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .seo-card-body h2 a { color: inherit; text-decoration: none; }
 .seo-card-price { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .seo-card-old-price, .pdp-old-price { color: var(--mute); text-decoration: line-through; margin: 0; }
