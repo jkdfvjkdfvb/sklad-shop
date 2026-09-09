@@ -244,6 +244,10 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
     const updated = formatStockDate(product.stock_updated_at);
     const details = characteristics(product).filter(([key]) => key !== 'Артикул')
       .map(([key, value]) => `${key.toLowerCase()} — ${value}`).join('; ');
+    // «Можно ли купить оптом?» сюда намеренно не добавляется — вопрос
+    // дублировал бы отдельную секцию «Оптовые условия» ниже на странице
+    // (та же CTA, тот же ответ), это и создавало шаблонное ощущение
+    // одинакового FAQ на каждой карточке (замечание дизайн-жюри).
     const questions = [
       {
         question: `Есть ли ${name} в наличии?`,
@@ -251,13 +255,9 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
           ? `Да, на складе ${stock} шт.${updated ? ` Остаток обновлён ${updated}.` : ''}`
           : `Сейчас товара нет в наличии.${updated ? ` Остаток обновлён ${updated}.` : ''}`,
       },
-      {
-        question: 'Можно ли купить оптом?',
-        answer: 'Да, оставьте заявку: менеджер подтвердит цену и условия.',
-      },
     ];
     if (details) {
-      questions.splice(1, 0, {
+      questions.push({
         question: `Какие характеристики у ${name}?`,
         answer: `В карточке указаны: ${details}.`,
       });
