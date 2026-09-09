@@ -87,8 +87,10 @@ a { color: inherit; }
 }
 .header-search button {
   background: transparent; border: none; color: var(--ink);
-  padding: 0 14px; cursor: pointer; font-size: 1rem; height: 100%;
+  padding: 0 14px; cursor: pointer; height: 100%;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
+.header-search button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .header-contacts { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 .header-phone {
   font-weight: 600; font-size: .95rem; color: var(--ink);
@@ -137,13 +139,15 @@ a { color: inherit; }
   color: var(--charcoal); max-width: 42ch; margin-bottom: 28px;
 }
 .hero-cta {
-  display: inline-block;
+  display: inline-flex; align-items: center; gap: 10px;
   background: var(--ink); color: var(--canvas);
-  font-family: var(--font-ui); font-size: 1rem; font-weight: 500;
-  text-decoration: none; padding: 14px 32px; border-radius: var(--radius-pill);
-  transition: opacity .15s;
+  font-family: var(--font-ui); font-size: 1.02rem; font-weight: 600;
+  text-decoration: none; padding: 16px 34px; border-radius: var(--radius-pill);
+  transition: opacity .15s, transform .15s;
 }
+.hero-cta svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
 .hero-cta:hover { opacity: .85; }
+.hero-cta:hover svg { transform: translateX(3px); }
 .hero-cta:active { transform: scale(.97); opacity: .85; }
 
 .hero-contact-sheet {
@@ -170,6 +174,19 @@ a { color: inherit; }
 .hero-sheet-price { color: var(--ink); font-weight: 600; }
 .hero-sheet-tile:hover .hero-sheet-photo img { transform: scale(1.04); }
 .hero-sheet-photo img { transition: transform .3s ease; }
+
+/* Спокойное появление контактной полосы hero и плиток категорий при
+   скролле (раздел 5 ТЗ). initRevealOnScroll() в shop.js добавляет
+   .is-visible через IntersectionObserver; здесь же — safety-net для
+   prefers-reduced-motion, если он подключится позже CSS. */
+.hero-sheet-tile, .category-tile {
+  opacity: 0; transform: translateY(12px);
+  transition: opacity .32s ease, transform .32s ease;
+}
+.hero-sheet-tile.is-visible, .category-tile.is-visible { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .hero-sheet-tile, .category-tile { opacity: 1; transform: none; transition: none; }
+}
 
 @media (max-width: 1023px) {
   .hero-inner { grid-template-columns: 1fr; gap: 28px; padding: 40px 24px; }
@@ -397,7 +414,12 @@ a { color: inherit; }
 
 @media (max-width: 640px) {
   .header-inner { flex-wrap: wrap; height: auto; padding: 12px 16px; gap: 10px; }
-  .header-search { max-width: 100%; width: 100%; order: 3; }
+  /* flex-basis (не width) определяет размер flex-элемента — базовое
+     правило .header-search задаёт flex:1 (flex-basis:0%), поэтому здесь
+     нужно явно переопределить flex-basis, иначе width:100% игнорируется
+     и полю достаётся только остаток строки (был баг: ~33px, невозможно
+     нажать/набрать). */
+  .header-search { flex: 1 1 100%; max-width: none; width: auto; order: 3; }
   .header-contacts { flex-wrap: wrap; justify-content: flex-end; row-gap: 8px; }
   .hero-inner { padding: 32px 16px; }
   .products-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px; }
@@ -411,11 +433,12 @@ a { color: inherit; }
 /* ====== CART BUTTON ====== */
 .cart-btn {
   position: relative; background: var(--soft-cloud); border: none; border-radius: var(--radius-pill);
-  width: 40px; height: 40px; cursor: pointer; font-size: 1.15rem;
+  width: 40px; height: 40px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: background .15s; flex-shrink: 0;
+  transition: background .15s; flex-shrink: 0; color: var(--ink);
 }
 .cart-btn:hover { background: var(--hairline-soft); }
+.cart-btn svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .cart-badge {
   position: absolute; top: -4px; right: -4px;
   background: var(--ink); color: var(--canvas); font-size: .65rem; font-weight: 600;
@@ -523,13 +546,14 @@ a { color: inherit; }
 @media (max-width: 480px) {
   .cart-drawer { width: 100vw; }
 }
-.catalog-overview, .category-directory { max-width: 1180px; margin: 32px auto; padding: 24px; }
+.catalog-overview, .category-directory { max-width: 1180px; margin: 48px auto; padding: 28px; }
 .catalog-overview { background: var(--soft-cloud); border: 1px solid var(--hairline-soft); }
-.catalog-overview h2, .category-directory h2 { margin: 0 0 14px; font-size: 1.25rem; }
+.catalog-overview h2, .category-directory h2 { margin: 0 0 16px; font-size: 1.25rem; }
 .catalog-overview p { line-height: 1.65; color: var(--charcoal); }
-.category-directory { margin-top: 0; margin-bottom: 28px; padding-left: 0; padding-right: 0; }
+.catalog-overview p + p { margin-top: 10px; }
+.category-directory { margin-top: 0; margin-bottom: 48px; padding-left: 0; padding-right: 0; }
 .category-directory-list {
-  list-style: none; margin: 0; padding: 0;
+  list-style: none; margin: 0 0 16px; padding: 0;
   display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
 }
 .category-tile { min-width: 0; }
