@@ -583,12 +583,21 @@ document.getElementById('filter-reset').addEventListener('click', () => {
   applyFilters();
 });
 
+function openFilterSheet() {
+  document.getElementById('filter-sidebar').classList.add('open');
+  document.getElementById('filter-overlay').classList.add('open');
+  document.getElementById('filter-toggle').textContent = 'Фильтры ✕';
+}
+function closeFilterSheet() {
+  document.getElementById('filter-sidebar').classList.remove('open');
+  document.getElementById('filter-overlay').classList.remove('open');
+  document.getElementById('filter-toggle').textContent = 'Фильтры ▾';
+}
 document.getElementById('filter-toggle').addEventListener('click', () => {
-  const sidebar = document.getElementById('filter-sidebar');
-  const btn = document.getElementById('filter-toggle');
-  const open = sidebar.classList.toggle('open');
-  btn.textContent = open ? 'Фильтры ✕' : 'Фильтры ▾';
+  document.getElementById('filter-sidebar').classList.contains('open') ? closeFilterSheet() : openFilterSheet();
 });
+document.getElementById('filter-close').addEventListener('click', closeFilterSheet);
+document.getElementById('filter-overlay').addEventListener('click', closeFilterSheet);
 
 // ======== SORT ========
 document.querySelectorAll('.sort-btn').forEach(btn => {
@@ -617,7 +626,7 @@ function openVideoModal(src) { modalVideo.src = src; modal.classList.add('open')
 function closeVideoModal()   { modal.classList.remove('open'); modalVideo.pause(); modalVideo.src = ''; }
 document.getElementById('modal-close').addEventListener('click', closeVideoModal);
 modal.addEventListener('click', e => { if (e.target === modal) closeVideoModal(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeVideoModal(); closeCart(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeVideoModal(); closeCart(); closeFilterSheet(); } });
 
 // ======== UTILS ========
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }

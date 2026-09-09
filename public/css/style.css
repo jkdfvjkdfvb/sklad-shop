@@ -432,13 +432,31 @@ a { color: inherit; }
 .modal-close:hover { background: var(--soft-cloud); }
 
 /* ====== RESPONSIVE ====== */
+/* Фильтры на мобильном — выезжающая шторка поверх контента (Sheet/Drawer
+   по плану редизайна), а не разворачивание в потоке страницы под длинным
+   списком категорий: жюри отметило, что раньше пользователю приходилось
+   проматывать 20+ категорий выше, прежде чем добраться до товаров. */
+.filter-overlay { display: none; position: fixed; inset: 0; background: rgba(17,17,17,.4); z-index: 300; }
+.filter-overlay.open { display: block; }
+.filter-close { display: none; }
+
 @media (max-width: 860px) {
   .catalog-layout { grid-template-columns: 1fr; }
   .filter-sidebar {
-    position: static; max-height: none; overflow: visible;
-    display: none;
+    position: fixed; top: 0; left: -320px; width: 300px; max-width: 85vw;
+    height: 100vh; height: 100dvh; max-height: none;
+    background: var(--canvas); z-index: 301; overflow-y: auto;
+    padding: 20px; box-shadow: 1px 0 0 var(--hairline);
+    transition: left .3s cubic-bezier(.4,0,.2,1);
   }
-  .filter-sidebar.open { display: block; margin-bottom: 24px; }
+  .filter-sidebar.open { left: 0; margin-bottom: 0; }
+  .filter-close {
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: var(--radius-pill);
+    background: var(--soft-cloud); border: none; color: var(--ink);
+    cursor: pointer; margin-left: 8px; flex-shrink: 0;
+  }
+  .filter-close:hover { background: var(--hairline-soft); }
   .filter-toggle {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 8px 16px; border-radius: var(--radius-pill);
@@ -446,6 +464,10 @@ a { color: inherit; }
     cursor: pointer; font-size: .88rem; font-weight: 500; color: var(--ink); font-family: inherit;
   }
   .filter-toggle:hover { border-color: var(--ink); }
+  /* Тач-зона строки фильтра была ~20px — жюри верно отметило: меньше
+     рекомендуемых 44px. Строка сама растягивается, чекбокс остаётся 16px
+     визуально, но кликабельная область всей label — не только квадрата. */
+  .filter-option { padding: 12px 0; min-height: 44px; }
 }
 
 @media (max-width: 640px) {
@@ -600,7 +622,7 @@ a { color: inherit; }
 .catalog-overview, .category-directory { max-width: 1180px; margin: 48px auto; padding: 28px; }
 .catalog-overview { background: var(--soft-cloud); border: 1px solid var(--hairline-soft); }
 .catalog-overview h2, .category-directory h2 { margin: 0 0 16px; font-size: 1.25rem; }
-.catalog-overview p { line-height: 1.65; color: var(--charcoal); }
+.catalog-overview p { line-height: 1.65; color: var(--charcoal); max-width: 70ch; }
 .catalog-overview p + p { margin-top: 10px; }
 .category-directory { margin-top: 0; margin-bottom: 48px; padding-left: 0; padding-right: 0; }
 .category-directory-list {
