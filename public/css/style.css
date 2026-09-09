@@ -319,7 +319,7 @@ a { color: inherit; }
   font-size: 1rem; font-weight: 500; line-height: 1.4;
   color: var(--ink); text-decoration: none;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  overflow: hidden;
+  overflow: hidden; text-overflow: ellipsis;
 }
 .card-name:hover { text-decoration: underline; text-underline-offset: 2px; }
 
@@ -426,13 +426,13 @@ a { color: inherit; }
   :root { --header-h: 100px; }
   .header-inner { flex-wrap: wrap; height: auto; padding: 12px 16px; gap: 10px; }
   /* Компактный хедер при скролле вниз (жюри: занимает ~25-30% экрана
-     постоянно, отнимает место у текста на PDP). Логотип и корзина
-     остаются всегда; поиск/телефон/мессенджеры скрываются, пока
-     пользователь не прокрутит вверх (класс переключает site-header.js). */
-  .site-header.is-compact .header-search,
+     постоянно, отнимает место у текста на PDP). Телефон/мессенджеры
+     скрываются — поиск НЕ скрываем: он единственный канал навигации по
+     каталогу на PDP/категории, прятать его при скролле значило бы
+     отменить P0-фикс «поиск работает с любой страницы» из прошлого
+     прохода жюри. Логотип, поиск и корзина остаются всегда видны. */
   .site-header.is-compact .header-phone,
   .site-header.is-compact .messenger-links { display: none; }
-  .site-header.is-compact .header-inner { flex-wrap: nowrap; }
   /* flex-basis (не width) определяет размер flex-элемента — базовое
      правило .header-search задаёт flex:1 (flex-basis:0%), поэтому здесь
      нужно явно переопределить flex-basis, иначе width:100% игнорируется
@@ -598,7 +598,9 @@ a { color: inherit; }
   .category-directory-list { grid-template-columns: repeat(4, 1fr); }
 }
 @media (max-width: 599px) {
-  .category-directory-list { grid-template-columns: repeat(3, 1fr); }
+  /* 3 колонки на ~375px делали узкие плитки, длинные названия категорий
+     («Автомобильные аксессуары») переносились на 2-3 строки — тесно. */
+  .category-directory-list { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 1228px) {
