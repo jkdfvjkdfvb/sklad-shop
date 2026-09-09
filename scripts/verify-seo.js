@@ -120,8 +120,18 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
     expect(!/\d[\d\s]*\s*₽/.test(description) || description.includes(`${money(price)} ₽`),
       `${product.article}: description contains a price that differs from the catalog price`);
 
-    expect(!/СПб|в Санкт-Петербурге/i.test(title) && !/СПб|в Санкт-Петербурге/i.test(description), `${product.article}: artificial regional metadata remains`);
-    expect(!/[.…]{1,3}/.test(title), `${product.article}: title is truncated`);
+    // Раньше здесь стояла проверка на отсутствие "СПб"/"в Санкт-Петербурге" —
+    // защита от старого дефекта (придуманная региональная привязка). Владелец
+    // подтвердил: склад реально в СПб, доставка реально по всей России — это
+    // больше не выдумка, а факт, который теперь сознательно публикуется.
+    // Регресс, который эта проверка отлавливала, теперь невозможен: город
+    // явно задан во всех meta_description_template одним и тем же текстом.
+    //
+    // Регулярка "обрезан ли title" была шире, чем нужно: [.…]{1,3} ловит
+    // ЛЮБУЮ точку где угодно в строке, а не только многоточие в конце —
+    // легитимный title с "2 шт." внутри падал бы как "обрезанный". Сузили до
+    // конца строки: настоящая обрезка — это "..."/"…" именно на конце.
+    expect(!/(\.\.\.|…)$/.test(title), `${product.article}: title is truncated`);
     expect(!/<link rel="canonical" href="http:\/\//.test(html), `${product.article}: HTTP canonical`);
     expect(ld && ld.name === csv.h1, `${product.article}: Product JSON-LD name differs from H1`);
     expect(ld && ld.offers.availability === 'https://schema.org/InStock', `${product.article}: Product JSON-LD availability differs`);
@@ -235,7 +245,21 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
   const expectedSitemapUrls = 2 + categorySlugs.length + visibleProducts.length;
   expect((sitemap.match(/<loc>/g) || []).length === expectedSitemapUrls,
     `sitemap must contain ${expectedSitemapUrls} unique public URLs`);
-  expect(sitemap.includes('<lastmod>2026-09-07</lastmod>'), 'sitemap template lastmod was not updated');
+  // Раньше здесь была захардкожена конкретная дата ('2026-09-07') — тест
+  // ломался при каждом следующем обновлении контента, потому что per-product
+  // lastmod (seo_updated_at) законно уезжает вперёд TEMPLATE_CHANGED_AT и
+  // прежняя дата просто перестаёт где-либо встречаться в sitemap. Читаем
+  // константу прямо из server/seo.js и проверяем инвариант, который она
+  // обязана держать: ни один lastmod не должен быть СТАРШЕ последнего
+  // известного изменения шаблона — именно эту регрессию (застрявший mtime
+  // index.html) чинил TEMPLATE_CHANGED_AT изначально.
+  const seoJsSource = fs.readFileSync(path.join(root, 'server/seo.js'), 'utf8');
+  const templateChangedAt = (seoJsSource.match(/TEMPLATE_CHANGED_AT = '([\d-]+)'/) || [])[1];
+  expect(Boolean(templateChangedAt), 'TEMPLATE_CHANGED_AT constant not found in server/seo.js');
+  const staleLastmods = [...sitemap.matchAll(/<lastmod>([\d-]+)<\/lastmod>/g)]
+    .map(m => m[1]).filter(d => d < templateChangedAt);
+  expect(staleLastmods.length === 0,
+    `sitemap has lastmod older than TEMPLATE_CHANGED_AT (${templateChangedAt}): ${[...new Set(staleLastmods)].join(', ')}`);
   const sale = await fetch(`${base}/sale`);
   expect(sale.status === 404, `Empty sale section must not index as a sale page, received ${sale.status}`);
 
