@@ -1,5 +1,24 @@
 'use strict';
 
+// ======== COMPACT HEADER ON SCROLL (mobile) ========
+// Sticky-хедер с поиском/телефоном/мессенджерами занимал ~25-30% высоты
+// мобильного экрана постоянно (замечание дизайн-жюри). При скролле вниз
+// сворачиваем до лого+корзины; при скролле вверх — возвращаем как было.
+// CSS-эффект (public/css/style.css) активен только на ширинах ≤640px.
+try {
+  (function initCompactHeader() {
+    const header = document.querySelector('.site-header');
+    if (!header) return;
+    let lastY = window.scrollY;
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY;
+      if (y > 80 && y > lastY) header.classList.add('is-compact');
+      else if (y <= 80 || y < lastY) header.classList.remove('is-compact');
+      lastY = y;
+    }, { passive: true });
+  })();
+} catch {}
+
 // ======== REVEAL ON SCROLL ========
 // Один осмысленный момент motion (раздел 5 ТЗ редизайна: «спокойное
 // появление контактной полосы hero») — короткое появление плиток hero и

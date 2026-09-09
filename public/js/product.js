@@ -1,5 +1,22 @@
 'use strict';
 
+// ======== COMPACT HEADER ON SCROLL (mobile) ========
+// См. public/js/shop.js — тот же приём, повторён здесь, потому что PDP и
+// страницы категорий грузят этот файл, а не shop.js.
+try {
+  (function initCompactHeader() {
+    const header = document.querySelector('.site-header');
+    if (!header) return;
+    let lastY = window.scrollY;
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY;
+      if (y > 80 && y > lastY) header.classList.add('is-compact');
+      else if (y <= 80 || y < lastY) header.classList.remove('is-compact');
+      lastY = y;
+    }, { passive: true });
+  })();
+} catch {}
+
 const product = window.PRODUCT_DATA;
 
 // ======== CART ========
