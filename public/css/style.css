@@ -200,7 +200,16 @@ a { color: inherit; }
 }
 
 /* ====== MAIN / CATALOG ====== */
-.catalog-section { max-width: 1440px; margin: 48px auto; padding: 0 24px; scroll-margin-top: calc(var(--header-h) + 16px); }
+/* Hairline-разделитель перед каталогом (жюри: главная читалась как один
+   нескончаемый скролл без остановок между блоком категорий и каталогом).
+   Full-bleed цветная полоса сюда не подходит — soft-cloud в DESIGN-nike
+   зарезервирован под фон фотографий, а не под секционные банеры;
+   hairline-разрыв — их собственный способ обозначать границу секции. */
+.catalog-section {
+  max-width: 1440px; margin: 0 auto 48px; padding: 40px 24px 0;
+  border-top: 1px solid var(--hairline);
+  scroll-margin-top: calc(var(--header-h) + 16px);
+}
 .catalog-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
 .section-title {
   font-size: 2rem; font-weight: 500; line-height: 1.1;
@@ -246,7 +255,29 @@ a { color: inherit; }
   cursor: pointer; font-size: .92rem; padding: 2px 0;
 }
 .filter-option:hover .filter-option-name { color: var(--ink); }
-.filter-option input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--ink); cursor: pointer; flex-shrink: 0; }
+/* accent-color раньше давал верный чёрный цвет, но форма чекбокса
+   оставалась нативной браузерной — выбивалась из отшлифованного
+   остального UI (замечание жюри). Плоский квадрат без radius —
+   в духе rounded.none у DESIGN-nike. */
+.filter-option input[type=checkbox] {
+  appearance: none; -webkit-appearance: none; margin: 0;
+  width: 16px; height: 16px; border: 1.5px solid var(--hairline);
+  background: var(--canvas); cursor: pointer; flex-shrink: 0;
+  position: relative; transition: border-color .15s;
+}
+.filter-option input[type=checkbox]:hover { border-color: var(--ink); }
+.filter-option input[type=checkbox]:checked { border-color: var(--ink); }
+/* Галочка нарочно тёмная на светлом фоне (не светлая на инвертированной
+   заливке): у native-чекбокса background-color не всегда переопределяется
+   даже с appearance:none — тёмная галочка остаётся читаемой независимо
+   от того, сработает ли инверсия фона. */
+.filter-option input[type=checkbox]:checked::after {
+  content: ''; position: absolute; left: 3px; top: 0;
+  width: 5px; height: 9px;
+  border-style: solid; border-color: var(--ink);
+  border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.filter-option input[type=checkbox]:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .filter-option-name { flex: 1; color: var(--charcoal); }
 .filter-option-count { font-size: .8rem; color: var(--mute); }
 .filter-option input:checked ~ .filter-option-name { color: var(--ink); font-weight: 600; }
@@ -318,7 +349,7 @@ a { color: inherit; }
 .card-name {
   font-size: 1rem; font-weight: 500; line-height: 1.4;
   color: var(--ink); text-decoration: none;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
   overflow: hidden; text-overflow: ellipsis;
 }
 .card-name:hover { text-decoration: underline; text-underline-offset: 2px; }

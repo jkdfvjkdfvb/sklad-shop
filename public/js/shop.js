@@ -386,8 +386,17 @@ function buildFilters() {
 
 function applyFilters() {
   const q = document.getElementById('search-input').value.toLowerCase().trim();
+  // Разбиваем запрос на слова и требуем совпадения каждого (AND), а не всей
+  // фразы целиком подстрокой — иначе «брелок компас» не находил товар
+  // «Брелок «Компас», в виде пробки», хотя оба слова по отдельности находят.
+  const qTokens = q.split(/\s+/).filter(Boolean);
   let result = allProducts.filter(p => {
-    if (q && !p.name.toLowerCase().includes(q) && !p.article.includes(q)) return false;
+    if (qTokens.length) {
+      const name = p.name.toLowerCase();
+      const matchesArticle = p.article.includes(q);
+      const matchesAllTokens = qTokens.every(t => name.includes(t));
+      if (!matchesArticle && !matchesAllTokens) return false;
+    }
     for (const key of ['category', 'material', 'color']) {
       if (selected[key].size && !selected[key].has(p[key])) return false;
     }

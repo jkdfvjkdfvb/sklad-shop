@@ -194,7 +194,7 @@
 .seo-card-body p { margin: 0; color: var(--mute); font-size: .8rem; }
 .seo-card-body h2 {
   margin: 0; font-size: 1rem; line-height: 1.3;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
   overflow: hidden; text-overflow: ellipsis;
 }
 .seo-card-body h2 a { color: inherit; text-decoration: none; }
