@@ -9,6 +9,9 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { overflow-x: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
 img, svg, video { max-width: 100%; }
 
 :root {
@@ -127,7 +130,7 @@ a { color: inherit; }
 .hero-copy h1 {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(2.4rem, 3.4vw, 3.6rem);
+  font-size: clamp(2.4rem, 3.8vw, 4.2rem);
   line-height: 0.95;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -197,7 +200,7 @@ a { color: inherit; }
 }
 
 /* ====== MAIN / CATALOG ====== */
-.catalog-section { max-width: 1440px; margin: 48px auto; padding: 0 24px; }
+.catalog-section { max-width: 1440px; margin: 48px auto; padding: 0 24px; scroll-margin-top: calc(var(--header-h) + 16px); }
 .catalog-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
 .section-title {
   font-size: 2rem; font-weight: 500; line-height: 1.1;
@@ -413,6 +416,12 @@ a { color: inherit; }
 }
 
 @media (max-width: 640px) {
+  /* На этой ширине хедер переносится в 2 строки (лого+контакты, затем
+     полноширинный поиск) и становится выше 60px — без этого переопределения
+     scroll-margin-top у якорей (#catalog, #wholesale-request) считает
+     от старой высоты, и заголовок секции после прыжка всё равно уходит
+     под хедер. */
+  :root { --header-h: 100px; }
   .header-inner { flex-wrap: wrap; height: auto; padding: 12px 16px; gap: 10px; }
   /* flex-basis (не width) определяет размер flex-элемента — базовое
      правило .header-search задаёт flex:1 (flex-basis:0%), поэтому здесь
@@ -540,7 +549,8 @@ a { color: inherit; }
 .order-success {
   text-align: center; padding: 24px 10px; display: none;
 }
-.order-success h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--success); }
+.order-success h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--success); display: flex; align-items: center; justify-content: center; gap: 8px; }
+.order-success-icon { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 .order-success p { font-size: .9rem; color: var(--mute); }
 
 @media (max-width: 480px) {

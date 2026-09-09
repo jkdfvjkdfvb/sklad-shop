@@ -171,7 +171,7 @@
 .product-facts dl > div { padding: 14px; background: var(--soft-cloud); }
 .product-facts dt { color: var(--mute); font-size: .82rem; margin-bottom: 4px; }
 .product-facts dd { margin: 0; font-weight: 600; }
-.product-wholesale { max-width: 700px; }
+.product-wholesale { max-width: 700px; scroll-margin-top: calc(var(--header-h) + 16px); }
 .product-wholesale p, .product-description p, .category-intro { line-height: 1.6; color: var(--charcoal); }
 .product-wholesale form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 /* fieldset — только семантическая группировка для форм/скринридеров: без
@@ -188,7 +188,8 @@
 .seo-product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
 .seo-card { border: 1px solid var(--hairline-soft); display: flex; flex-direction: column; background: var(--canvas); }
 .seo-card-image { aspect-ratio: 1; background: var(--soft-cloud); display: grid; place-items: center; }
-.seo-card-image img { width: 100%; height: 100%; object-fit: contain; padding: 16px; }
+.seo-card-image img { width: 100%; height: 100%; object-fit: contain; padding: 16px; transition: transform .3s ease; }
+.seo-card-image:hover img { transform: scale(1.04); }
 .seo-card-body { padding: 14px; display: grid; gap: 8px; }
 .seo-card-body p { margin: 0; color: var(--mute); font-size: .8rem; }
 .seo-card-body h2 { margin: 0; font-size: 1rem; line-height: 1.3; }

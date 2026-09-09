@@ -96,7 +96,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
 
   function socialLinksFor(contacts = {}) {
     return [
-      ['max', 'MAX', validUrl(contacts.max, ['max.ru/'])],
+      ['max', 'MAX', validUrl(contacts.max, ['max.ru/username'])],
       ['tg', 'Telegram', validUrl(contacts.telegram, ['t.me/username'])],
       ['vk', 'ВКонтакте', validUrl(contacts.vk, ['vk.com/username'])],
     ].filter(([, , url]) => url);
@@ -251,9 +251,11 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
     const questions = [
       {
         question: `Есть ли ${name} в наличии?`,
+        // formatStockDate уже отдаёт дату с точкой («8 сентября 2026 г.») —
+        // вторую точку в конце предложения не добавляем (был баг «г..»).
         answer: stock > 0
-          ? `Да, на складе ${stock} шт.${updated ? ` Остаток обновлён ${updated}.` : ''}`
-          : `Сейчас товара нет в наличии.${updated ? ` Остаток обновлён ${updated}.` : ''}`,
+          ? `Да, на складе ${stock} шт.${updated ? ` Остаток обновлён ${updated}` : ''}`
+          : `Сейчас товара нет в наличии.${updated ? ` Остаток обновлён ${updated}` : ''}`,
       },
     ];
     if (details) {
@@ -339,7 +341,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   <div class="cart-footer" id="cart-footer" style="display:none">
     <div class="cart-total"><span>Итого:</span><span id="cart-total-val">0 ₽</span></div>
     <div class="checkout-form" id="checkout-form"><label class="visually-hidden" for="co-name">Ваше имя</label><input type="text" id="co-name" placeholder="Ваше имя *" required><label class="visually-hidden" for="co-phone">Телефон</label><input type="tel" id="co-phone" placeholder="+7XXXXXXXXXX" required pattern="\\+7\\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX"><label class="visually-hidden" for="co-comment">Комментарий к заказу</label><textarea id="co-comment" placeholder="Комментарий к заказу"></textarea><button class="order-btn" id="order-btn">Оформить заказ</button></div>
-    <div class="order-success" id="order-success"><h3>✅ Заказ принят!</h3><p id="order-success-text">Мы свяжемся с вами в ближайшее время.</p><button class="add-to-cart-btn" id="order-new-btn" style="margin-top:12px">Продолжить покупки</button></div>
+    <div class="order-success" id="order-success"><h3><svg class="order-success-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m8 12.5 2.5 2.5L16 9"/></svg> Заказ принят!</h3><p id="order-success-text">Мы свяжемся с вами в ближайшее время.</p><button class="add-to-cart-btn" id="order-new-btn" style="margin-top:12px">Продолжить покупки</button></div>
   </div>
 </div>
 <div class="modal-overlay" id="video-modal" role="dialog" aria-modal="true"><div class="modal-box"><button class="modal-close" id="modal-close" aria-label="Закрыть">✕</button><video id="modal-video" controls playsinline></video></div></div>`;
@@ -435,7 +437,8 @@ ${headerHtml(contacts)}
           ${sale ? `<p class="pdp-old-price">${priceText(product.old_price)} ₽</p><p class="pdp-sale-note">Скидка ${escH(product.discount_percent)}%. ${escH(product.sale_terms)}</p>` : ''}
           <p class="pdp-price pdp-retail"><data class="pdp-val" itemprop="price" value="${price}">${priceText(price)} ₽</data></p><p class="pdp-opt-note">Опт — по запросу</p>
         </div>
-        <p class="product-detail-qty ${stock > 0 ? 'in-stock' : 'out-stock'}">${stock > 0 ? `В наличии: ${escH(String(stock))} шт.${updatedTimeHtml ? ` Остаток обновлён ${updatedTimeHtml}.` : ''}` : `Нет в наличии${updatedTimeHtml ? `. Остаток обновлён ${updatedTimeHtml}.` : ''}`}</p>
+        <!-- formatStockDate уже отдаёт дату с точкой («8 сентября 2026 г.») — вторую точку не добавляем (был баг «г..», см. faqFor). -->
+        <p class="product-detail-qty ${stock > 0 ? 'in-stock' : 'out-stock'}">${stock > 0 ? `В наличии: ${escH(String(stock))} шт.${updatedTimeHtml ? ` Остаток обновлён ${updatedTimeHtml}` : ''}` : `Нет в наличии${updatedTimeHtml ? `. Остаток обновлён ${updatedTimeHtml}` : ''}`}</p>
         <p class="product-factual-summary" itemprop="description">${escH(description)}</p>
         <div class="product-action-row">${stock > 0 ? `<button class="add-to-cart-btn" id="add-btn" data-article="${escH(product.article)}">В корзину</button>` : ''}<button type="button" class="wholesale-btn" id="wholesale-btn">Запросить оптовые условия</button></div>
       </div>
