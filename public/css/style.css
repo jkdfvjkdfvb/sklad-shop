@@ -458,8 +458,8 @@ a { color: inherit; }
   }
   .filter-close:hover { background: var(--hairline-soft); }
   .filter-toggle {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 16px; border-radius: var(--radius-pill);
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 8px 16px; min-height: 44px; border-radius: var(--radius-pill);
     border: 1px solid var(--hairline); background: var(--canvas);
     cursor: pointer; font-size: .88rem; font-weight: 500; color: var(--ink); font-family: inherit;
   }
@@ -622,7 +622,7 @@ a { color: inherit; }
 .catalog-overview, .category-directory { max-width: 1180px; margin: 48px auto; padding: 28px; }
 .catalog-overview { background: var(--soft-cloud); border: 1px solid var(--hairline-soft); }
 .catalog-overview h2, .category-directory h2 { margin: 0 0 16px; font-size: 1.25rem; }
-.catalog-overview p { line-height: 1.65; color: var(--charcoal); max-width: 70ch; }
+.catalog-overview p { line-height: 1.65; color: var(--charcoal); max-width: 62ch; }
 .catalog-overview p + p { margin-top: 10px; }
 .category-directory { margin-top: 0; margin-bottom: 48px; padding-left: 0; padding-right: 0; }
 .category-directory-list {

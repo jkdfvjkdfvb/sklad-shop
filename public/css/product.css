@@ -172,7 +172,7 @@
 .product-facts dt { color: var(--mute); font-size: .82rem; margin-bottom: 4px; }
 .product-facts dd { margin: 0; font-weight: 600; }
 .product-wholesale { max-width: 700px; scroll-margin-top: calc(var(--header-h) + 16px); }
-.product-wholesale p, .product-description p, .category-intro { line-height: 1.6; color: var(--charcoal); max-width: 70ch; }
+.product-wholesale p, .product-description p, .category-intro { line-height: 1.6; color: var(--charcoal); max-width: 62ch; }
 .product-wholesale form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 /* fieldset — только семантическая группировка для форм/скринридеров: без
    собственного бокса поля формы остаются прямыми grid-item'ами формы. */
@@ -183,7 +183,7 @@
 .product-wholesale #wholesale-status { margin: 0; min-height: 1.4em; }
 .product-faq details { border-bottom: 1px solid var(--hairline-soft); padding: 14px 0; }
 .product-faq summary { cursor: pointer; font-weight: 600; }
-.product-faq p { line-height: 1.55; margin: 10px 0 0; max-width: 70ch; }
+.product-faq p { line-height: 1.55; margin: 10px 0 0; max-width: 62ch; }
 .related-products > p { color: var(--mute); }
 .seo-product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
 .seo-card { border: 1px solid var(--hairline-soft); display: flex; flex-direction: column; background: var(--canvas); }
@@ -202,7 +202,7 @@
 .seo-card-old-price, .pdp-old-price { color: var(--mute); text-decoration: line-through; margin: 0; }
 .seo-sale-badge, .pdp-sale-note { color: var(--sale); font-size: .85rem; margin: 0; }
 .category-page { margin: 40px auto; padding: 0 24px; }
-.product-overview p, .category-guide p, .catalog-overview p { line-height: 1.65; color: var(--charcoal); max-width: 70ch; }
+.product-overview p, .category-guide p, .catalog-overview p { line-height: 1.65; color: var(--charcoal); max-width: 62ch; }
 .product-overview a, .category-guide a, .category-siblings a, .category-directory a, .catalog-category a { color: var(--ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
 .category-guide, .category-products, .category-siblings { margin-top: 32px; }
 .category-guide, .catalog-overview { padding: 24px; background: var(--soft-cloud); border: 1px solid var(--hairline-soft); }
