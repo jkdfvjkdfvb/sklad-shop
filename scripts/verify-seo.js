@@ -246,7 +246,10 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
   expect(catalog.status === 200, `/catalog: expected 200, received ${catalog.status}`);
   const catalogHtml = await catalog.text();
   expect(Boolean(ldOfType(catalogHtml, 'CollectionPage')), '/catalog: CollectionPage JSON-LD is missing');
-  expect(catalogHtml.includes('<h1>Каталог сувенирной продукции и бизнес-подарков</h1>'), '/catalog: descriptive H1 is missing');
+  // Точное совпадение тега (без учёта возможного class=) — редизайн каталога
+  // добавил класс к <h1> и слегка изменил текст; проверяем содержательный
+  // заголовок по любому <h1>, а не жёстко зашитую разметку одного коммита.
+  expect(/<h1[^>]*>Каталог сувенирной продукции[^<]*<\/h1>/.test(catalogHtml), '/catalog: descriptive H1 is missing');
 
   // --- Канонизация URL ---
   for (const [url, expected] of [['/index.html', '/'], ['/category/breloki/', '/category/breloki']]) {

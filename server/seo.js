@@ -999,22 +999,36 @@ ${cartHtml()}
     </nav>`;
   }
 
-  function catalogB2bBannerHtml(contacts = {}) {
-    const phone = validPhone(contacts.phone) || '+7 (812) 962-15-98';
+  // Исходная версия баннера утверждала вещи, которых на сайте нет: тиражи
+  // «от 20 до 50 000 шт.», приёмку с контролем качества, услугу нанесения
+  // логотипа (logo_service_available=false у всех 69 SKU, партнёр по нанесению
+  // нигде не подтверждён — то же решение, что и в SEO-бэклоге про GIST-01),
+  // конкретные ТК и работу с НДС/ЭДО (налоговый режим неизвестен, пока
+  // company.json пуст). Оставлены только подтверждённые факты: склад в СПб,
+  // доставка по РФ, формулировка «Опт — по запросу», уже используемая на
+  // каждой карточке товара. Блок про работу с юрлицами условен и появляется,
+  // только когда заполнено название организации — та же логика, что и в
+  // requisitesHtml/warehouseHtml.
+  function catalogB2bBannerHtml(contacts = {}, company = {}) {
+    const phone = validPhone(contacts.phone);
+    const telegramUrl = validUrl(contacts.telegram, ['t.me/username']);
+    const legalFeature = company.legal_name
+      ? `<div class="b2b-feat"><span class="feat-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></span><strong>Работаем с юрлицами</strong><p>Реквизиты и способ расчёта менеджер подтвердит по запросу</p></div>`
+      : '';
     return `<section class="catalog-b2b-banner" aria-labelledby="b2b-banner-title">
       <div class="b2b-banner-content">
         <span class="b2b-pill">Для корпоративных клиентов и агентств</span>
-        <h2 id="b2b-banner-title">Оптовые поставки и брендирование продукции со склада</h2>
-        <p>Поставляем бизнес-подарки и промо-продукцию партиями от 20 до 50 000 шт. Собственный складской запас в Санкт-Петербурге, проверка каждого изделия перед отгрузкой, нанесение фирменной символики любыми технологиями.</p>
+        <h2 id="b2b-banner-title">Оптовые и розничные поставки со склада в Санкт-Петербурге</h2>
+        <p>Собственный склад сувенирной продукции и бизнес-подарков — актуальные остатки и цены на сайте, доставка по России, самовывоз в Санкт-Петербурге.</p>
         <div class="b2b-features-grid">
-          <div class="b2b-feat"><span class="feat-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span><strong>Быстрая отгрузка</strong><p>Товары в наличии собираем и отправляем за 1-2 рабочих дня</p></div>
-          <div class="b2b-feat"><span class="feat-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><strong>Нанесение логотипов</strong><p>Гравировка, тампопечать, шелкография, УФ-печать, тиснение</p></div>
-          <div class="b2b-feat"><span class="feat-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></span><strong>Работа по договору</strong><p>Безналичный расчет с НДС, закрывающие документы по ЭДО</p></div>
-          <div class="b2b-feat"><span class="feat-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span><strong>Доставка по РФ</strong><p>СДЭК, Деловые Линии, ПЭК, курьерская доставка по СПб</p></div>
+          <div class="b2b-feat"><span class="feat-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span><strong>Актуальные остатки</strong><p>Наличие и цена на сайте — те же, что на складе прямо сейчас</p></div>
+          <div class="b2b-feat"><span class="feat-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span><strong>Опт по запросу</strong><p>Менеджер подтвердит цену и условия для нужного объёма</p></div>
+          ${legalFeature}
+          <div class="b2b-feat"><span class="feat-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span><strong>Доставка по РФ</strong><p>Отправка транспортной компанией или самовывоз со склада</p></div>
         </div>
         <div class="b2b-cta-row">
-          <a href="tel:+${escH(phone.replace(/\D/g, ''))}" class="b2b-btn-primary">Позвонить: ${escH(phone)}</a>
-          <a href="https://t.me/salegifts" target="_blank" rel="noopener" class="b2b-btn-secondary">Написать в Telegram</a>
+          ${phone ? `<a href="tel:+${escH(phone.replace(/\D/g, ''))}" class="b2b-btn-primary">Позвонить: ${escH(phone)}</a>` : ''}
+          ${telegramUrl ? `<a href="${escH(telegramUrl)}" target="_blank" rel="noopener" class="b2b-btn-secondary">Написать в Telegram</a>` : ''}
         </div>
       </div>
     </section>`;
@@ -1148,7 +1162,7 @@ ${cartHtml()}
       ${sections}
     </div>
 
-    ${catalogB2bBannerHtml(contacts)}
+    ${catalogB2bBannerHtml(contacts, company)}
   </main>
 
   ${warehouseHtml(company)}

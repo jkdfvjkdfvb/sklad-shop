@@ -247,7 +247,11 @@ document.getElementById('order-btn')?.addEventListener('click', async () => {
       if (orderSuccess) orderSuccess.style.display = 'block';
       const successText = document.getElementById('order-success-text');
       if (successText) {
-        successText.textContent = `Заказ #${data.orderId || ''} принят. Менеджер свяжется с вами в течение 15 минут.`;
+        // «В течение 15 минут» — обещание срока реакции, которое ничем не
+        // подкреплено (штат/график менеджеров нигде не задан). На остальных
+        // страницах (product.js/shop.js) стоит безопасная формулировка —
+        // используем её же, а не новое обязательство.
+        successText.textContent = `Заказ #${data.orderId || ''} принят. Мы свяжемся с вами в ближайшее время.`;
       }
     } else {
       alert(data.error || 'Ошибка при оформлении заказа');
