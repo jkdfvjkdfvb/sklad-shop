@@ -426,7 +426,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
     if (!related.length) return `<section class="related-products" aria-labelledby="related-heading"><h2 id="related-heading">Похожие товары</h2><p>В этой категории пока нет других товаров.</p></section>`;
     return `<section class="related-products" aria-labelledby="related-heading">
   <h2 id="related-heading">Похожие товары</h2>
-  <div class="seo-product-grid">${related.map(item => productCardHtml(item)).join('')}</div>
+  <div class="catalog-products-grid">${related.map(item => categoryProductCardHtml(item)).join('')}</div>
 </section>`;
   }
 
@@ -570,7 +570,6 @@ ${headerHtml(contacts)}
         <p class="product-detail-qty ${stock > 0 ? 'in-stock' : 'out-stock'}">${stock > 0 ? `В наличии: ${escH(String(stock))} шт.${updatedTimeHtml ? ` Остаток обновлён ${updatedTimeHtml}` : ''}` : `Нет в наличии${updatedTimeHtml ? `. Остаток обновлён ${updatedTimeHtml}` : ''}`}</p>
         <div class="pdp-trust-pills">
           <span class="pdp-trust-pill"><span class="pdp-trust-dot"></span>Склад в Санкт-Петербурге</span>
-          <span class="pdp-trust-pill"><span class="pdp-trust-dot"></span>Отгрузка от 1 дня</span>
           <span class="pdp-trust-pill"><span class="pdp-trust-dot"></span>Опт и розница</span>
         </div>
         <p class="product-factual-summary" itemprop="description">${escH(description)}</p>
