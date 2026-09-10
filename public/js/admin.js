@@ -38,7 +38,7 @@ async function showAdmin() {
   document.getElementById('login-section').style.display = 'none';
   document.getElementById('admin-section').style.display = '';
   renderFeeds();
-  await Promise.all([loadOrders(), loadProducts(), loadContacts(), loadCompany(), loadWholesaleRequests()]);
+  await Promise.all([loadOrders(), loadProducts(), loadContacts(), loadCompany(), loadB2b(), loadWholesaleRequests()]);
 }
 
 if (token) {
@@ -584,6 +584,7 @@ function openEditModal(art) {
   document.getElementById('pe-category').value = p.category || '';
   document.getElementById('pe-material').value = p.material || '';
   document.getElementById('pe-color').value = p.color || '';
+  document.getElementById('pe-seasonal').value = p.seasonal_collection || '';
   document.getElementById('pe-logo-available').checked = Boolean(p.logo_service_available);
   document.getElementById('pe-logo-methods').value = p.logo_service_methods || '';
   document.getElementById('pe-logo-lead-time').value = p.logo_service_lead_time || '';
@@ -650,6 +651,7 @@ document.getElementById('pe-save-btn').addEventListener('click', async () => {
   const category = document.getElementById('pe-category').value.trim();
   const material = document.getElementById('pe-material').value.trim();
   const color    = document.getElementById('pe-color').value.trim();
+  const seasonal_collection = document.getElementById('pe-seasonal').value;
   const logo_service_available = document.getElementById('pe-logo-available').checked;
   const logo_service_methods   = document.getElementById('pe-logo-methods').value.trim();
   const logo_service_lead_time = document.getElementById('pe-logo-lead-time').value.trim();
@@ -657,6 +659,7 @@ document.getElementById('pe-save-btn').addEventListener('click', async () => {
   const body = {
     name, description, meta_title, meta_description, category, material, color,
     logo_service_available, logo_service_methods, logo_service_lead_time, logo_service_min_qty,
+    seasonal_collection,
   };
   if (articleInput !== art) body.new_article = articleInput;
 
@@ -817,6 +820,38 @@ document.getElementById('company-form').addEventListener('submit', async e => {
     })
   });
   showSaveStatus('save-company-status', res.ok);
+});
+
+// ======== B2B-УСЛОВИЯ ========
+const B2B_FIELD_MAP = {
+  'b2b-vat-note': 'vat_note',
+  'b2b-reserve-days': 'reserve_days',
+  'b2b-edo': 'edo_providers',
+  'b2b-docs': 'docs_note',
+  'b2b-samples': 'sample_policy',
+  'b2b-acceptance': 'acceptance_policy',
+};
+
+async function loadB2b() {
+  const res = await apiFetch('/api/admin/b2b');
+  if (!res.ok) return;
+  const b2b = await res.json();
+  for (const [elementId, key] of Object.entries(B2B_FIELD_MAP)) {
+    document.getElementById(elementId).value = b2b[key] || '';
+  }
+}
+
+document.getElementById('b2b-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const body = {};
+  for (const [elementId, key] of Object.entries(B2B_FIELD_MAP)) {
+    body[key] = document.getElementById(elementId).value;
+  }
+  const res = await apiFetch('/api/admin/b2b', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  showSaveStatus('save-b2b-status', res.ok);
 });
 
 document.getElementById('co-photo-input').addEventListener('change', async function () {

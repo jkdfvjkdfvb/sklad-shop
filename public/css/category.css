@@ -6,6 +6,23 @@
    Без перегруженных фильтров и сортировок (лаконичная витрина 1-9 товаров).
    ========================================================================== */
 
+/* СЕЗОННЫЙ ХАБ (/podarki-na-novyj-god) — использует ту же сетку карточек */
+.seasonal-group { margin-bottom: 44px; }
+.seasonal-group-title {
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px;
+}
+.seasonal-group-intro {
+  color: var(--mute);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0 0 18px;
+  max-width: 720px;
+}
+
 /* ====== ОБЩАЯ ОБЕРТКА СТРАНИЦЫ КАТЕГОРИИ ====== */
 .category-page-wrapper {
   max-width: 1440px;

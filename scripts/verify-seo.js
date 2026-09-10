@@ -144,7 +144,31 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
     expect(ld && ld.offers.availability === 'https://schema.org/InStock', `${product.article}: Product JSON-LD availability differs`);
     expect(ld && ld.offers.url === canonical, `${product.article}: Product JSON-LD URL differs`);
     expect(ld && ld.offers.seller && ld.offers.seller.name === 'СкладПромо', `${product.article}: Offer seller is missing`);
-    expect(!ldOfType(html, 'FAQPage'), `${product.article}: deprecated FAQPage JSON-LD must not be emitted`);
+    // Раньше здесь стоял безусловный запрет FAQPage: разметку сняли в
+    // 001f897 как устаревшую (Google убрал FAQ rich result 07.05.2026).
+    // Причина была «мёртвый вес», а не вред. Разметку вернули по DEV-08:
+    // Яндекс и AI-ответы её по-прежнему читают.
+    //
+    // Запрет заменён на проверку реального риска, который и делает такую
+    // разметку спамом: FAQPage не должен обещать поисковику то, чего нет на
+    // странице. Требование сформулировано в docs/product-card-template-tz.md
+    // («добавлять только когда вопросы и ответы полностью видимы»), теперь
+    // оно проверяется, а не соблюдается на честном слове.
+    const faqLd = ldOfType(html, 'FAQPage');
+    if (faqLd) {
+      const visible = html.replace(/<script[\s\S]*?<\/script>/g, '');
+      const decode = value => String(value)
+        .replace(/&quot;/g, '"').replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+      expect(Array.isArray(faqLd.mainEntity) && faqLd.mainEntity.length > 0,
+        `${product.article}: FAQPage без вопросов`);
+      for (const item of faqLd.mainEntity || []) {
+        expect(decode(visible).includes(item.name),
+          `${product.article}: вопрос из FAQPage не виден на странице: «${item.name}»`);
+        expect(decode(visible).includes(item.acceptedAnswer?.text || ' '),
+          `${product.article}: ответ из FAQPage не виден на странице: «${item.name}»`);
+      }
+    }
     expect(html.includes('class="product-description product-overview"'), `${product.article}: factual product overview is missing`);
     expect(html.includes(`<a href="/category/${product.category_slug}">`), `${product.article}: contextual category link is missing`);
     expect(html.includes('sizes="180x180"'), `${product.article}: large favicon declaration is missing`);
@@ -287,7 +311,16 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
   expect(privacyInSitemap === (privacyStatus === 200),
     `sitemap и /privacy рассинхронизированы: в sitemap=${privacyInSitemap}, статус=${privacyStatus}`);
 
-  const expectedSitemapUrls = 3 + (privacyInSitemap ? 1 : 0) + categorySlugs.length + visibleProducts.length; // /, /catalog, /delivery [, /privacy]
+  // Сезонный хаб живёт по тому же правилу, что и /privacy: он есть, только
+  // пока в подборках отмечен хотя бы один товар. Проверяем согласованность
+  // «в sitemap ⇔ отдаёт 200», а не факт наличия страницы, — иначе тест
+  // пришлось бы править каждый раз, когда менеджер снимает последнюю метку.
+  const seasonalInSitemap = sitemap.includes(`${canonicalBase}/podarki-na-novyj-god`);
+  const seasonalStatus = (await fetch(`${base}/podarki-na-novyj-god`)).status;
+  expect(seasonalInSitemap === (seasonalStatus === 200),
+    `sitemap и /podarki-na-novyj-god рассинхронизированы: в sitemap=${seasonalInSitemap}, статус=${seasonalStatus}`);
+
+  const expectedSitemapUrls = 3 + (privacyInSitemap ? 1 : 0) + (seasonalInSitemap ? 1 : 0) + categorySlugs.length + visibleProducts.length; // /, /catalog, /delivery [, /privacy] [, /podarki-na-novyj-god]
   expect((sitemap.match(/<loc>/g) || []).length === expectedSitemapUrls,
     `sitemap must contain ${expectedSitemapUrls} unique public URLs`);
 

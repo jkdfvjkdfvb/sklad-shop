@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
-const { createSeoRouter } = require('./seo');
+const { createSeoRouter, SEASONAL_COLLECTIONS, SEASONAL_COLLECTION_IDS } = require('./seo');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,6 +16,7 @@ const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
 const CONTACTS_FILE = path.join(DATA_DIR, 'contacts.json');
 const COMPANY_FILE  = path.join(DATA_DIR, 'company.json');
+const B2B_FILE      = path.join(DATA_DIR, 'b2b.json');
 const ORDERS_FILE   = path.join(DATA_DIR, 'orders.json');
 const WHOLESALE_FILE = path.join(DATA_DIR, 'wholesale-requests.json');
 // Дефолт — конечный боевой домен. Если SITE_URL пропадёт из .env, canonical,
@@ -525,6 +526,13 @@ app.put('/api/admin/products/:article', authMiddleware, (req, res) => {
     const parsed = parseInt(logo_service_min_qty, 10);
     products[idx].logo_service_min_qty = Number.isFinite(parsed) && parsed > 0 ? parsed : '';
   }
+  // Подборка сезонного хаба. Значение принимаем только из известного списка:
+  // произвольная строка из тела запроса создала бы на странице пустую секцию
+  // с непонятным заголовком.
+  if (req.body.seasonal_collection !== undefined) {
+    const value = String(req.body.seasonal_collection).trim();
+    products[idx].seasonal_collection = SEASONAL_COLLECTION_IDS.includes(value) ? value : '';
+  }
   if (slug !== undefined && slug && slug !== products[idx].slug) {
     products[idx].previous_slugs = Array.from(new Set([...(products[idx].previous_slugs || []), products[idx].slug].filter(Boolean)));
     products[idx].slug = slug;
@@ -702,6 +710,22 @@ app.put('/api/admin/company', authMiddleware, (req, res) => {
   res.json({ ok: true });
 });
 
+// B2B-условия: ответы в FAQ на карточках товаров. Каждое поле необязательно —
+// незаполненный пункт не превращается в вопрос без ответа, он просто не
+// показывается (тот же принцип, что у «Компании»).
+const B2B_FIELDS = ['vat_note', 'reserve_days', 'edo_providers', 'docs_note', 'sample_policy', 'acceptance_policy'];
+
+app.get('/api/admin/b2b', authMiddleware, (req, res) => res.json(readJSON(B2B_FILE, {})));
+
+app.put('/api/admin/b2b', authMiddleware, (req, res) => {
+  const b2b = readJSON(B2B_FILE, {});
+  for (const key of B2B_FIELDS) {
+    if (req.body[key] !== undefined) b2b[key] = String(req.body[key]).trim();
+  }
+  writeJSON(B2B_FILE, b2b);
+  res.json({ ok: true });
+});
+
 app.post('/api/admin/company/photo', authMiddleware, uploadCompanyPhoto.single('photo'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Файл не получен' });
   const company = readJSON(COMPANY_FILE, {});
@@ -755,6 +779,7 @@ ensureDataFile('products.json', []);
 ensureDataFile('contacts.json', {});
 ensureDataFile('orders.json', []);
 ensureDataFile('company.json', {});
+ensureDataFile('b2b.json', {});
 
 // Сидируем персистентную папку загрузок фото/видео из git-репозитория один раз
 // (если она ещё пуста, т.е. volume только что примонтирован) — так уже

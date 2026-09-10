@@ -37,6 +37,7 @@
       <button class="nav-btn" data-tab="products">Товары</button>
       <button class="nav-btn" data-tab="contacts">Контакты</button>
       <button class="nav-btn" data-tab="company">Компания</button>
+      <button class="nav-btn" data-tab="b2b">B2B-условия</button>
       <button class="nav-btn" data-tab="feeds">Фиды</button>
       <button class="nav-btn" data-tab="notify">Уведомления</button>
     </nav>
@@ -177,6 +178,15 @@
               <input type="text" id="pe-color" list="dl-color" placeholder="Чёрный, Серебро, Синий…">
               <datalist id="dl-color"></datalist>
             </div>
+            <div class="form-group">
+              <label>Подборка на странице «Подарки на Новый год» <small style="font-weight:400;color:#9ca3af">(пусто — товар в подборках не участвует)</small></label>
+              <select id="pe-seasonal">
+                <option value="">— не участвует —</option>
+                <option value="premium">Премиум-подарки</option>
+                <option value="universal">Универсальные бизнес-сувениры</option>
+                <option value="sets">Наборы для праздника</option>
+              </select>
+            </div>
             <h3 class="contacts-section-title">Нанесение логотипа</h3>
             <p class="notify-hint" style="margin:-6px 0 12px">
               Блок «Нанесение логотипа» появляется на странице товара только если галочка ниже включена.
@@ -294,6 +304,48 @@
           <input type="file" id="co-photo-input" accept="image/*" style="display:none">
         </label>
         <span id="company-photo-status" class="save-contacts-status"></span>
+      </div>
+    </div>
+
+    <!-- TAB: B2B-условия -->
+    <div class="tab-panel" id="tab-b2b">
+      <h2 class="section-title">B2B-условия</h2>
+      <p class="notify-hint" style="margin-bottom:18px;max-width:720px">
+        Эти ответы показываются в блоке «Вопросы о товаре» на странице каждого товара.
+        Пустое поле не превращается в вопрос без ответа — вопрос просто не показывается.
+        Пишите так, как ответили бы клиенту: текст попадает на сайт дословно.
+      </p>
+      <div class="contacts-form-wrap" style="max-width:720px">
+        <form class="contacts-form" id="b2b-form">
+          <div class="form-group">
+            <label>Оплата для юрлиц и ИП <small style="font-weight:400;color:#9ca3af">(вопрос: «Как оплатить заказ юридическому лицу?»)</small></label>
+            <textarea id="b2b-vat-note" rows="2" placeholder="Работаем по безналичному расчёту, счёт выставляем на юрлицо или ИП."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Резерв товара, рабочих дней <small style="font-weight:400;color:#9ca3af">(0 или пусто — вопрос не показывается)</small></label>
+            <input type="number" id="b2b-reserve-days" min="0" placeholder="3">
+          </div>
+          <div class="form-group">
+            <label>Системы ЭДО <small style="font-weight:400;color:#9ca3af">(через запятую)</small></label>
+            <input type="text" id="b2b-edo" placeholder="Диадок, СБИС">
+          </div>
+          <div class="form-group">
+            <label>Закрывающие документы</label>
+            <textarea id="b2b-docs" rows="2" placeholder="К заказу выдаём УПД…"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Образцы перед тиражом</label>
+            <textarea id="b2b-samples" rows="2" placeholder="Любую позицию можно заказать от 1 шт. по розничной цене…"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Приёмка и повреждения груза</label>
+            <textarea id="b2b-acceptance" rows="3" placeholder="При получении сверьте количество мест…"></textarea>
+          </div>
+          <div class="form-footer">
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+            <span id="save-b2b-status" class="save-contacts-status"></span>
+          </div>
+        </form>
       </div>
     </div>
 

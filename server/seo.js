@@ -4,6 +4,18 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
+// Подборки сезонного хаба /podarki-na-novyj-god. Один список на всё
+// приложение: по нему и рендерится страница, и валидируется значение,
+// приходящее из админки (server.js импортирует SEASONAL_COLLECTION_IDS).
+// Товар попадает в хаб, только если менеджер выбрал подборку руками —
+// признака «новогодний товар» в данных нет и вывести его неоткуда.
+const SEASONAL_COLLECTIONS = [
+  { id: 'premium', title: 'Премиум-подарки', intro: 'Позиции с более высокой ценой — для руководителей, ключевых клиентов и партнёров.' },
+  { id: 'universal', title: 'Универсальные бизнес-сувениры', intro: 'Подходят для массовой рассылки сотрудникам и клиентам: нейтральные, полезные в быту и в офисе.' },
+  { id: 'sets', title: 'Наборы для праздника', intro: 'Позиции, которые собираются в подарочный набор к празднику.' },
+];
+const SEASONAL_COLLECTION_IDS = SEASONAL_COLLECTIONS.map(collection => collection.id);
+
 function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON, escH }) {
   const router = express.Router();
   const cleanSiteUrl = String(siteUrl).replace(/\/$/, '');
@@ -396,13 +408,68 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
         answer: `В карточке указаны: ${details}.`,
       });
     }
-    if (product.logo_service_available && product.logo_service_min_qty && product.logo_service_lead_time && Array.isArray(product.logo_service_methods) && product.logo_service_methods.length) {
+    // Раньше условие требовало Array.isArray(logo_service_methods) — админка
+    // сохраняет это поле строкой, и вопрос не появился бы никогда. Разбор
+    // вынесен в logoMethods().
+    const methods = logoMethods(product);
+    if (product.logo_service_available && methods.length) {
+      const parts = [
+        `Доступные способы: ${methods.join(', ')}`,
+        product.logo_service_min_qty ? `минимальный тираж — ${priceText(product.logo_service_min_qty)} шт.` : '',
+        product.logo_service_lead_time ? `срок — ${product.logo_service_lead_time}` : '',
+      ].filter(Boolean);
       questions.push({
         question: 'Можно ли заказать нанесение логотипа?',
-        answer: `Да, по запросу через партнёрское производство. Минимальный тираж — ${product.logo_service_min_qty}; срок — ${product.logo_service_lead_time}; доступные способы: ${product.logo_service_methods.join(', ')}.`,
+        answer: `Да. ${parts.join('; ')}. Макет и стоимость менеджер согласует по запросу.`,
       });
     }
+    questions.push(...b2bQuestions());
     return questions;
+  }
+
+  // DEV-08: коммерческий блок FAQ. Все ответы редактируются в админке
+  // (вкладка «B2B-условия»), вопрос не выводится, если ответ не заполнен, —
+  // вопрос без ответа хуже, чем его отсутствие.
+  //
+  // Оговорка про дублирование: этот набор одинаков на всех карточках. В коде
+  // рядом есть комментарий, почему отсюда убрали вопрос «можно ли купить
+  // оптом» — он дублировал секцию «Оптовые условия» на той же странице.
+  // Здесь дублирования секции нет: эти условия на карточке больше нигде не
+  // изложены, а на /delivery они живут в другом виде и в другом контексте.
+  function b2bQuestions() {
+    const b2b = readJSON(b2bFile(), {});
+    const reserveDays = parseInt(b2b.reserve_days, 10);
+    const items = [
+      b2b.vat_note && { question: 'Как оплатить заказ юридическому лицу?', answer: String(b2b.vat_note) },
+      Number.isFinite(reserveDays) && reserveDays > 0 && {
+        question: 'На сколько резервируется товар после выставления счёта?',
+        answer: `Товар держим в резерве ${reserveDays} ${plural(reserveDays, 'рабочий день', 'рабочих дня', 'рабочих дней')} с момента выставления счёта.`,
+      },
+      b2b.edo_providers && {
+        question: 'Через какие системы ЭДО отправляете документы?',
+        answer: `Работаем через ${String(b2b.edo_providers)}.`,
+      },
+      b2b.docs_note && { question: 'Какие закрывающие документы вы предоставляете?', answer: String(b2b.docs_note) },
+      b2b.sample_policy && { question: 'Можно ли заказать образец перед тиражом?', answer: String(b2b.sample_policy) },
+      b2b.acceptance_policy && { question: 'Что делать при приёмке, если груз повреждён?', answer: String(b2b.acceptance_policy) },
+    ];
+    return items.filter(Boolean);
+  }
+
+  // FAQPage — разметка того же FAQ, что виден на странице. Google убрал
+  // FAQ-сниппет из выдачи в мае 2026-го, поэтому смысл разметки здесь не в
+  // rich result, а в машиночитаемости для Яндекса и AI-ответов.
+  function faqLd(faq) {
+    if (!faq.length) return '';
+    return `<script type="application/ld+json">${jsonForScript({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faq.map(item => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: { '@type': 'Answer', text: item.answer },
+      })),
+    })}</script>`;
   }
 
   function faqHtml(faq) {
@@ -483,10 +550,19 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   // определяет, что именно умеет производство, — это разные факты.
   // Поэтому блок собирается только из заполненных полей и только для тех
   // товаров, у которых услуга включена в админке.
+  // Поле logo_service_methods в данных встречается и строкой («Гравировка,
+  // УФ-печать» — так его сохраняет админка), и массивом (так оно заведено в
+  // исходной схеме товара). Разбираем оба варианта в одном месте, иначе
+  // карточка и FAQ читают одно и то же поле по-разному.
+  function logoMethods(product) {
+    const raw = product.logo_service_methods;
+    const list = Array.isArray(raw) ? raw : String(raw || '').split(',');
+    return list.map(part => String(part).trim()).filter(Boolean);
+  }
+
   function brandingGuideHtml(product) {
     if (!product.logo_service_available) return '';
-    const methods = String(product.logo_service_methods || '')
-      .split(',').map(part => part.trim()).filter(Boolean);
+    const methods = logoMethods(product);
     const leadTime = String(product.logo_service_lead_time || '').trim();
     const minQty = Number(product.logo_service_min_qty) || 0;
     const facts = [
@@ -620,6 +696,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   <meta name="twitter:card" content="summary_large_image">
   <script type="application/ld+json">${jsonForScript(productLd)}</script>
   <script type="application/ld+json">${jsonForScript(breadcrumbLd)}</script>
+  ${faqLd(faq)}
   ${faviconHtml()}${revealNoscriptHtml()}
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/product.css">
@@ -1068,6 +1145,123 @@ ${headerHtml(contacts)}
 ${footerHtml(contacts, company)}
 </body>
 </html>`;
+  }
+
+  // DEV-09: сезонный хаб. Никакого «праздничного» признака в данных нет и
+  // вывести его неоткуда — подборку у каждого товара выбирает менеджер в
+  // админке. Пустая подборка не рендерится, а если не отмечен ни один товар,
+  // роут отдаёт 404: страница-пустышка хуже отсутствующей.
+  function seasonalGroups(products) {
+    return SEASONAL_COLLECTIONS
+      .map(collection => ({
+        ...collection,
+        items: products.filter(product => product.visible && product.seasonal_collection === collection.id),
+      }))
+      .filter(group => group.items.length);
+  }
+
+  function seasonalPageHtml(products, contacts = {}, company = {}) {
+    const groups = seasonalGroups(products);
+    const total = groups.reduce((sum, group) => sum + group.items.length, 0);
+    const title = 'Корпоративные подарки на Новый год со склада в Санкт-Петербурге | СкладПромо';
+    const description = `Новогодние корпоративные подарки в наличии на складе в Санкт-Петербурге: ${total} ${plural(total, 'позиция', 'позиции', 'позиций')} в ${groups.length} ${plural(groups.length, 'подборке', 'подборках', 'подборках')}. Цены и остатки актуальны.`;
+    const url = `${cleanSiteUrl}/podarki-na-novyj-god`;
+
+    const breadcrumbLd = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Главная', item: `${cleanSiteUrl}/` },
+        { '@type': 'ListItem', position: 2, name: 'Подарки на Новый год', item: url },
+      ],
+    };
+    const itemListLd = {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: 'Корпоративные подарки на Новый год',
+      numberOfItems: total,
+      itemListElement: groups.flatMap(group => group.items).map((product, index) => ({
+        '@type': 'ListItem', position: index + 1, url: productUrl(product), name: productName(product),
+      })),
+    };
+
+    const stats = categoryStats(groups.flatMap(group => group.items));
+
+    return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>${escH(title)}</title>
+  <meta name="description" content="${escH(description)}">
+  <link rel="canonical" href="${escH(url)}">
+  <meta property="og:title" content="${escH(title)}">
+  <meta property="og:description" content="${escH(description)}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="${escH(url)}">
+  <meta property="og:site_name" content="СкладПромо">
+  <script type="application/ld+json">${jsonForScript(breadcrumbLd)}</script>
+  <script type="application/ld+json">${jsonForScript(itemListLd)}</script>
+  ${faviconHtml()}${revealNoscriptHtml()}
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/catalog.css">
+  <link rel="stylesheet" href="/css/category.css">
+  ${analyticsHtml()}
+</head>
+<body class="category-page-body">
+  ${headerHtml(contacts)}
+  <main class="category-page-wrapper">
+    <nav class="category-breadcrumb" aria-label="Навигация">
+      <a href="/">Главная</a>
+      <span class="category-breadcrumb-sep">›</span>
+      <a href="/catalog">Каталог</a>
+      <span class="category-breadcrumb-sep">›</span>
+      <span class="category-breadcrumb-current">Подарки на Новый год</span>
+    </nav>
+
+    <header class="category-hero">
+      <h1 class="category-hero-title">Корпоративные подарки на Новый год</h1>
+      <p class="category-hero-desc">Позиции со склада в Санкт-Петербурге, отобранные для новогодних корпоративных заказов: подарки сотрудникам, клиентам и партнёрам. Всё, что здесь показано, есть в наличии — количество и цена те же, что в каталоге.</p>
+      <div class="category-hero-metrics">
+        <span class="cat-metric-pill"><span class="cat-metric-dot success"></span>${priceText(stats.stock)} шт. в наличии</span>
+        ${stats.min && stats.max ? `<span class="cat-metric-pill"><span class="cat-metric-dot"></span>от ${priceText(stats.min)} до ${priceText(stats.max)} ₽</span>` : ''}
+        <span class="cat-metric-pill"><span class="cat-metric-dot"></span>Опт и розница</span>
+        <span class="cat-metric-pill"><span class="cat-metric-dot"></span>Склад в Санкт-Петербурге</span>
+      </div>
+    </header>
+
+    ${groups.map(group => `<section class="seasonal-group" aria-labelledby="group-${escH(group.id)}">
+      <h2 id="group-${escH(group.id)}" class="seasonal-group-title">${escH(group.title)}</h2>
+      <p class="seasonal-group-intro">${escH(group.intro)}</p>
+      <div class="catalog-products-grid">${group.items.map(item => categoryProductCardHtml(item)).join('')}</div>
+    </section>`).join('')}
+
+    ${categoryWholesaleWideBannerHtml(contacts)}
+  </main>
+  ${footerHtml(contacts, company)}
+  ${cartHtml(company)}
+  <script src="/js/category.js"></script>
+</body>
+</html>`;
+  }
+
+  // Тот же B2B-баннер, что на страницах категорий, но без привязки к категории.
+  function categoryWholesaleWideBannerHtml(contacts = {}) {
+    const phone = validPhone(contacts.phone);
+    const telegramUrl = validUrl(contacts.telegram, ['t.me/username']);
+    return `<section class="category-b2b-cta" aria-labelledby="seasonal-cta-title">
+      <div class="b2b-cta-inner">
+        <div class="b2b-cta-text">
+          <span class="b2b-pill">Корпоративным клиентам</span>
+          <h2 id="seasonal-cta-title">Новогодний тираж под ваш бюджет</h2>
+          <p>Пришлите количество и бюджет — менеджер подберёт позиции из наличия и подтвердит стоимость.</p>
+        </div>
+        <div class="b2b-cta-actions">
+          ${phone ? `<a href="tel:+${escH(phone.replace(/\D/g, ''))}" class="b2b-btn-primary">Позвонить: ${escH(phone)}</a>` : ''}
+          ${telegramUrl ? `<a href="${escH(telegramUrl)}" target="_blank" rel="noopener" class="b2b-btn-secondary">Написать в Telegram</a>` : ''}
+        </div>
+      </div>
+    </section>`;
   }
 
   function deliveryPageHtml(contacts = {}, company = {}) {
@@ -2031,6 +2225,7 @@ ${footerHtml(contacts, company)}
 
   const contactsFile = () => path.join(path.dirname(productsFile), 'contacts.json');
   const companyFile  = () => path.join(path.dirname(productsFile), 'company.json');
+  const b2bFile      = () => path.join(path.dirname(productsFile), 'b2b.json');
 
   router.get('/', (req, res) => {
     res.send(homePageHtml(readJSON(productsFile, []), readJSON(contactsFile(), {}), readJSON(companyFile(), {})));
@@ -2089,6 +2284,17 @@ ${footerHtml(contacts, company)}
     res.send(privacyPageHtml(readJSON(contactsFile(), {}), company));
   });
 
+  // Пока ни один товар не отмечен в подборках — хаба нет. Страница с
+  // заголовком «Подарки на Новый год» и пустотой под ним хуже, чем 404:
+  // её увидят и покупатель, и поисковик.
+  router.get('/podarki-na-novyj-god', (req, res) => {
+    const products = readJSON(productsFile, []);
+    if (!seasonalGroups(products).length) {
+      return res.status(404).type('html').send('<!doctype html><title>Страница не найдена</title><h1>Страница не найдена</h1>');
+    }
+    res.send(seasonalPageHtml(products, readJSON(contactsFile(), {}), readJSON(companyFile(), {})));
+  });
+
   router.get('/robots.txt', (req, res) => {
     res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /admin-help.html\nDisallow: /api/\nDisallow: /cart/\nDisallow: /*?\n\nSitemap: ${cleanSiteUrl}/sitemap.xml`);
   });
@@ -2115,6 +2321,11 @@ ${footerHtml(contacts, company)}
       // (условие то же, что в самом роуте — заполнено юрлицо), иначе в
       // sitemap ушёл бы URL, отвечающий 404.
       ...(readJSON(companyFile(), {}).legal_name ? [{ loc: `${cleanSiteUrl}/privacy`, priority: '0.3', modified: PRIVACY_LASTMOD }] : []),
+      // Сезонный хаб — в карте только пока в нём есть отмеченные товары
+      // (то же условие, что в роуте), иначе URL отвечал бы 404.
+      ...(seasonalGroups(products).length
+        ? [{ loc: `${cleanSiteUrl}/podarki-na-novyj-god`, priority: '0.7', modified: pageChanged(latestChange(seasonalGroups(products).flatMap(group => group.items))) }]
+        : []),
       // Ключ категории строится как `category_slug || 'catalog'` — фильтровать
       // надо по тому же выражению, иначе синтетическая категория 'catalog'
       // никогда не найдёт собственные товары.
@@ -2244,4 +2455,4 @@ ${productLines.join('\n')}
   return router;
 }
 
-module.exports = { createSeoRouter };
+module.exports = { createSeoRouter, SEASONAL_COLLECTIONS, SEASONAL_COLLECTION_IDS };
