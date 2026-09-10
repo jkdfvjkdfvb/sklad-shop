@@ -426,7 +426,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
     if (!related.length) return `<section class="related-products" aria-labelledby="related-heading"><h2 id="related-heading">Похожие товары</h2><p>В этой категории пока нет других товаров.</p></section>`;
     return `<section class="related-products" aria-labelledby="related-heading">
   <h2 id="related-heading">Похожие товары</h2>
-  <div class="catalog-products-grid">${related.map(item => categoryProductCardHtml(item)).join('')}</div>
+  <div class="seo-product-grid">${related.map(item => productCardHtml(item)).join('')}</div>
 </section>`;
   }
 
@@ -542,29 +542,51 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   ${faviconHtml()}${revealNoscriptHtml()}
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/product.css">
+  <link rel="stylesheet" href="/css/catalog.css">
   ${analyticsHtml()}
 </head>
-<body>
+<body class="product-page-body">
 ${headerHtml(contacts)}
 <main class="product-page-main">
   <div class="product-page-wrap">
     <nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><a href="/catalog">Каталог</a><span class="bc-sep">›</span><a href="/category/${encodeURIComponent(product.category_slug)}">${escH(categoryName)}</a><span class="bc-sep">›</span><span>${escH(productName(product))}</span></nav>
     <article class="product-detail" itemscope itemtype="https://schema.org/Product">
       ${image
-        ? `<figure class="product-detail-media"><img src="/${escH(String(image).replace(/^\//, ''))}" alt="${escH(productName(product))}" class="product-detail-img" itemprop="image">${product.video_url || product.video ? `<button class="card-video-btn" id="video-btn" data-video="/${escH(String(product.video_url || product.video).replace(/^\//, ''))}">▶ Видео</button>` : ''}<figcaption class="visually-hidden">${escH(productName(product))}, арт. ${escH(product.article)}</figcaption></figure>`
+        ? `<figure class="product-detail-media"><div class="pdp-img-frame"><img src="/${escH(String(image).replace(/^\//, ''))}" alt="${escH(productName(product))}" class="product-detail-img" itemprop="image"></div>${product.video_url || product.video ? `<button class="card-video-btn" id="video-btn" data-video="/${escH(String(product.video_url || product.video).replace(/^\//, ''))}">▶ Видео</button>` : ''}<figcaption class="visually-hidden">${escH(productName(product))}, арт. ${escH(product.article)}</figcaption></figure>`
         : `<div class="product-detail-media"><div class="product-detail-no-img">Нет фото</div>${product.video_url || product.video ? `<button class="card-video-btn" id="video-btn" data-video="/${escH(String(product.video_url || product.video).replace(/^\//, ''))}">▶ Видео</button>` : ''}</div>`}
       <div class="product-detail-info">
-        <p class="product-detail-article">Арт. <span itemprop="sku">${escH(product.article)}</span></p>
+        <div class="pdp-meta-row">
+          <span class="product-detail-article">Арт. <span itemprop="sku">${escH(product.article)}</span></span>
+          <a href="/category/${encodeURIComponent(product.category_slug)}" class="pdp-cat-tag">${escH(categoryName)}</a>
+        </div>
         <h1 class="product-detail-name" itemprop="name">${escH(productName(product))}</h1>
         <div class="product-detail-prices" itemprop="offers" itemscope itemtype="https://schema.org/Offer">
           <meta itemprop="priceCurrency" content="RUB"><link itemprop="availability" href="${stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}">
           ${sale ? `<p class="pdp-old-price">${priceText(product.old_price)} ₽</p><p class="pdp-sale-note">Скидка ${escH(product.discount_percent)}%. ${escH(product.sale_terms)}</p>` : ''}
-          <p class="pdp-price pdp-retail"><data class="pdp-val" itemprop="price" value="${price}">${priceText(price)} ₽</data></p><p class="pdp-opt-note">Опт — по запросу</p>
+          <div class="pdp-prices-main"><p class="pdp-price pdp-retail"><data class="pdp-val" itemprop="price" value="${price}">${priceText(price)} ₽</data></p></div>
+          <p class="pdp-opt-note">Оптовые условия — по запросу</p>
         </div>
         <!-- formatStockDate уже отдаёт дату с точкой («8 сентября 2026 г.») — вторую точку не добавляем (был баг «г..», см. faqFor). -->
         <p class="product-detail-qty ${stock > 0 ? 'in-stock' : 'out-stock'}">${stock > 0 ? `В наличии: ${escH(String(stock))} шт.${updatedTimeHtml ? ` Остаток обновлён ${updatedTimeHtml}` : ''}` : `Нет в наличии${updatedTimeHtml ? `. Остаток обновлён ${updatedTimeHtml}` : ''}`}</p>
+        <div class="pdp-trust-pills">
+          <span class="pdp-trust-pill"><span class="pdp-trust-dot"></span>Склад в Санкт-Петербурге</span>
+          <span class="pdp-trust-pill"><span class="pdp-trust-dot"></span>Отгрузка от 1 дня</span>
+          <span class="pdp-trust-pill"><span class="pdp-trust-dot"></span>Опт и розница</span>
+        </div>
         <p class="product-factual-summary" itemprop="description">${escH(description)}</p>
-        <div class="product-action-row">${stock > 0 ? `<button class="add-to-cart-btn" id="add-btn" data-article="${escH(product.article)}">В корзину</button>` : ''}<button type="button" class="wholesale-btn" id="wholesale-btn">Запросить оптовые условия</button></div>
+        <div class="pdp-action-wrapper">
+          <div class="pdp-qty-and-cart">
+            ${stock > 0 ? `
+            <div class="pdp-qty-picker">
+              <button type="button" class="pdp-qty-btn" id="pdp-qty-dec" aria-label="Уменьшить количество">−</button>
+              <input type="number" id="pdp-qty-val" class="pdp-qty-input" value="1" min="1" max="${stock}" readonly>
+              <button type="button" class="pdp-qty-btn" id="pdp-qty-inc" aria-label="Увеличить количество">+</button>
+            </div>
+            <button class="add-to-cart-btn" id="add-btn" data-article="${escH(product.article)}">В корзину</button>
+            ` : ''}
+            <button type="button" class="wholesale-btn" id="wholesale-btn">Запросить оптовые условия</button>
+          </div>
+        </div>
       </div>
     </article>
     ${factsHtml(product)}
@@ -575,6 +597,13 @@ ${headerHtml(contacts)}
     ${relatedHtml(product, products)}
   </div>
 </main>
+<aside class="pdp-sticky-bar" id="pdp-sticky-bar" aria-label="Быстрый заказ">
+  <div class="pdp-sticky-info">
+    <span class="pdp-sticky-title">${escH(productName(product))}</span>
+    <span class="pdp-sticky-price">${priceText(price)} ₽</span>
+  </div>
+  ${stock > 0 ? `<button type="button" class="pdp-sticky-btn" id="pdp-sticky-add-btn">В корзину</button>` : `<a href="#wholesale-request" class="pdp-sticky-btn">Опт запрос</a>`}
+</aside>
 ${footerHtml(contacts, company)}
 ${cartHtml()}
 <script>window.PRODUCT_DATA=${jsonForScript({ article: product.article, name: productName(product), price, qty: stock, image: image ? `/${String(image).replace(/^\//, '')}` : '' })};</script>
