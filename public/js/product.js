@@ -168,16 +168,37 @@ function renderCartItems() {
   cartFooter.style.display = '';
 }
 
+// ======== PDP QUANTITY PICKER ========
+const qtyInput = document.getElementById('pdp-qty-val');
+const qtyDecBtn = document.getElementById('pdp-qty-dec');
+const qtyIncBtn = document.getElementById('pdp-qty-inc');
+
+if (qtyDecBtn && qtyInput) {
+  qtyDecBtn.addEventListener('click', () => {
+    const current = Number(qtyInput.value) || 1;
+    if (current > 1) qtyInput.value = current - 1;
+  });
+}
+if (qtyIncBtn && qtyInput) {
+  qtyIncBtn.addEventListener('click', () => {
+    const current = Number(qtyInput.value) || 1;
+    const max = Number(qtyInput.max) || 9999;
+    if (current < max) qtyInput.value = current + 1;
+  });
+}
+
 // ======== ADD TO CART ========
 function addToCart() {
-  const existing = cart.find(i => i.article === product.article);
+  if (!product) return;
+  const chosenQty = Number(qtyInput?.value) || 1;
+  const existing = cart.find(i => String(i.article) === String(product.article));
   if (existing) {
-    existing.qty = Math.min(existing.qty + 1, product.qty);
+    existing.qty = Math.min(existing.qty + chosenQty, product.qty);
   } else {
     cart.push({
       article: product.article, name: product.name,
       price:   product.price,   image: product.image,
-      maxQty:  product.qty,     qty: 1,
+      maxQty:  product.qty,     qty: chosenQty,
     });
   }
   saveCart();
@@ -194,6 +215,58 @@ function addToCart() {
 
 const addBtn = document.getElementById('add-btn');
 if (addBtn) addBtn.addEventListener('click', addToCart);
+
+const stickyAddBtn = document.getElementById('pdp-sticky-add-btn');
+if (stickyAddBtn) stickyAddBtn.addEventListener('click', addToCart);
+
+// Добавление в корзину из блока "Похожие товары"
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.catalog-add-cart-btn');
+  if (!btn) return;
+
+  const article = btn.dataset.article;
+  const name = btn.dataset.name;
+  const price = Number(btn.dataset.price) || 0;
+  const maxQty = Number(btn.dataset.qty) || 9999;
+  const image = btn.dataset.image || '';
+
+  const existing = cart.find(i => String(i.article) === String(article));
+  if (existing) {
+    existing.qty = Math.min(existing.qty + 1, maxQty);
+  } else {
+    cart.push({
+      article,
+      name,
+      price,
+      image,
+      maxQty,
+      qty: 1,
+    });
+  }
+
+  saveCart();
+  updateCartBadge();
+
+  const oldText = btn.textContent;
+  btn.classList.add('added');
+  btn.textContent = '✓ Добавлено';
+  setTimeout(() => {
+    btn.classList.remove('added');
+    btn.textContent = oldText;
+  }, 1200);
+
+  openCart();
+});
+
+// Мобильная липкая панель заказа (появляется при прокрутке ниже кнопки добавления)
+const stickyBar = document.getElementById('pdp-sticky-bar');
+if (stickyBar && addBtn && 'IntersectionObserver' in window) {
+  const barObserver = new IntersectionObserver(([entry]) => {
+    // Если кнопка покупки вверху видна — прячем нижний бар; когда ушла из экрана — показываем
+    stickyBar.classList.toggle('is-visible', !entry.isIntersecting);
+  }, { threshold: 0.1 });
+  barObserver.observe(addBtn);
+}
 
 if (product) window.skladTrack?.('view_item', { item_id: product.article, item_name: product.name, value: product.price, currency: 'RUB' });
 
