@@ -2147,15 +2147,43 @@ ${footerHtml(contacts, company)}
     const productLines = products.map(product => `- [${productName(product)}](${productUrl(product)}) — ${priceText(retailPrice(product))} ₽, ${inStock(product) ? `в наличии ${quantity(product)} шт.` : 'нет в наличии'}, арт. ${product.article}.`);
 
     // Дата генерации и дата среза остатков: потребителю (в т.ч. AI) важно
-    // понимать, насколько свежи цифры. Никаких сведений о доставке, регионе,
-    // юрлице и минимальном заказе здесь нет — они не подтверждены.
+    // понимать, насколько свежи цифры.
+    //
+    // Раньше здесь сознательно не было ни юрлица, ни доставки, ни оптовых
+    // условий — на тот момент они не были подтверждены. Сейчас подтверждены:
+    // реквизиты и склад заполнены в «Компании», условия доставки и оптовые
+    // скидки подтверждены владельцем. Блоки ниже собираются из тех же
+    // источников, что и страницы сайта, поэтому разъехаться с ними не могут.
     const stockDate = lastmod(products.map(p => p.stock_updated_at).filter(Boolean).sort().pop());
+    const company = readJSON(companyFile(), {});
+
+    const companyLines = [
+      company.legal_name ? `- Юридическое лицо: ${company.legal_name}` : '',
+      company.inn ? `- ИНН: ${company.inn}` : '',
+      company.ogrn ? `- ОГРН: ${company.ogrn}` : '',
+      (company.warehouse_city || company.warehouse_address)
+        ? `- Склад и самовывоз: ${[company.warehouse_city, company.warehouse_address].filter(Boolean).join(', ')}` : '',
+      (company.working_days?.length && company.working_hours_from && company.working_hours_to)
+        ? `- Часы работы склада: ${workingDaysText(company.working_days)}, ${company.working_hours_from}–${company.working_hours_to}` : '',
+    ].filter(Boolean);
+
+    const tierLines = WHOLESALE_TIERS.map(tier => {
+      const qtyText = tier.to ? `${tier.from}–${tier.to} шт.` : `от ${tier.from} шт.`;
+      return `- ${qtyText}: −${Math.round(tier.discount * 100)}% от розничной цены`;
+    });
+
+    const companyBlock = companyLines.length
+      ? `\n## Компания\n\n${companyLines.join('\n')}\n` : '';
+    const termsBlock = `\n## Оптовые условия\n\n- 1–${WHOLESALE_TIERS[0].from - 1} шт.: розничная цена, указанная в каталоге\n${tierLines.join('\n')}\n- Точную стоимость тиража и условия менеджер подтверждает по запросу.\n`;
+    const deliveryBlock = `\n## Доставка и оплата\n\n- Подробные условия: [Доставка и оплата](${cleanSiteUrl}/delivery)\n- Самовывоз со склада — бесплатно.\n- Оплата для юридических лиц и ИП — по счёту, безналичный расчёт.\n`;
+    const privacyBlock = company.legal_name
+      ? `\n## Обработка персональных данных\n\n- [Политика обработки персональных данных](${cleanSiteUrl}/privacy)\n` : '';
 
     res.type('text/plain').send(
 `# СкладПромо — товары со склада
 
 > Каталог сувенирной продукции и бизнес-подарков с наличием и ценами со склада.
-> Цены указаны розничные, в рублях. Оптовые условия — по запросу через форму на странице товара.
+> Цены в каталоге — розничные, за штуку, в рублях. Скидки от тиража — в разделе «Оптовые условия».
 
 generated_at: ${new Date().toISOString()}
 stock_updated_at: ${stockDate || 'неизвестно'}
@@ -2164,7 +2192,8 @@ stock_updated_at: ${stockDate || 'неизвестно'}
 
 - [Главная](${cleanSiteUrl}/)
 - [Весь каталог](${cleanSiteUrl}/catalog)
-
+- [Доставка и оплата](${cleanSiteUrl}/delivery)
+${companyBlock}${termsBlock}${deliveryBlock}${privacyBlock}
 ## Категории (${categories.length})
 
 ${categoryLines.join('\n')}
