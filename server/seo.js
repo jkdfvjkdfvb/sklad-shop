@@ -233,7 +233,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   function footerHtml(contacts = {}, company = {}) {
     // Год берётся из системного времени, а не зашит: в footer он устаревал
     // молча — «2024» провисел до августа 2026-го.
-    return `<footer class="site-footer">${requisitesHtml(company)}<p>© ${new Date().getFullYear()} СкладПромо. Все права защищены.</p></footer>`;
+    return `<footer class="site-footer">${requisitesHtml(company)}<div class="footer-links" style="margin-bottom: 8px"><a href="/delivery" style="text-decoration: underline">Доставка и оплата</a> &bull; <a href="/catalog" style="text-decoration: underline">Каталог</a></div><p>© ${new Date().getFullYear()} СкладПромо. Все права защищены.</p></footer>`;
   }
 
   // Блок «Склад и самовывоз» на главной — фото, адрес, график, условия
@@ -250,8 +250,15 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
     const addressText = hasAddress
       ? [company.warehouse_city, company.warehouse_address].filter(Boolean).join(', ')
       : '';
-    const mapLink = (company.warehouse_lat && company.warehouse_lng)
+    const hasCoords = Boolean(company.warehouse_lat && company.warehouse_lng);
+    const mapLink = hasCoords
       ? `<a href="https://yandex.ru/maps/?pt=${encodeURIComponent(company.warehouse_lng)},${encodeURIComponent(company.warehouse_lat)}&z=16&l=map" target="_blank" rel="noopener">Показать на карте</a>`
+      : '';
+    // Встроенная карта — публичный виджет Яндекс.Карт (map-widget), ключ API
+    // не нужен. Рендерится только когда есть координаты — сейчас пусто
+    // (warehouse_lat/lng), появится сама после заполнения в админке.
+    const mapEmbed = hasCoords
+      ? `<div class="warehouse-map"><iframe src="https://yandex.ru/map-widget/v1/?ll=${encodeURIComponent(company.warehouse_lng)}%2C${encodeURIComponent(company.warehouse_lat)}&z=16&pt=${encodeURIComponent(company.warehouse_lng)}%2C${encodeURIComponent(company.warehouse_lat)}%2Cpm2rdm" width="100%" height="320" frameborder="0" loading="lazy" title="Склад ${escH(company.legal_name || 'СкладПромо')} на карте"></iframe></div>`
       : '';
     const gallery = photos.length
       ? `<div class="warehouse-gallery">${photos.map(src => `<img src="/${escH(src)}" alt="Склад СкладПромо" loading="lazy">`).join('')}</div>`
@@ -263,6 +270,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   ${addressText ? `<p class="warehouse-address">${escH(addressText)}${mapLink ? ` — ${mapLink}` : ''}</p>` : ''}
   ${hoursText ? `<p class="warehouse-hours">Часы работы: ${escH(hoursText)}</p>` : ''}
   ${company.pickup_terms ? `<p class="warehouse-terms">${escH(company.pickup_terms)}</p>` : ''}
+  ${mapEmbed}
 </section>`;
   }
 
@@ -844,6 +852,411 @@ ${cartHtml()}
     const description = 'Товары со склада с подтверждённой скидкой: старая и новая цена, размер скидки и условия акции.';
     const url = `${cleanSiteUrl}/sale`;
     return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${url}"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:type" content="website"><meta property="og:url" content="${url}">${faviconHtml()}${revealNoscriptHtml()}<link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css">${analyticsHtml()}</head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><span>Распродажа</span></nav><h1>Распродажа товаров со склада</h1><div class="seo-product-grid">${products.map(item => productCardHtml(item, { sale: true })).join('')}</div></main>${footerHtml(contacts, company)}</body></html>`;
+  }
+
+  function deliveryPageHtml(contacts = {}, company = {}) {
+    const title = 'Доставка и оплата сувенирной продукции со склада в СПб | СкладПромо';
+    const description = 'Условия доставки и оплаты сувенирной продукции: бесплатный самовывоз со склада в Санкт-Петербурге, доставка курьером по СПб и отправка по всей России (СДЭК, Яндекс Go, ТК), безналичный расчет с НДС и СБП.';
+    const url = `${cleanSiteUrl}/delivery`;
+
+    const breadcrumbLd = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Главная', item: `${cleanSiteUrl}/` },
+        { '@type': 'ListItem', position: 2, name: 'Доставка и оплата', item: url },
+      ],
+    };
+
+    const webPageLd = {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Доставка и оплата сувенирной продукции',
+      url,
+      description,
+      isPartOf: { '@type': 'WebSite', name: 'СкладПромо', url: `${cleanSiteUrl}/` },
+    };
+
+    const phone = validPhone(contacts.phone) || '+7 (812) 962-15-98';
+    const email = contacts.email || 'giftsworld1@gmail.com';
+    const cleanPhone = phone.replace(/\D/g, '');
+    // Было захардкожено "t.me/salegifts" — чужой/несуществующий адрес,
+    // настоящий берём из contacts, как везде на сайте (см. categoryWholesaleBannerHtml).
+    const telegramUrl = validUrl(contacts.telegram, ['t.me/username']);
+    // P2: кнопка копирования реквизитов. Те же поля и то же условие
+    // (есть legal_name), что в requisitesHtml() — но plain text для
+    // вставки в 1С/банк-клиент, а не HTML с <br>.
+    const requisitesPlainText = company.legal_name ? [
+      company.legal_name,
+      company.inn ? `ИНН ${company.inn}` : '',
+      company.kpp ? `КПП ${company.kpp}` : '',
+      company.ogrn ? `ОГРН ${company.ogrn}` : '',
+      company.legal_address ? `Юр. адрес: ${company.legal_address}` : '',
+      company.bank_name ? `Банк: ${company.bank_name}` : '',
+      company.bank_account ? `Р/с ${company.bank_account}` : '',
+      company.bank_corr_account ? `К/с ${company.bank_corr_account}` : '',
+      company.bank_bik ? `БИК ${company.bank_bik}` : '',
+    ].filter(Boolean).join('\n') : '';
+
+    return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>${escH(title)}</title>
+  <meta name="description" content="${escH(description)}">
+  <link rel="canonical" href="${escH(url)}">
+  <meta property="og:title" content="${escH(title)}">
+  <meta property="og:description" content="${escH(description)}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="${escH(url)}">
+  <meta property="og:site_name" content="СкладПромо">
+  <script type="application/ld+json">${jsonForScript(breadcrumbLd)}</script>
+  <script type="application/ld+json">${jsonForScript(webPageLd)}</script>
+  ${faviconHtml()}
+  ${revealNoscriptHtml()}
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/delivery.css">
+  ${analyticsHtml()}
+</head>
+<body class="delivery-page-body">
+  ${headerHtml(contacts)}
+  <main class="delivery-page-wrapper">
+    <nav class="delivery-breadcrumb" aria-label="Навигация">
+      <a href="/">Главная</a>
+      <span class="delivery-breadcrumb-sep">›</span>
+      <span class="delivery-breadcrumb-current">Доставка и оплата</span>
+    </nav>
+
+    <header class="delivery-hero">
+      <h1 class="delivery-hero-title">Доставка и оплата</h1>
+      <p class="delivery-hero-desc">Отгружаем сувенирную продукцию и корпоративные подарки со склада в Санкт-Петербурге. Заказ можно забрать самостоятельно, оформить доставку курьером до офиса или отправить партию в любой город России.</p>
+
+      <div class="delivery-hero-metrics">
+        <span class="delivery-metric-pill"><span class="delivery-metric-dot success"></span>Самовывоз бесплатно от 1 шт.</span>
+        <span class="delivery-metric-pill"><span class="delivery-metric-dot success"></span>По СПб бесплатно от 10 000 ₽</span>
+        <span class="delivery-metric-pill"><span class="delivery-metric-dot"></span>По всей РФ: СДЭК, Яндекс, ТК</span>
+        <span class="delivery-metric-pill"><span class="delivery-metric-dot"></span>Безнал с НДС и по QR-коду (СБП)</span>
+        <span class="delivery-metric-pill"><span class="delivery-metric-dot"></span>ЭДО: Диадок и СБИС</span>
+      </div>
+    </header>
+
+    <nav class="delivery-sticky-nav" aria-label="Разделы доставки и оплаты">
+      <div class="delivery-nav-inner">
+        <button type="button" class="delivery-nav-pill active" data-target="summary">Главные условия</button>
+        <button type="button" class="delivery-nav-pill" data-target="spb">1. Доставка по СПб</button>
+        <button type="button" class="delivery-nav-pill" data-target="pickup">2. Самовывоз со склада</button>
+        <button type="button" class="delivery-nav-pill" data-target="russia">3. Доставка по России</button>
+        <button type="button" class="delivery-nav-pill" data-target="payment">4. Способы оплаты</button>
+        <button type="button" class="delivery-nav-pill" data-target="documents">5. Документы и гарантии</button>
+        <button type="button" class="delivery-nav-pill" data-target="logistics">Контакты отдела логистики</button>
+      </div>
+    </nav>
+
+    <!-- СЕКЦИЯ: ГЛАВНЫЕ УСЛОВИЯ КОРОТКО -->
+    <section class="delivery-summary-section" id="summary" aria-labelledby="summary-title">
+      <h2 id="summary-title" class="delivery-section-title">Главные условия коротко</h2>
+      <div class="summary-cards-grid">
+        <div class="summary-card">
+          <div class="summary-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          </div>
+          <span class="summary-card-label">Самовывоз</span>
+          <strong class="summary-card-title">Бесплатно от 1 шт.</strong>
+          <p class="summary-card-text">Со склада на Гражданском проспекте, д. 118, к. 1 в Санкт-Петербурге.</p>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+          <span class="summary-card-label">По Санкт-Петербургу</span>
+          <strong class="summary-card-title">Бесплатно от 10 000 ₽</strong>
+          <p class="summary-card-text">При заказе до 10 000 ₽ — курьером по фактическому тарифу Яндекс Go без наценок.</p>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          </div>
+          <span class="summary-card-label">По всей России</span>
+          <strong class="summary-card-title">Яндекс, Авито и ТК</strong>
+          <p class="summary-card-text">Отправка через Деловые Линии, СДЭК, ПЭК, Яндекс Доставку или любую ТК на ваш выбор.</p>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          </div>
+          <span class="summary-card-label">Оплата</span>
+          <strong class="summary-card-title">Безнал и QR (СБП)</strong>
+          <p class="summary-card-text">Безналичный расчет по счету с НДС для юрлиц и ИП либо быстрая оплата по QR-коду.</p>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <span class="summary-card-label">Документы</span>
+          <strong class="summary-card-title">УПД, Диадок, СБИС</strong>
+          <p class="summary-card-text">ЭДО день в день либо оригиналы закрывающих документов с синей печатью в коробке с заказом.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- СЕКЦИЯ 1: ДОСТАВКА ПО СПБ -->
+    <section class="delivery-content-block" id="spb" aria-labelledby="spb-title">
+      <div class="delivery-block-header">
+        <span class="delivery-badge">Курьерская доставка</span>
+        <h2 id="spb-title" class="delivery-section-title">1. Доставка по Санкт-Петербургу</h2>
+        <p class="delivery-block-desc">Доставляем заказы по городу в пределах КАД по рабочим дням.</p>
+      </div>
+
+      <div class="conditions-two-col">
+        <div class="condition-card highlight">
+          <span class="condition-tag free">Бесплатно</span>
+          <h3 class="condition-title">Заказ от 10 000 ₽</h3>
+          <p class="condition-desc">Доставка бесплатная в пределах КАД. Заказ привозит курьерская служба прямо до вашего офиса или склада.</p>
+        </div>
+        <div class="condition-card">
+          <span class="condition-tag">По тарифу сервиса</span>
+          <h3 class="condition-title">Заказ до 10 000 ₽</h3>
+          <p class="condition-desc">Отправляем курьерской службой Яндекс Go. Вы оплачиваете только фактический тариф сервиса на момент отправки, без дополнительных комиссий и наценок.</p>
+        </div>
+      </div>
+
+      <div class="steps-container">
+        <h3 class="steps-title">Как проходит отправка</h3>
+        <div class="steps-grid">
+          <div class="step-box">
+            <div class="step-num">1</div>
+            <p class="step-text">Менеджер сообщает вам о готовности тиража на складе.</p>
+          </div>
+          <div class="step-box">
+            <div class="step-num">2</div>
+            <p class="step-text">Согласуем удобный день, интервал времени и телефон контактного лица, которое примет коробки.</p>
+          </div>
+          <div class="step-box">
+            <div class="step-num">3</div>
+            <p class="step-text">Перед выездом курьер связывается с получателем.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-callout">
+        Если требуется доставка за пределы КАД или в города Ленинградской области (Петергоф, Пушкин, Сестрорецк, Кронштадт), менеджер рассчитает стоимость поездки при согласовании заказа.
+      </div>
+    </section>
+
+    <!-- СЕКЦИЯ 2: САМОВЫВОЗ СО СКЛАДА -->
+    <section class="delivery-content-block" id="pickup" aria-labelledby="pickup-title">
+      <div class="delivery-block-header">
+        <span class="delivery-badge">Собственный склад</span>
+        <h2 id="pickup-title" class="delivery-section-title">2. Самовывоз со склада</h2>
+        <p class="delivery-block-desc">Забрать готовый заказ можно самостоятельно. Это бесплатно для тиражей любого объема и стоимости.</p>
+      </div>
+
+      <div class="warehouse-info-card">
+        <div class="wh-info-item">
+          <strong>Адрес склада</strong>
+          <p>Санкт-Петербург, Гражданский пр., д. 118, корп. 1</p>
+          <span>метро «Гражданский проспект»</span>
+        </div>
+        <div class="wh-info-item">
+          <strong>График выдачи</strong>
+          <p>Понедельник — пятница, с 10:00 до 18:00</p>
+          <span>Суббота и воскресенье — выходные дни</span>
+        </div>
+      </div>
+
+      <div class="steps-container">
+        <h3 class="steps-title">Порядок получения</h3>
+        <div class="steps-grid">
+          <div class="step-box">
+            <div class="step-num">1</div>
+            <p class="step-text">Предупредите менеджера за пару часов до приезда, чтобы кладовщики успели скомплектовать заказ и распечатать документы.</p>
+          </div>
+          <div class="step-box">
+            <div class="step-num">2</div>
+            <p class="step-text"><strong>Для юрлиц и ИП:</strong> представитель компании должен иметь при себе паспорт и оригинал доверенности (типовая форма М-2) либо круглую печать организации при наличии права подписи.</p>
+          </div>
+          <div class="step-box">
+            <div class="step-num">3</div>
+            <p class="step-text">На складе можно спокойно вскрыть упаковку, проверить цвет, качество нанесения и пересчитать количество позиций.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- СЕКЦИЯ 3: ДОСТАВКА ПО РОССИИ -->
+    <section class="delivery-content-block" id="russia" aria-labelledby="russia-title">
+      <div class="delivery-block-header">
+        <span class="delivery-badge">Регионы РФ</span>
+        <h2 id="russia-title" class="delivery-section-title">3. Доставка по России</h2>
+        <p class="delivery-block-desc">Работаем со всеми регионами страны. Способ отправки выбираете вы в зависимости от объема партии, срочности и бюджета.</p>
+      </div>
+
+      <div class="conditions-two-col">
+        <div class="condition-card">
+          <span class="condition-tag">Срочные заказы и образцы</span>
+          <h3 class="condition-title">Быстрая доставка: Яндекс Доставка и Авито Доставка</h3>
+          <p class="condition-desc">Оптимально для небольших тиражей, единичных образцов продукции и срочных заказов.</p>
+          <ul style="margin: 8px 0 0 18px; line-height: 1.55; font-size: 0.92rem; color: var(--charcoal);">
+            <li>Доставка до ближайшего пункта выдачи заказов (ПВЗ) или прямо в руки курьером.</li>
+            <li>Отслеживание по трек-номеру на каждом этапе пути.</li>
+            <li>Быстрое оформление через приложения сервисов.</li>
+          </ul>
+        </div>
+
+        <div class="condition-card">
+          <span class="condition-tag">Объемные и сборные грузы</span>
+          <h3 class="condition-title">Транспортные компании</h3>
+          <p class="condition-desc">Для объемных, тяжелых и паллетных грузов сотрудничаем с надежными перевозчиками:</p>
+          <div class="carrier-tags-grid">
+            <span class="carrier-tag">«Деловые Линии»</span>
+            <span class="carrier-tag">СДЭК</span>
+            <span class="carrier-tag">ПЭК</span>
+            <span class="carrier-tag">«Байкал Сервис»</span>
+            <span class="carrier-tag">«Возовоз»</span>
+          </div>
+          <p class="condition-desc" style="font-size: 0.88rem; color: var(--mute);">А также любая другая транспортная компания с терминалом в Санкт-Петербурге по вашему желанию.</p>
+        </div>
+      </div>
+
+      <div class="bullet-features-list">
+        <div class="feature-check-item">
+          <div class="feature-check-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <p class="feature-check-text"><strong>Бесплатный подвоз к терминалу:</strong> до терминала выбранной ТК в Санкт-Петербурге довозим заказ бесплатно.</p>
+        </div>
+        <div class="feature-check-item">
+          <div class="feature-check-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <p class="feature-check-text"><strong>Оплата по тарифам ТК:</strong> межтерминальную перевозку и экспедирование до двери в вашем городе вы оплачиваете напрямую транспортной компании при получении груза.</p>
+        </div>
+        <div class="feature-check-item">
+          <div class="feature-check-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <p class="feature-check-text"><strong>Защита хрупких товаров:</strong> хрупкие товары (посуду, термокружки, стекло, электронику) перед сдачей упаковываем в жесткую обрешетку или паллетный борт, чтобы продукция доехала в идеальном состоянии.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- СЕКЦИЯ 4: СПОСОБЫ ОПЛАТЫ -->
+    <section class="delivery-content-block" id="payment" aria-labelledby="payment-title">
+      <div class="delivery-block-header">
+        <span class="delivery-badge">Официальные расчеты</span>
+        <h2 id="payment-title" class="delivery-section-title">4. Способы оплаты</h2>
+        <p class="delivery-block-desc">Работаем официально по безналичному расчету. Все платежи прозрачны и подходят для бухгалтерской отчетности.</p>
+      </div>
+
+      <div class="payment-methods-grid">
+        <div class="payment-card">
+          <div class="payment-card-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <h3 class="payment-card-title">Оплата по счету для юридических лиц и ИП</h3>
+          </div>
+          <ol class="payment-steps-list">
+            <li>При оформлении заказа прикрепите карточку вашей организации с реквизитами.</li>
+            <li>Менеджер проверит наличие позиций на складе и выставит счет на оплату.</li>
+            <li>Товар бронируется на складе на 3 рабочих дня.</li>
+            <li>После зачисления средств на наш расчетный счет заказ передается на комплектацию либо в печатный цех (если заказано нанесение логотипа).</li>
+          </ol>
+        </div>
+
+        <div class="payment-card">
+          <div class="payment-card-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <h3 class="payment-card-title">Оплата по QR-коду (Система быстрых платежей)</h3>
+          </div>
+          <p class="summary-card-text" style="font-weight: 500;">Удобный вариант для быстрой оплаты без ручного вбивания банковских реквизитов:</p>
+          <ul class="payment-steps-list">
+            <li>Менеджер формирует индивидуальный QR-код со ссылкой на платеж и отправляет его вам на почту или в мессенджер.</li>
+            <li>Вы сканируете код камерой смартфона или через мобильное приложение вашего банка (подходит для счетов юрлиц, бизнес-карт и физлиц).</li>
+            <li>Деньги поступают на наш счет в течение нескольких минут, что ускоряет сборку и отправку тиража.</li>
+          </ul>
+        </div>
+      </div>
+
+      ${requisitesPlainText ? `<div class="requisites-copy-card">
+        <div class="requisites-copy-head">
+          <h3 class="payment-card-title">Реквизиты для оплаты</h3>
+          <button type="button" class="requisites-copy-btn" id="requisites-copy-btn" data-text="${escH(requisitesPlainText)}">Скопировать реквизиты</button>
+        </div>
+        <pre class="requisites-copy-text">${escH(requisitesPlainText)}</pre>
+      </div>` : ''}
+    </section>
+
+    <!-- СЕКЦИЯ 5: БУХГАЛТЕРСКИЕ ДОКУМЕНТЫ И ГАРАНТИИ -->
+    <section class="delivery-content-block" id="documents" aria-labelledby="documents-title">
+      <div class="delivery-block-header">
+        <span class="delivery-badge">Отчетность</span>
+        <h2 id="documents-title" class="delivery-section-title">5. Бухгалтерские документы и гарантии</h2>
+        <p class="delivery-block-desc">Вместе с заказом вы получаете полный комплект закрывающих документов:</p>
+      </div>
+
+      <div class="summary-cards-grid">
+        <div class="summary-card">
+          <strong class="summary-card-title">УПД</strong>
+          <p class="summary-card-text">Универсальный передаточный документ со всеми необходимыми подписями и кодами маркировки.</p>
+        </div>
+        <div class="summary-card">
+          <strong class="summary-card-title">ЭДО (Диадок / СБИС)</strong>
+          <p class="summary-card-text">Отправляем электронные документы в день отгрузки. Это ускоряет учет и исключает потерю бумаг.</p>
+        </div>
+        <div class="summary-card">
+          <strong class="summary-card-title">Бумажные оригиналы</strong>
+          <p class="summary-card-text">Вкладываем оригиналы с синими печатями в коробку с грузом либо отправляем заказным письмом Почтой России.</p>
+        </div>
+      </div>
+
+      <div class="checklist-card">
+        <h3 class="checklist-title">Памятка при приемке товара</h3>
+        <div class="checklist-grid">
+          <div class="checklist-item">
+            <strong>1. Сверьте количество мест</strong>
+            <p>Проверьте число коробок по накладной до того, как отпустите курьера или водителя.</p>
+          </div>
+          <div class="checklist-item">
+            <strong>2. Осмотрите упаковку</strong>
+            <p>Убедитесь, что фирменный скотч и коробки не повреждены, нет следов влаги или сильных вмятин.</p>
+          </div>
+          <div class="checklist-item">
+            <strong>3. Если есть повреждения</strong>
+            <p>Сделайте фотографии упаковки с нескольких ракурсов и сразу составьте коммерческий акт с водителем или сотрудником пункта выдачи. Свяжитесь с вашим менеджером — мы оперативно решим вопрос.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- КОНТАКТЫ ОТДЕЛА ЛОГИСТИКИ -->
+    <section class="logistics-contact-strip" id="logistics" aria-labelledby="logistics-title">
+      <div class="logistics-info">
+        <h2 id="logistics-title">Остались вопросы по расчету доставки?</h2>
+        <p>Свяжитесь с отделом логистики — менеджер рассчитает оптимальный маршрут, стоимость и сроки отправки вашего тиража.</p>
+        <div class="logistics-channels">
+          <div><span>Телефон:</span> <a href="tel:+${escH(cleanPhone)}">${escH(phone)}</a></div>
+          <div><span>Электронная почта:</span> <a href="mailto:${escH(email)}">${escH(email)}</a></div>
+          <div><span>Время работы:</span> <strong style="color: #ffffff">пн–пт с 10:00 до 18:00</strong></div>
+        </div>
+      </div>
+      <div class="logistics-actions">
+        <a href="tel:+${escH(cleanPhone)}" class="logistics-btn-primary">Позвонить: ${escH(phone)}</a>
+        ${telegramUrl ? `<a href="${escH(telegramUrl)}" target="_blank" rel="noopener" class="logistics-btn-secondary">Написать в Telegram</a>` : ''}
+      </div>
+    </section>
+  </main>
+
+  ${warehouseHtml(company)}
+  ${footerHtml(contacts, company)}
+  ${cartHtml()}
+
+  <script src="/js/delivery.js"></script>
+</body>
+</html>`;
   }
 
   function plural(n, one, few, many) {
@@ -1441,6 +1854,14 @@ ${cartHtml()}
     res.send(salePageHtml(saleProducts, readJSON(contactsFile(), {}), readJSON(companyFile(), {})));
   });
 
+  router.get('/delivery', (req, res) => {
+    res.send(deliveryPageHtml(readJSON(contactsFile(), {}), readJSON(companyFile(), {})));
+  });
+
+  router.get('/delivery-and-payment', (req, res) => {
+    res.redirect(301, '/delivery');
+  });
+
   router.get('/robots.txt', (req, res) => {
     res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /admin-help.html\nDisallow: /api/\nDisallow: /cart/\nDisallow: /*?\n\nSitemap: ${cleanSiteUrl}/sitemap.xml`);
   });
@@ -1462,6 +1883,7 @@ ${cartHtml()}
     const urls = [
       { loc: `${cleanSiteUrl}/`, priority: '1.0', modified: pageChanged(latestChange(products)) },
       { loc: `${cleanSiteUrl}/catalog`, priority: '0.9', modified: pageChanged(latestChange(products)) },
+      { loc: `${cleanSiteUrl}/delivery`, priority: '0.8', modified: pageChanged(latestChange(products)) },
       // Ключ категории строится как `category_slug || 'catalog'` — фильтровать
       // надо по тому же выражению, иначе синтетическая категория 'catalog'
       // никогда не найдёт собственные товары.

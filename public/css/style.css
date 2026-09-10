@@ -455,6 +455,14 @@ a { color: inherit; }
 .footer-social-links { display: flex; gap: 6px; }
 .footer-social-links .msg-btn { width: 34px; height: 34px; }
 
+/* ====== WAREHOUSE MAP ====== */
+.warehouse-map {
+  margin-top: 16px;
+  border: 1px solid var(--hairline-soft);
+  overflow: hidden;
+}
+.warehouse-map iframe { display: block; width: 100%; border: 0; }
+
 /* ====== VIDEO MODAL ====== */
 .modal-overlay {
   display: none; position: fixed; inset: 0; background: rgba(17,17,17,.85);
