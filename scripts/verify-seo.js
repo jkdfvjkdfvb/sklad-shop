@@ -231,16 +231,30 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
   expect(!home.includes('+7 (000)') && !home.includes('t.me/username') && !home.includes('vk.com/username'), 'Test contacts are exposed on home');
   expect(home.includes('<article class="product-card"'), 'Home product cards are not <article>');
   expect(home.includes('itemscope itemtype="https://schema.org/Product"'), 'Home product cards lack Product microdata');
-  // company.json пуст по умолчанию (юрлицо/склад заполняются владельцем через
-  // админку) — до этого момента реквизиты, блок склада и Store-тип в
-  // Organization не должны появляться. Если это когда-нибудь станет
-  // неверным (данные внесли), тест ниже начнёт честно падать, а не молчать —
-  // тогда проверку нужно будет заменить на позитивную.
+  // company.json заполняется владельцем через админку постепенно — было
+  // пусто на момент написания этой проверки, 10.09.2026 владелец сайта
+  // заполнил юрлицо и адрес склада прямо во время ревью catalog-redesign.
+  // Поэтому проверяем не "пусто" и не "заполнено" (любой вариант жёстко
+  // зашитым тестом устареет при следующей правке в «Компании»), а внутреннюю
+  // согласованность: если факт показан — он показан целиком и правильно
+  // оформлен; если не показан — сопутствующие поля тоже отсутствуют.
   const homeOrg = ldOfType(home, 'Organization');
-  expect(homeOrg && homeOrg['@type'] === 'Organization', 'Organization must not claim Store type without a confirmed warehouse address');
-  expect(!homeOrg?.address && !homeOrg?.geo, 'Organization must not have address/geo while company data is empty');
-  expect(!home.includes('site-requisites') && !home.includes('class="warehouse"'),
-    'Home renders company requisites/warehouse block despite empty company.json — investigate before assuming this is real data');
+  const homeOrgTypes = Array.isArray(homeOrg?.['@type']) ? homeOrg['@type'] : [homeOrg?.['@type']];
+  if (homeOrg?.address) {
+    expect(homeOrgTypes.includes('Store'), 'Organization has an address but is not typed as Store');
+    expect(Boolean(homeOrg.address.addressLocality), 'Organization address is missing addressLocality');
+  } else {
+    expect(!homeOrgTypes.includes('Store'), 'Organization is typed as Store without a confirmed address');
+  }
+  if (homeOrg?.geo) {
+    expect(Number.isFinite(homeOrg.geo.latitude) && Number.isFinite(homeOrg.geo.longitude), 'Organization geo coordinates are malformed');
+  }
+  if (home.includes('site-requisites')) {
+    expect(home.includes('<address class="site-requisites">'), 'site-requisites block is present but malformed');
+  }
+  if (home.includes('class="warehouse"')) {
+    expect(home.includes('id="warehouse-heading"'), 'warehouse block is present but malformed');
+  }
 
   const catalog = await fetch(`${base}/catalog`);
   expect(catalog.status === 200, `/catalog: expected 200, received ${catalog.status}`);
