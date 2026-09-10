@@ -426,7 +426,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
     if (!related.length) return `<section class="related-products" aria-labelledby="related-heading"><h2 id="related-heading">Похожие товары</h2><p>В этой категории пока нет других товаров.</p></section>`;
     return `<section class="related-products" aria-labelledby="related-heading">
   <h2 id="related-heading">Похожие товары</h2>
-  <div class="seo-product-grid">${related.map(item => productCardHtml(item)).join('')}</div>
+  <div class="catalog-products-grid">${related.map(item => categoryProductCardHtml(item)).join('')}</div>
 </section>`;
   }
 
@@ -687,6 +687,13 @@ ${cartHtml()}
     </section>`;
   }
 
+  // Пилюля hero-metrics ниже раньше была "Отгрузка от 1 дня" — конкретный
+  // срок доставки нигде не подтверждён (штат/график склада не задан,
+  // company.pickup_terms пуст). Заменена на "Опт и розница" — ту же
+  // формулировку, что уже на /catalog, про реальную модель продаж, без
+  // придуманного SLA. Пояснение вынесено сюда, а не в HTML-комментарий
+  // рядом с пилюлей: вся функция — одна template-строка, и любой текст
+  // внутри неё, включая "<!-- -->", уходит в вывод буквально.
   function categoryPageHtml(category, products, contacts, allProducts = [], company = {}) {
     const heading = categoryHeading(category);
     const title = `${heading} — купить со склада | СкладПромо`;
@@ -773,10 +780,6 @@ ${cartHtml()}
       <div class="category-hero-metrics">
         <span class="cat-metric-pill"><span class="cat-metric-dot success"></span>${priceText(stats.stock)} шт. в наличии</span>
         ${stats.min && stats.max ? `<span class="cat-metric-pill"><span class="cat-metric-dot"></span>от ${priceText(stats.min)} до ${priceText(stats.max)} ₽</span>` : ''}
-        <!-- Было "Отгрузка от 1 дня" — конкретный срок отгрузки нигде не
-             подтверждён (штат/график склада не задан, company.pickup_terms
-             пуст). "Опт и розница" — уже используемая на /catalog
-             формулировка о реальной модели продаж, без придуманного SLA. -->
         <span class="cat-metric-pill"><span class="cat-metric-dot"></span>Опт и розница</span>
         <span class="cat-metric-pill"><span class="cat-metric-dot"></span>Склад в Санкт-Петербурге</span>
       </div>
