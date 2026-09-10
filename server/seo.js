@@ -426,7 +426,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
     if (!related.length) return `<section class="related-products" aria-labelledby="related-heading"><h2 id="related-heading">Похожие товары</h2><p>В этой категории пока нет других товаров.</p></section>`;
     return `<section class="related-products" aria-labelledby="related-heading">
   <h2 id="related-heading">Похожие товары</h2>
-  <div class="catalog-products-grid">${related.map(item => categoryProductCardHtml(item)).join('')}</div>
+  <div class="seo-product-grid">${related.map(item => productCardHtml(item)).join('')}</div>
 </section>`;
   }
 
