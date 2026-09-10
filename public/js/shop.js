@@ -302,6 +302,11 @@ document.getElementById('order-btn').addEventListener('click', async () => {
     document.getElementById('co-phone').reportValidity();
     return;
   }
+  const privacy = document.getElementById('co-privacy');
+  if (privacy && !privacy.checked) {
+    privacy.reportValidity();
+    return;
+  }
   if (!cart.length) return;
 
   const btn = document.getElementById('order-btn');

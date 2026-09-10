@@ -233,7 +233,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   function footerHtml(contacts = {}, company = {}) {
     // Год берётся из системного времени, а не зашит: в footer он устаревал
     // молча — «2024» провисел до августа 2026-го.
-    return `<footer class="site-footer">${requisitesHtml(company)}<div class="footer-links" style="margin-bottom: 8px"><a href="/delivery" style="text-decoration: underline">Доставка и оплата</a> &bull; <a href="/catalog" style="text-decoration: underline">Каталог</a></div><p>© ${new Date().getFullYear()} СкладПромо. Все права защищены.</p></footer>`;
+    return `<footer class="site-footer">${requisitesHtml(company)}<div class="footer-links" style="margin-bottom: 8px"><a href="/delivery" style="text-decoration: underline">Доставка и оплата</a> &bull; <a href="/catalog" style="text-decoration: underline">Каталог</a>${company.legal_name ? ' &bull; <a href="/privacy" style="text-decoration: underline">Политика обработки персональных данных</a>' : ''}</div><p>© ${new Date().getFullYear()} СкладПромо. Все права защищены.</p></footer>`;
   }
 
   // Блок «Склад и самовывоз» на главной — фото, адрес, график, условия
@@ -465,14 +465,23 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
 </section>`;
   }
 
-  function cartHtml() {
+  // Чекбокс согласия (152-ФЗ) сознательно НЕ отмечен по умолчанию: согласие
+  // должно быть активным действием пользователя, предзаполненная галочка
+  // согласием не считается. Рендерится вместе со ссылкой на политику, а
+  // политика существует только когда заполнено юрлицо (см. роут /privacy).
+  function privacyConsentHtml(company = {}, id = 'co-privacy') {
+    if (!company.legal_name) return '';
+    return `<label class="privacy-consent"><input type="checkbox" id="${escH(id)}" required><span>Я согласен на обработку персональных данных в соответствии с <a href="/privacy" target="_blank" rel="noopener">Политикой</a></span></label>`;
+  }
+
+  function cartHtml(company = {}) {
     return `<div class="cart-overlay" id="cart-overlay"></div>
 <div class="cart-drawer" id="cart-drawer" aria-label="Корзина">
   <div class="cart-header"><span>Корзина</span><button class="cart-close" id="cart-close" aria-label="Закрыть">✕</button></div>
   <div class="cart-items" id="cart-items"><p class="cart-empty">Корзина пуста</p></div>
   <div class="cart-footer" id="cart-footer" style="display:none">
     <div class="cart-total"><span>Итого:</span><span id="cart-total-val">0 ₽</span></div>
-    <div class="checkout-form" id="checkout-form"><label class="visually-hidden" for="co-name">Ваше имя</label><input type="text" id="co-name" placeholder="Ваше имя *" required><label class="visually-hidden" for="co-phone">Телефон</label><input type="tel" id="co-phone" placeholder="+7XXXXXXXXXX" required pattern="\\+7\\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX"><label class="visually-hidden" for="co-comment">Комментарий к заказу</label><textarea id="co-comment" placeholder="Комментарий к заказу"></textarea><button class="order-btn" id="order-btn">Оформить заказ</button></div>
+    <div class="checkout-form" id="checkout-form"><label class="visually-hidden" for="co-name">Ваше имя</label><input type="text" id="co-name" placeholder="Ваше имя *" required><label class="visually-hidden" for="co-phone">Телефон</label><input type="tel" id="co-phone" placeholder="+7XXXXXXXXXX" required pattern="\\+7\\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX"><label class="visually-hidden" for="co-comment">Комментарий к заказу</label><textarea id="co-comment" placeholder="Комментарий к заказу"></textarea>${privacyConsentHtml(company)}<button class="order-btn" id="order-btn">Оформить заказ</button></div>
     <div class="order-success" id="order-success"><h3><svg class="order-success-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m8 12.5 2.5 2.5L16 9"/></svg> Заказ принят!</h3><p id="order-success-text">Мы свяжемся с вами в ближайшее время.</p><button class="add-to-cart-btn" id="order-new-btn" style="margin-top:12px">Продолжить покупки</button></div>
   </div>
 </div>
@@ -600,7 +609,7 @@ ${headerHtml(contacts)}
     ${factsHtml(product)}
     ${attrs.length ? `<section class="product-characteristics" aria-labelledby="characteristics-heading"><h2 id="characteristics-heading">Характеристики</h2><table class="product-attrs"><caption class="visually-hidden">Характеристики товара «${escH(productName(product))}»</caption><thead><tr><th scope="col">Параметр</th><th scope="col">Значение</th></tr></thead><tbody>${attrs.map(([key, value]) => `<tr><th scope="row">${escH(key)}</th><td>${escH(value)}</td></tr>`).join('')}</tbody></table></section>` : ''}
     ${productOverviewHtml(product, products)}
-    <section class="product-wholesale" id="wholesale-request" aria-labelledby="wholesale-heading"><h2 id="wholesale-heading">Оптовые условия</h2><p>Оставьте номер телефона — менеджер подтвердит цену и условия для этой модели.</p><form id="wholesale-form"><fieldset><legend class="visually-hidden">Заявка на оптовые условия</legend><label class="visually-hidden" for="wholesale-name">Ваше имя</label><input id="wholesale-name" name="name" required placeholder="Ваше имя"><label class="visually-hidden" for="wholesale-contact">Телефон</label><input id="wholesale-contact" type="tel" name="contact" required placeholder="+7XXXXXXXXXX" pattern="\\+7\\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX"><label class="visually-hidden" for="wholesale-comment">Количество и комментарий</label><textarea id="wholesale-comment" name="comment" placeholder="Количество и комментарий"></textarea><button type="submit" class="wholesale-btn">Отправить запрос</button><p id="wholesale-status" aria-live="polite"></p></fieldset></form></section>
+    <section class="product-wholesale" id="wholesale-request" aria-labelledby="wholesale-heading"><h2 id="wholesale-heading">Оптовые условия</h2><p>Оставьте номер телефона — менеджер подтвердит цену и условия для этой модели.</p><form id="wholesale-form"><fieldset><legend class="visually-hidden">Заявка на оптовые условия</legend><label class="visually-hidden" for="wholesale-name">Ваше имя</label><input id="wholesale-name" name="name" required placeholder="Ваше имя"><label class="visually-hidden" for="wholesale-contact">Телефон</label><input id="wholesale-contact" type="tel" name="contact" required placeholder="+7XXXXXXXXXX" pattern="\\+7\\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX"><label class="visually-hidden" for="wholesale-comment">Количество и комментарий</label><textarea id="wholesale-comment" name="comment" placeholder="Количество и комментарий"></textarea>${privacyConsentHtml(company, 'wholesale-privacy')}<button type="submit" class="wholesale-btn">Отправить запрос</button><p id="wholesale-status" aria-live="polite"></p></fieldset></form></section>
     ${faqHtml(faq)}
     ${relatedHtml(product, products)}
   </div>
@@ -613,7 +622,7 @@ ${headerHtml(contacts)}
   ${stock > 0 ? `<button type="button" class="pdp-sticky-btn" id="pdp-sticky-add-btn">В корзину</button>` : `<a href="#wholesale-request" class="pdp-sticky-btn">Опт запрос</a>`}
 </aside>
 ${footerHtml(contacts, company)}
-${cartHtml()}
+${cartHtml(company)}
 <script>window.PRODUCT_DATA=${jsonForScript({ article: product.article, name: productName(product), price, qty: stock, image: image ? `/${String(image).replace(/^\//, '')}` : '' })};</script>
 <script src="/js/product.js"></script>
 <script>document.getElementById('wholesale-btn')?.addEventListener('click',()=>document.getElementById('wholesale-request').scrollIntoView({behavior:'smooth'}));document.getElementById('wholesale-form')?.addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget;const status=document.getElementById('wholesale-status');const data=Object.fromEntries(new FormData(form));try{const response=await fetch('/api/wholesale-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({article:${jsonForScript(String(product.article))},...data})});if(!response.ok)throw new Error();form.reset();status.textContent='Запрос принят.';window.skladTrack?.('generate_lead',{lead_type:'wholesale',item_id:${jsonForScript(String(product.article))}});}catch{status.textContent='Не удалось отправить запрос. Попробуйте ещё раз.';}});</script>
@@ -840,7 +849,7 @@ ${cartHtml()}
 
   ${warehouseHtml(company)}
   ${footerHtml(contacts, company)}
-  ${cartHtml()}
+  ${cartHtml(company)}
 
   <script src="/js/category.js"></script>
 </body>
@@ -852,6 +861,148 @@ ${cartHtml()}
     const description = 'Товары со склада с подтверждённой скидкой: старая и новая цена, размер скидки и условия акции.';
     const url = `${cleanSiteUrl}/sale`;
     return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${url}"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:type" content="website"><meta property="og:url" content="${url}">${faviconHtml()}${revealNoscriptHtml()}<link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css">${analyticsHtml()}</head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><span>Распродажа</span></nav><h1>Распродажа товаров со склада</h1><div class="seo-product-grid">${products.map(item => productCardHtml(item, { sale: true })).join('')}</div></main>${footerHtml(contacts, company)}</body></html>`;
+  }
+
+  // Политика обработки ПД (152-ФЗ). Текст описывает то, что формы реально
+  // собирают — имя, телефон, комментарий: почты и адреса доставки в
+  // /api/order и /api/wholesale-request нет, поэтому и в политике их нет
+  // (ТЗ бэклога называло их, но это расходится с кодом). Блок про счётчики
+  // появляется только когда счётчик реально подключён (analyticsHtml() выше
+  // рендерится по тем же переменным).
+  // Дата редакции политики. Меняется только когда меняется сам текст —
+  // в sitemap уходит она, а не «сегодня»: иначе документ выглядел бы
+  // переписываемым каждый день (тот же принцип, что у TEMPLATE_CHANGED_AT).
+  const PRIVACY_LASTMOD = '2026-09-10';
+  const PRIVACY_EFFECTIVE_DATE = '10 сентября 2026 г.';
+
+  function privacyPageHtml(contacts = {}, company = {}) {
+    const title = 'Политика обработки персональных данных | СкладПромо';
+    const description = 'Политика обработки персональных данных: какие данные собираются на сайте, с какой целью, сколько хранятся и как отозвать согласие.';
+    const url = `${cleanSiteUrl}/privacy`;
+    const phone = validPhone(contacts.phone);
+    const email = contacts.email || '';
+
+    const operatorLines = [
+      company.legal_name ? `Наименование: ${company.legal_name}` : '',
+      company.inn ? `ИНН: ${company.inn}` : '',
+      company.kpp ? `КПП: ${company.kpp}` : '',
+      company.ogrn ? `ОГРН: ${company.ogrn}` : '',
+      company.legal_address ? `Адрес: ${company.legal_address}` : '',
+    ].filter(Boolean);
+
+    const counters = [GA4_ID ? 'Google Analytics' : '', YM_ID ? 'Яндекс.Метрика' : ''].filter(Boolean);
+
+    const contactLines = [
+      phone ? `<li>по телефону <a href="tel:+${escH(phone.replace(/\D/g, ''))}">${escH(phone)}</a></li>` : '',
+      email ? `<li>по электронной почте <a href="mailto:${escH(email)}">${escH(email)}</a></li>` : '',
+      company.legal_address ? `<li>письмом по адресу: ${escH(company.legal_address)}</li>` : '',
+    ].filter(Boolean).join('');
+
+    const breadcrumbLd = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Главная', item: `${cleanSiteUrl}/` },
+        { '@type': 'ListItem', position: 2, name: 'Политика обработки персональных данных', item: url },
+      ],
+    };
+
+    return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>${escH(title)}</title>
+  <meta name="description" content="${escH(description)}">
+  <link rel="canonical" href="${escH(url)}">
+  <meta property="og:title" content="${escH(title)}">
+  <meta property="og:description" content="${escH(description)}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="${escH(url)}">
+  <script type="application/ld+json">${jsonForScript(breadcrumbLd)}</script>
+  ${faviconHtml()}${revealNoscriptHtml()}
+  <link rel="stylesheet" href="/css/style.css">
+  ${analyticsHtml()}
+</head>
+<body>
+${headerHtml(contacts)}
+<main class="legal-page">
+  <nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><span>Политика обработки персональных данных</span></nav>
+  <h1>Политика обработки персональных данных</h1>
+  <p class="legal-date">Действует с ${escH(PRIVACY_EFFECTIVE_DATE)}</p>
+
+  <section class="legal-section">
+    <h2>1. Общие положения</h2>
+    <p>Политика определяет порядок обработки персональных данных пользователей сайта ${escH(cleanSiteUrl.replace(/^https?:\/\//, ''))} и составлена в соответствии с Федеральным законом от 27.07.2006 № 152-ФЗ «О персональных данных».</p>
+    ${operatorLines.length ? `<p>Оператор персональных данных:</p><ul>${operatorLines.map(line => `<li>${escH(line)}</li>`).join('')}</ul>` : ''}
+    <p>Используя формы на сайте, пользователь подтверждает согласие с настоящей Политикой. Если пользователь не согласен с её условиями, ему следует воздержаться от отправки форм.</p>
+  </section>
+
+  <section class="legal-section">
+    <h2>2. Какие данные обрабатываются</h2>
+    <p>Оператор обрабатывает только те данные, которые пользователь сообщает добровольно через формы сайта:</p>
+    <ul>
+      <li><b>имя</b> — чтобы менеджер знал, к кому обращаться;</li>
+      <li><b>номер телефона</b> — для связи по заказу или оптовому запросу;</li>
+      <li><b>комментарий к заказу или запросу</b> — необязательное поле, заполняется пользователем на своё усмотрение.</li>
+    </ul>
+    <p>Сайт не запрашивает паспортные данные, адрес электронной почты, адрес доставки, банковские реквизиты физических лиц и не обрабатывает специальные и биометрические категории персональных данных.</p>
+    <p>Вместе с обращением сохраняется состав заказа или артикул товара — сведения о товаре, а не о человеке.</p>
+    ${counters.length ? `<p>Дополнительно сайт использует ${escH(counters.join(' и '))} — ${counters.length > 1 ? 'эти сервисы собирают' : 'этот сервис собирает'} обезличенные технические данные о посещении (IP-адрес, сведения о браузере и устройстве, источник перехода, действия на страницах) с помощью файлов cookie. Эти данные используются только для статистики посещаемости и не позволяют определить личность пользователя.</p>` : ''}
+  </section>
+
+  <section class="legal-section">
+    <h2>3. Цели обработки</h2>
+    <ul>
+      <li>приём, подтверждение и выполнение заказа;</li>
+      <li>обработка запроса оптовых условий и обратная связь по нему;</li>
+      <li>согласование доставки или самовывоза;</li>
+      <li>оформление документов для юридических лиц и индивидуальных предпринимателей.</li>
+    </ul>
+    <p>Оператор не использует персональные данные для рекламных рассылок и не принимает на их основании решений исключительно автоматизированными средствами.</p>
+  </section>
+
+  <section class="legal-section">
+    <h2>4. Правовые основания</h2>
+    <p>Обработка осуществляется на основании согласия пользователя, которое он даёт, отмечая соответствующий чекбокс при отправке формы, а также на основании пункта 5 части 1 статьи 6 Федерального закона № 152-ФЗ — для исполнения договора, стороной которого является пользователь.</p>
+  </section>
+
+  <section class="legal-section">
+    <h2>5. Передача третьим лицам</h2>
+    <p>Оператор не продаёт и не передаёт персональные данные третьим лицам, за исключением случаев, когда это необходимо для исполнения заказа:</p>
+    <ul>
+      <li>курьерским службам и транспортным компаниям — имя и телефон получателя, чтобы доставить заказ;</li>
+      ${counters.length ? `<li>${escH(counters.join(' и '))} — обезличенные данные о посещении сайта;</li>` : ''}
+      <li>государственным органам — в случаях и в объёме, предусмотренных законом.</li>
+    </ul>
+  </section>
+
+  <section class="legal-section">
+    <h2>6. Хранение и защита</h2>
+    <p>Данные хранятся на сервере в Российской Федерации в течение срока, необходимого для выполнения заказа и соблюдения требований законодательства о бухгалтерском и налоговом учёте, но не дольше, чем этого требуют цели обработки. По достижении целей обработки или при отзыве согласия данные уничтожаются.</p>
+    <p>Доступ к данным имеют только сотрудники, которым он необходим для обработки заказов. Административная панель сайта защищена паролем, передача данных ведётся по протоколу HTTPS.</p>
+  </section>
+
+  <section class="legal-section">
+    <h2>7. Права пользователя и отзыв согласия</h2>
+    <p>Пользователь вправе получить сведения об обработке своих персональных данных, потребовать их уточнения, блокирования или уничтожения, а также в любой момент отозвать согласие на обработку.</p>
+    ${contactLines ? `<p>Для этого достаточно обратиться к оператору:</p><ul>${contactLines}</ul>` : ''}
+    <p>Обращение рассматривается в срок, установленный законодательством. После отзыва согласия обработка прекращается, а данные уничтожаются, если у оператора не осталось иных законных оснований для их хранения.</p>
+  </section>
+
+  <section class="legal-section">
+    <h2>8. Файлы cookie</h2>
+    <p>Сайт использует файлы cookie, необходимые для работы корзины${counters.length ? ', а также cookie сервисов статистики' : ''}. Пользователь может отключить cookie в настройках браузера — при этом часть функций сайта, включая корзину, может работать некорректно.</p>
+  </section>
+
+  <section class="legal-section">
+    <h2>9. Изменения политики</h2>
+    <p>Оператор вправе вносить изменения в настоящую Политику. Актуальная редакция всегда доступна по адресу <a href="${escH(url)}">${escH(url)}</a>.</p>
+  </section>
+</main>
+${footerHtml(contacts, company)}
+</body>
+</html>`;
   }
 
   function deliveryPageHtml(contacts = {}, company = {}) {
@@ -1252,7 +1403,7 @@ ${cartHtml()}
 
   ${warehouseHtml(company)}
   ${footerHtml(contacts, company)}
-  ${cartHtml()}
+  ${cartHtml(company)}
 
   <script src="/js/delivery.js"></script>
 </body>
@@ -1797,7 +1948,7 @@ ${cartHtml()}
 
   ${warehouseHtml(company)}
   ${footerHtml(contacts, company)}
-  ${cartHtml()}
+  ${cartHtml(company)}
 
   <script src="/js/catalog.js"></script>
 </body>
@@ -1862,6 +2013,17 @@ ${cartHtml()}
     res.redirect(301, '/delivery');
   });
 
+  // Политика без названия оператора юридически бессмысленна: подписать её
+  // некому. Пока в «Компании» не заполнено юрлицо — отдаём 404, а не
+  // документ с пустым местом вместо оператора.
+  router.get('/privacy', (req, res) => {
+    const company = readJSON(companyFile(), {});
+    if (!company.legal_name) {
+      return res.status(404).type('html').send('<!doctype html><title>Страница не найдена</title><h1>Страница не найдена</h1>');
+    }
+    res.send(privacyPageHtml(readJSON(contactsFile(), {}), company));
+  });
+
   router.get('/robots.txt', (req, res) => {
     res.type('text/plain').send(`User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /admin-help.html\nDisallow: /api/\nDisallow: /cart/\nDisallow: /*?\n\nSitemap: ${cleanSiteUrl}/sitemap.xml`);
   });
@@ -1884,6 +2046,10 @@ ${cartHtml()}
       { loc: `${cleanSiteUrl}/`, priority: '1.0', modified: pageChanged(latestChange(products)) },
       { loc: `${cleanSiteUrl}/catalog`, priority: '0.9', modified: pageChanged(latestChange(products)) },
       { loc: `${cleanSiteUrl}/delivery`, priority: '0.8', modified: pageChanged(latestChange(products)) },
+      // /privacy попадает в карту только когда роут реально отдаёт документ
+      // (условие то же, что в самом роуте — заполнено юрлицо), иначе в
+      // sitemap ушёл бы URL, отвечающий 404.
+      ...(readJSON(companyFile(), {}).legal_name ? [{ loc: `${cleanSiteUrl}/privacy`, priority: '0.3', modified: PRIVACY_LASTMOD }] : []),
       // Ключ категории строится как `category_slug || 'catalog'` — фильтровать
       // надо по тому же выражению, иначе синтетическая категория 'catalog'
       // никогда не найдёт собственные товары.

@@ -278,9 +278,32 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
   expect(sitemap.includes(`${canonicalBase}/product/`), 'sitemap has no canonical product URLs');
   expect(!/<loc>http:\/\//.test(sitemap), 'sitemap contains HTTP page URLs');
   expect(!/<loc>[^<]*<\/loc><changefreq>/.test(sitemap), 'sitemap has URLs without lastmod');
-  const expectedSitemapUrls = 3 + categorySlugs.length + visibleProducts.length; // /, /catalog, /delivery
+  // /privacy отдаётся только когда в «Компании» заполнено юрлицо, поэтому
+  // тест проверяет не «страница есть» и не «страницы нет», а согласованность:
+  // если URL попал в sitemap — он обязан отвечать 200, и наоборот. Так тест
+  // переживёт заполнение или очистку реквизитов в любую сторону.
+  const privacyInSitemap = sitemap.includes(`${canonicalBase}/privacy`);
+  const privacyStatus = (await fetch(`${base}/privacy`)).status;
+  expect(privacyInSitemap === (privacyStatus === 200),
+    `sitemap и /privacy рассинхронизированы: в sitemap=${privacyInSitemap}, статус=${privacyStatus}`);
+
+  const expectedSitemapUrls = 3 + (privacyInSitemap ? 1 : 0) + categorySlugs.length + visibleProducts.length; // /, /catalog, /delivery [, /privacy]
   expect((sitemap.match(/<loc>/g) || []).length === expectedSitemapUrls,
     `sitemap must contain ${expectedSitemapUrls} unique public URLs`);
+
+  // 152-ФЗ: если политика опубликована, согласие обязано спрашиваться в обеих
+  // формах, которые собирают ПД, и чекбокс не должен быть предотмечен —
+  // предзаполненная галочка согласием не является.
+  if (privacyStatus === 200) {
+    const catalogHtml = await (await fetch(`${base}/catalog`)).text();
+    const consentMatch = catalogHtml.match(/<input[^>]*id="co-privacy"[^>]*>/);
+    expect(Boolean(consentMatch), 'нет чекбокса согласия 152-ФЗ в форме заказа');
+    expect(/\brequired\b/.test(consentMatch?.[0] || ''), 'чекбокс согласия не required');
+    expect(!/\bchecked\b/.test(consentMatch?.[0] || ''), 'чекбокс согласия предотмечен — согласие должно быть активным действием');
+
+    const anyProductHtml = await (await fetch(`${base}/product/${encodeURIComponent(visibleProducts[0].slug)}`)).text();
+    expect(anyProductHtml.includes('id="wholesale-privacy"'), 'нет чекбокса согласия в форме оптовой заявки');
+  }
   // Раньше здесь была захардкожена конкретная дата ('2026-09-07') — тест
   // ломался при каждом следующем обновлении контента, потому что per-product
   // lastmod (seo_updated_at) законно уезжает вперёд TEMPLATE_CHANGED_AT и

@@ -277,6 +277,8 @@ document.getElementById('order-btn').addEventListener('click', async () => {
   const comment = document.getElementById('co-comment').value.trim();
   if (!name || !phone || !cart.length) return;
   if (!isValidPhone(phone)) { document.getElementById('co-phone').reportValidity(); return; }
+  const privacy = document.getElementById('co-privacy');
+  if (privacy && !privacy.checked) { privacy.reportValidity(); return; }
   const btn = document.getElementById('order-btn');
   btn.disabled = true; btn.textContent = 'Отправляем…';
   try {
