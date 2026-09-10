@@ -278,7 +278,7 @@ const money = value => Number(value).toLocaleString('ru-RU').replace(/ /g, ' ')
   expect(sitemap.includes(`${canonicalBase}/product/`), 'sitemap has no canonical product URLs');
   expect(!/<loc>http:\/\//.test(sitemap), 'sitemap contains HTTP page URLs');
   expect(!/<loc>[^<]*<\/loc><changefreq>/.test(sitemap), 'sitemap has URLs without lastmod');
-  const expectedSitemapUrls = 2 + categorySlugs.length + visibleProducts.length;
+  const expectedSitemapUrls = 3 + categorySlugs.length + visibleProducts.length; // /, /catalog, /delivery
   expect((sitemap.match(/<loc>/g) || []).length === expectedSitemapUrls,
     `sitemap must contain ${expectedSitemapUrls} unique public URLs`);
   // Раньше здесь была захардкожена конкретная дата ('2026-09-07') — тест
