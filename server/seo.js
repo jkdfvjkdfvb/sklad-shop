@@ -606,6 +606,7 @@ ${cartHtml()}
           ${isSale ? `<span class="catalog-badge-sale">−${escH(product.discount_percent)}%</span>` : ''}
           <span class="catalog-badge-art">Арт. ${escH(product.article)}</span>
         </div>
+        ${photoCountBadgeHtml(product)}
       </div>
       <div class="catalog-card-content">
         ${(material || color) ? `<div class="catalog-card-meta-row">${material ? `<span class="card-tag">${escH(material)}</span>` : ''}${color ? `<span class="card-tag">${escH(color)}</span>` : ''}</div>` : ''}
@@ -772,7 +773,11 @@ ${cartHtml()}
       <div class="category-hero-metrics">
         <span class="cat-metric-pill"><span class="cat-metric-dot success"></span>${priceText(stats.stock)} шт. в наличии</span>
         ${stats.min && stats.max ? `<span class="cat-metric-pill"><span class="cat-metric-dot"></span>от ${priceText(stats.min)} до ${priceText(stats.max)} ₽</span>` : ''}
-        <span class="cat-metric-pill"><span class="cat-metric-dot"></span>Отгрузка от 1 дня</span>
+        <!-- Было "Отгрузка от 1 дня" — конкретный срок отгрузки нигде не
+             подтверждён (штат/график склада не задан, company.pickup_terms
+             пуст). "Опт и розница" — уже используемая на /catalog
+             формулировка о реальной модели продаж, без придуманного SLA. -->
+        <span class="cat-metric-pill"><span class="cat-metric-dot"></span>Опт и розница</span>
         <span class="cat-metric-pill"><span class="cat-metric-dot"></span>Склад в Санкт-Петербурге</span>
       </div>
     </header>
@@ -814,6 +819,17 @@ ${cartHtml()}
     if (mod10 === 1 && mod100 !== 11) return one;
     if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
     return many;
+  }
+
+  // Бейдж «N фото» в углу карточки — показывается только когда у товара
+  // реально загружено больше одного ракурса. На момент внедрения (10.09.2026)
+  // такого SKU нет ни одного (все 56 видимых товаров — по одному фото), так
+  // что бейдж пока нигде не появится — это не баг, а честное следствие
+  // отсутствия данных, а не повод рисовать «1 фото» для всех.
+  function photoCountBadgeHtml(product) {
+    const count = Array.isArray(product.image_urls) ? product.image_urls.length : 0;
+    if (count <= 1) return '';
+    return `<span class="catalog-photo-count" aria-label="${count} фото"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7 9.5 4.5h5L16 7"/><circle cx="12" cy="13.5" r="3.2"/></svg>${count}</span>`;
   }
 
   // Сводка по категории считается из самих товаров: число SKU, диапазон цен,
@@ -1105,6 +1121,7 @@ ${cartHtml()}
           ${isSale ? `<span class="catalog-badge-sale">−${escH(product.discount_percent)}%</span>` : ''}
           <span class="catalog-badge-art">Арт. ${escH(product.article)}</span>
         </div>
+        ${photoCountBadgeHtml(product)}
       </div>
       <div class="catalog-card-content">
         <div class="catalog-card-cat-label">${escH(categoryName)}</div>
@@ -1308,7 +1325,6 @@ ${cartHtml()}
       <div class="catalog-hero-metrics">
         <span class="metric-pill"><span class="metric-pill-dot"></span>${categories.length} ${plural(categories.length, 'категория', 'категории', 'категорий')}</span>
         <span class="metric-pill"><span class="metric-pill-dot success"></span>${inStockCount} ${plural(inStockCount, 'позиция', 'позиции', 'позиций')} в наличии</span>
-        <span class="metric-pill"><span class="metric-pill-dot"></span>Отгрузка от 1 дня</span>
         <span class="metric-pill"><span class="metric-pill-dot"></span>Опт и розница</span>
         <span class="metric-pill"><span class="metric-pill-dot"></span>Склад в Санкт-Петербурге</span>
       </div>

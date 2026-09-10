@@ -608,6 +608,25 @@
   border-radius: var(--radius-pill);
 }
 
+/* Число фото — правый нижний угол, отдельно от верхних badges, чтобы не
+   пересекаться со скидкой/артикулом. Сейчас не показывается ни у одного
+   товара (нет SKU с несколькими фото) — правило готово на будущее. */
+.catalog-photo-count {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(17, 17, 17, 0.72);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: var(--radius-pill);
+  line-height: 1;
+}
+
 .catalog-badge-art {
   margin-left: auto;
   background: rgba(255, 255, 255, 0.9);
