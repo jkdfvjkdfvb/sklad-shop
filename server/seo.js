@@ -250,8 +250,15 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
     const addressText = hasAddress
       ? [company.warehouse_city, company.warehouse_address].filter(Boolean).join(', ')
       : '';
-    const mapLink = (company.warehouse_lat && company.warehouse_lng)
+    const hasCoords = Boolean(company.warehouse_lat && company.warehouse_lng);
+    const mapLink = hasCoords
       ? `<a href="https://yandex.ru/maps/?pt=${encodeURIComponent(company.warehouse_lng)},${encodeURIComponent(company.warehouse_lat)}&z=16&l=map" target="_blank" rel="noopener">Показать на карте</a>`
+      : '';
+    // Встроенная карта — публичный виджет Яндекс.Карт (map-widget), ключ API
+    // не нужен. Рендерится только когда есть координаты — сейчас пусто
+    // (warehouse_lat/lng), появится сама после заполнения в админке.
+    const mapEmbed = hasCoords
+      ? `<div class="warehouse-map"><iframe src="https://yandex.ru/map-widget/v1/?ll=${encodeURIComponent(company.warehouse_lng)}%2C${encodeURIComponent(company.warehouse_lat)}&z=16&pt=${encodeURIComponent(company.warehouse_lng)}%2C${encodeURIComponent(company.warehouse_lat)}%2Cpm2rdm" width="100%" height="320" frameborder="0" loading="lazy" title="Склад ${escH(company.legal_name || 'СкладПромо')} на карте"></iframe></div>`
       : '';
     const gallery = photos.length
       ? `<div class="warehouse-gallery">${photos.map(src => `<img src="/${escH(src)}" alt="Склад СкладПромо" loading="lazy">`).join('')}</div>`
@@ -263,6 +270,7 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
   ${addressText ? `<p class="warehouse-address">${escH(addressText)}${mapLink ? ` — ${mapLink}` : ''}</p>` : ''}
   ${hoursText ? `<p class="warehouse-hours">Часы работы: ${escH(hoursText)}</p>` : ''}
   ${company.pickup_terms ? `<p class="warehouse-terms">${escH(company.pickup_terms)}</p>` : ''}
+  ${mapEmbed}
 </section>`;
   }
 
@@ -872,6 +880,23 @@ ${cartHtml()}
     const phone = validPhone(contacts.phone) || '+7 (812) 962-15-98';
     const email = contacts.email || 'giftsworld1@gmail.com';
     const cleanPhone = phone.replace(/\D/g, '');
+    // Было захардкожено "t.me/salegifts" — чужой/несуществующий адрес,
+    // настоящий берём из contacts, как везде на сайте (см. categoryWholesaleBannerHtml).
+    const telegramUrl = validUrl(contacts.telegram, ['t.me/username']);
+    // P2: кнопка копирования реквизитов. Те же поля и то же условие
+    // (есть legal_name), что в requisitesHtml() — но plain text для
+    // вставки в 1С/банк-клиент, а не HTML с <br>.
+    const requisitesPlainText = company.legal_name ? [
+      company.legal_name,
+      company.inn ? `ИНН ${company.inn}` : '',
+      company.kpp ? `КПП ${company.kpp}` : '',
+      company.ogrn ? `ОГРН ${company.ogrn}` : '',
+      company.legal_address ? `Юр. адрес: ${company.legal_address}` : '',
+      company.bank_name ? `Банк: ${company.bank_name}` : '',
+      company.bank_account ? `Р/с ${company.bank_account}` : '',
+      company.bank_corr_account ? `К/с ${company.bank_corr_account}` : '',
+      company.bank_bik ? `БИК ${company.bank_bik}` : '',
+    ].filter(Boolean).join('\n') : '';
 
     return `<!DOCTYPE html>
 <html lang="ru">
@@ -1155,6 +1180,14 @@ ${cartHtml()}
           </ul>
         </div>
       </div>
+
+      ${requisitesPlainText ? `<div class="requisites-copy-card">
+        <div class="requisites-copy-head">
+          <h3 class="payment-card-title">Реквизиты для оплаты</h3>
+          <button type="button" class="requisites-copy-btn" id="requisites-copy-btn" data-text="${escH(requisitesPlainText)}">Скопировать реквизиты</button>
+        </div>
+        <pre class="requisites-copy-text">${escH(requisitesPlainText)}</pre>
+      </div>` : ''}
     </section>
 
     <!-- СЕКЦИЯ 5: БУХГАЛТЕРСКИЕ ДОКУМЕНТЫ И ГАРАНТИИ -->
@@ -1212,7 +1245,7 @@ ${cartHtml()}
       </div>
       <div class="logistics-actions">
         <a href="tel:+${escH(cleanPhone)}" class="logistics-btn-primary">Позвонить: ${escH(phone)}</a>
-        <a href="https://t.me/salegifts" target="_blank" rel="noopener" class="logistics-btn-secondary">Написать в Telegram</a>
+        ${telegramUrl ? `<a href="${escH(telegramUrl)}" target="_blank" rel="noopener" class="logistics-btn-secondary">Написать в Telegram</a>` : ''}
       </div>
     </section>
   </main>

@@ -257,5 +257,32 @@ if ('IntersectionObserver' in window && contentBlocks.length) {
   contentBlocks.forEach(block => observer.observe(block));
 }
 
+// ======== КОПИРОВАНИЕ РЕКВИЗИТОВ ========
+const requisitesCopyBtn = document.getElementById('requisites-copy-btn');
+if (requisitesCopyBtn) {
+  requisitesCopyBtn.addEventListener('click', async () => {
+    const text = requisitesCopyBtn.dataset.text || '';
+    const oldLabel = requisitesCopyBtn.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      const helper = document.createElement('textarea');
+      helper.value = text;
+      helper.style.position = 'fixed';
+      helper.style.opacity = '0';
+      document.body.appendChild(helper);
+      helper.select();
+      document.execCommand('copy');
+      document.body.removeChild(helper);
+    }
+    requisitesCopyBtn.textContent = '✓ Скопировано';
+    requisitesCopyBtn.classList.add('copied');
+    setTimeout(() => {
+      requisitesCopyBtn.textContent = oldLabel;
+      requisitesCopyBtn.classList.remove('copied');
+    }, 1500);
+  });
+}
+
 // Первоначальное обновление бейджа корзины
 updateCartBadge();

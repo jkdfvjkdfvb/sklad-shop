@@ -556,6 +556,44 @@
   color: var(--charcoal);
 }
 
+.requisites-copy-card {
+  background: var(--soft-cloud);
+  border: 1px solid var(--hairline-soft);
+  padding: 28px;
+  margin-top: 20px;
+}
+.requisites-copy-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.requisites-copy-btn {
+  background: var(--ink);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 10px 20px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.requisites-copy-btn:hover { background: var(--charcoal); }
+.requisites-copy-btn.copied { background: var(--success); }
+.requisites-copy-text {
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--charcoal);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
 /* ПАМЯТКА ПРИ ПРИЕМКЕ */
 .checklist-card {
   background: var(--soft-cloud);

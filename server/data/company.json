@@ -10,8 +10,8 @@
   "bank_bik": "044525411",
   "warehouse_city": "Санкт-Петербург",
   "warehouse_address": "Гражданский д. 118/1",
-  "warehouse_lat": "",
-  "warehouse_lng": "",
+  "warehouse_lat": "60.036966",
+  "warehouse_lng": "30.420179",
   "working_days": [
     "mon",
     "tue",
