@@ -468,7 +468,8 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
     <div class="order-success" id="order-success"><h3><svg class="order-success-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m8 12.5 2.5 2.5L16 9"/></svg> Заказ принят!</h3><p id="order-success-text">Мы свяжемся с вами в ближайшее время.</p><button class="add-to-cart-btn" id="order-new-btn" style="margin-top:12px">Продолжить покупки</button></div>
   </div>
 </div>
-<div class="modal-overlay" id="video-modal" role="dialog" aria-modal="true"><div class="modal-box"><button class="modal-close" id="modal-close" aria-label="Закрыть">✕</button><video id="modal-video" controls playsinline></video></div></div>`;
+<div class="modal-overlay" id="video-modal" role="dialog" aria-modal="true"><div class="modal-box"><button class="modal-close" id="modal-close" aria-label="Закрыть">✕</button><video id="modal-video" controls playsinline></video></div></div>
+<div class="modal-overlay" id="photo-zoom-modal" role="dialog" aria-modal="true" aria-label="Просмотр фото"><div class="modal-box"><button class="modal-close" id="zoom-modal-close" aria-label="Закрыть">✕</button><img id="modal-zoom-img" alt=""></div></div>`;
   }
 
   function productPageHtml(product, products, contacts, company = {}) {
@@ -552,7 +553,7 @@ ${headerHtml(contacts)}
     <nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><a href="/catalog">Каталог</a><span class="bc-sep">›</span><a href="/category/${encodeURIComponent(product.category_slug)}">${escH(categoryName)}</a><span class="bc-sep">›</span><span>${escH(productName(product))}</span></nav>
     <article class="product-detail" itemscope itemtype="https://schema.org/Product">
       ${image
-        ? `<figure class="product-detail-media"><div class="pdp-img-frame"><img src="/${escH(String(image).replace(/^\//, ''))}" alt="${escH(productName(product))}" class="product-detail-img" itemprop="image"></div>${product.video_url || product.video ? `<button class="card-video-btn" id="video-btn" data-video="/${escH(String(product.video_url || product.video).replace(/^\//, ''))}">▶ Видео</button>` : ''}<figcaption class="visually-hidden">${escH(productName(product))}, арт. ${escH(product.article)}</figcaption></figure>`
+        ? `<figure class="product-detail-media"><button type="button" class="pdp-img-frame pdp-zoom-trigger" id="pdp-zoom-trigger" data-full="/${escH(String(image).replace(/^\//, ''))}" aria-label="Открыть фото на весь экран"><img src="/${escH(String(image).replace(/^\//, ''))}" alt="${escH(productName(product))}" class="product-detail-img" itemprop="image"><span class="pdp-zoom-hint" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg></span></button>${product.video_url || product.video ? `<button class="card-video-btn" id="video-btn" data-video="/${escH(String(product.video_url || product.video).replace(/^\//, ''))}">▶ Видео</button>` : ''}<figcaption class="visually-hidden">${escH(productName(product))}, арт. ${escH(product.article)}</figcaption></figure>`
         : `<div class="product-detail-media"><div class="product-detail-no-img">Нет фото</div>${product.video_url || product.video ? `<button class="card-video-btn" id="video-btn" data-video="/${escH(String(product.video_url || product.video).replace(/^\//, ''))}">▶ Видео</button>` : ''}</div>`}
       <div class="product-detail-info">
         <div class="pdp-meta-row">

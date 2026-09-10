@@ -465,7 +465,7 @@ a { color: inherit; }
   background: #000; border-radius: 0; overflow: hidden;
   max-width: 90vw; max-height: 90vh; position: relative;
 }
-.modal-box video { display: block; max-width: 90vw; max-height: 85vh; }
+.modal-box video, .modal-box img { display: block; max-width: 90vw; max-height: 85vh; }
 .modal-close {
   position: absolute; top: 12px; right: 12px;
   background: var(--canvas); border: none; color: var(--ink);

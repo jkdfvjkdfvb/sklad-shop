@@ -324,8 +324,28 @@ function closeVideoModal() {
 }
 document.getElementById('modal-close').addEventListener('click', closeVideoModal);
 modal.addEventListener('click', e => { if (e.target === modal) closeVideoModal(); });
+
+// ======== PHOTO ZOOM MODAL ========
+const zoomModal   = document.getElementById('photo-zoom-modal');
+const zoomImg     = document.getElementById('modal-zoom-img');
+const zoomTrigger = document.getElementById('pdp-zoom-trigger');
+
+if (zoomTrigger) {
+  zoomTrigger.addEventListener('click', () => {
+    zoomImg.src = zoomTrigger.dataset.full;
+    zoomImg.alt = zoomTrigger.querySelector('img')?.alt || '';
+    zoomModal.classList.add('open');
+  });
+}
+function closeZoomModal() {
+  zoomModal.classList.remove('open');
+  zoomImg.src = '';
+}
+document.getElementById('zoom-modal-close').addEventListener('click', closeZoomModal);
+zoomModal.addEventListener('click', e => { if (e.target === zoomModal) closeZoomModal(); });
+
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeCart(); closeVideoModal(); }
+  if (e.key === 'Escape') { closeCart(); closeVideoModal(); closeZoomModal(); }
 });
 
 // ======== INIT ========
