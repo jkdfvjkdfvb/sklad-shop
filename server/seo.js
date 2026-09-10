@@ -584,12 +584,115 @@ ${cartHtml()}
 </html>`;
   }
 
+  function categoryProductCardHtml(product) {
+    const stock = quantity(product);
+    const price = retailPrice(product);
+    const image = product.image || (product.image_urls && product.image_urls[0]);
+    const isSale = isValidSale(product);
+    const imgSrc = image ? `/${escH(String(image).replace(/^\//, ''))}` : '';
+    const pName = productName(product);
+    const pSlug = productSlug(product);
+    const pUrl = `/product/${encodeURIComponent(pSlug)}`;
+    const material = String(product.material || '').trim();
+    const color = String(product.color || '').trim();
+
+    return `<article class="catalog-card" data-article="${escH(product.article)}" data-name="${escH(pName.toLowerCase())}">
+      <div class="catalog-card-media">
+        <a href="${pUrl}" class="catalog-card-img-link" aria-label="${escH(pName)}">
+          ${imgSrc ? `<img src="${imgSrc}" alt="${escH(pName)}" loading="lazy" class="catalog-card-img">` : `<div class="catalog-card-no-img">Нет фото</div>`}
+          <span class="visually-hidden">${escH(pName)}</span>
+        </a>
+        <div class="catalog-card-badges">
+          ${isSale ? `<span class="catalog-badge-sale">−${escH(product.discount_percent)}%</span>` : ''}
+          <span class="catalog-badge-art">Арт. ${escH(product.article)}</span>
+        </div>
+      </div>
+      <div class="catalog-card-content">
+        ${(material || color) ? `<div class="catalog-card-meta-row">${material ? `<span class="card-tag">${escH(material)}</span>` : ''}${color ? `<span class="card-tag">${escH(color)}</span>` : ''}</div>` : ''}
+        <h3 class="catalog-card-title"><a href="${pUrl}">${escH(pName)}</a></h3>
+        <div class="catalog-card-pricing">
+          ${isSale ? `<span class="catalog-card-old-price">${priceText(product.old_price)} ₽</span>` : ''}
+          <span class="catalog-card-price">${priceText(price)} ₽</span>
+          <span class="catalog-card-opt-hint">Опт по запросу</span>
+        </div>
+        <div class="catalog-card-stock ${stock > 0 ? 'in-stock' : 'out-stock'}">
+          <span class="stock-dot"></span>
+          <span>${stock > 0 ? `В наличии: ${stock} шт.` : 'Под заказ'}</span>
+        </div>
+        <div class="catalog-card-actions">
+          ${stock > 0 ? `<button type="button" class="catalog-add-cart-btn" data-article="${escH(product.article)}" data-name="${escH(pName)}" data-price="${price}" data-qty="${stock}" data-image="${imgSrc}">В корзину</button>` : `<a href="${pUrl}" class="catalog-order-btn">Подробнее</a>`}
+          <a href="${pUrl}" class="catalog-detail-link" aria-label="Подробнее о ${escH(pName)}">
+            <svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </div>
+      </div>
+    </article>`;
+  }
+
+  // Как и в catalogB2bBannerHtml выше (см. комментарий там) — никаких
+  // выдуманных тиражей, услуги нанесения логотипа или конкретных способов
+  // брендирования: logo_service_available нигде не подтверждён. Телефон и
+  // Telegram берутся из contacts, а не хардкодятся.
+  function categoryWholesaleBannerHtml(category, contacts = {}) {
+    const heading = categoryHeading(category);
+    const phone = validPhone(contacts.phone);
+    const telegramUrl = validUrl(contacts.telegram, ['t.me/username']);
+    return `<section class="category-b2b-cta" aria-labelledby="b2b-cta-title">
+      <div class="b2b-cta-inner">
+        <div class="b2b-cta-text">
+          <span class="b2b-pill">Для корпоративных клиентов</span>
+          <h2 id="b2b-cta-title">Оптовая поставка «${escH(heading)}»</h2>
+          <p>Менеджер подтвердит цену и условия поставки для нужного объёма.</p>
+        </div>
+        <div class="b2b-cta-actions">
+          ${phone ? `<a href="tel:+${escH(phone.replace(/\D/g, ''))}" class="b2b-btn-primary">Позвонить: ${escH(phone)}</a>` : ''}
+          ${telegramUrl ? `<a href="${escH(telegramUrl)}" target="_blank" rel="noopener" class="b2b-btn-secondary">Написать в Telegram</a>` : ''}
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function categorySiblingsHtml(category, allProducts = []) {
+    const byCat = groupByCategory(allProducts);
+    const siblings = sortedCategories(allProducts).filter(c => c.slug !== category.slug);
+    const idx = sortedCategories(allProducts).findIndex(c => c.slug === category.slug);
+    const near = siblings.slice(Math.max(0, idx - 2), Math.max(0, idx - 2) + 4);
+    if (!near.length) return '';
+
+    return `<section class="category-siblings-section" aria-labelledby="siblings-heading">
+      <div class="siblings-head">
+        <h2 id="siblings-heading" class="siblings-title">Другие категории каталога</h2>
+        <a href="/catalog" class="siblings-all-link">Весь каталог товаров →</a>
+      </div>
+      <div class="siblings-grid">
+        ${near.map(c => {
+          const items = byCat.get(c.slug) || [];
+          const withImg = items.find(i => i.image || (i.image_urls && i.image_urls[0]));
+          const img = withImg ? (withImg.image || withImg.image_urls[0]) : '';
+          const prices = items.map(retailPrice).filter(p => p > 0);
+          const minPrice = prices.length ? Math.min(...prices) : 0;
+          return `<a href="/category/${encodeURIComponent(c.slug)}" class="sibling-card">
+            <div class="sibling-thumb">${img ? `<img src="/${escH(String(img).replace(/^\//, ''))}" alt="${escH(c.name)}" loading="lazy">` : '<span class="tile-empty"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m21 16-9 5-9-5V8l9-5 9 5v8Z"/><path d="m3.3 8 8.7 4.8 8.7-4.8M12 12.8V21"/></svg></span>'}</div>
+            <div class="sibling-info">
+              <span class="sibling-name">${escH(c.name)}</span>
+              <div class="sibling-meta">
+                <span>${items.length} ${plural(items.length, 'товар', 'товара', 'товаров')}</span>
+                ${minPrice ? `<span class="sibling-price">от ${priceText(minPrice)} ₽</span>` : ''}
+              </div>
+            </div>
+          </a>`;
+        }).join('')}
+      </div>
+    </section>`;
+  }
+
   function categoryPageHtml(category, products, contacts, allProducts = [], company = {}) {
     const heading = categoryHeading(category);
     const title = `${heading} — купить со склада | СкладПромо`;
     const description = categoryMetaDescription(category, products);
     const intro = categoryIntro(category, products);
     const url = categoryUrl(category.slug);
+    const stats = categoryStats(products);
 
     const breadcrumbLd = {
       '@context': 'https://schema.org',
@@ -624,16 +727,79 @@ ${cartHtml()}
       },
     };
 
-    // Смежные категории: соседи по алфавиту вокруг текущей. Раньше со страницы
-    // категории вообще не было ссылок никуда, кроме логотипа и главной.
-    const siblings = sortedCategories(allProducts).filter(c => c.slug !== category.slug);
-    const idx = sortedCategories(allProducts).findIndex(c => c.slug === category.slug);
-    const near = siblings.slice(Math.max(0, idx - 2), Math.max(0, idx - 2) + 4);
-    const siblingsHtml = near.length
-      ? `<section class="category-siblings" aria-labelledby="siblings-heading"><h2 id="siblings-heading">Другие категории</h2><ul>${near.map(c => `<li><a href="/category/${encodeURIComponent(c.slug)}">${escH(c.name)}</a></li>`).join('')}<li><a href="/catalog">Весь каталог</a></li></ul></section>`
-      : '';
+    return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>${escH(title)}</title>
+  <meta name="description" content="${escH(description)}">
+  <link rel="canonical" href="${escH(url)}">
+  <meta property="og:title" content="${escH(title)}">
+  <meta property="og:description" content="${escH(description)}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="${escH(url)}">
+  <meta property="og:site_name" content="СкладПромо">
+  <script type="application/ld+json">${jsonForScript(breadcrumbLd)}</script>
+  <script type="application/ld+json">${jsonForScript(listLd)}</script>
+  <script type="application/ld+json">${jsonForScript(collectionLd)}</script>
+  ${faviconHtml()}
+  ${revealNoscriptHtml()}
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/product.css">
+  <link rel="stylesheet" href="/css/catalog.css">
+  <link rel="stylesheet" href="/css/category.css">
+  ${analyticsHtml()}
+</head>
+<body class="category-page-body">
+  ${headerHtml(contacts)}
+  <main class="category-page-wrapper">
+    <nav class="category-breadcrumb" aria-label="Навигация">
+      <a href="/">Главная</a>
+      <span class="category-breadcrumb-sep">›</span>
+      <a href="/catalog">Каталог</a>
+      <span class="category-breadcrumb-sep">›</span>
+      <span class="category-breadcrumb-current">${escH(category.name)}</span>
+    </nav>
 
-    return `<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>${escH(title)}</title><meta name="description" content="${escH(description)}"><link rel="canonical" href="${escH(url)}"><meta property="og:title" content="${escH(title)}"><meta property="og:description" content="${escH(description)}"><meta property="og:type" content="website"><meta property="og:url" content="${escH(url)}"><meta property="og:site_name" content="СкладПромо"><script type="application/ld+json">${jsonForScript(breadcrumbLd)}</script><script type="application/ld+json">${jsonForScript(listLd)}</script><script type="application/ld+json">${jsonForScript(collectionLd)}</script>${faviconHtml()}${revealNoscriptHtml()}<link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/product.css">${analyticsHtml()}</head><body>${headerHtml(contacts)}<main class="category-page"><nav class="breadcrumb" aria-label="Навигация"><a href="/">Главная</a><span class="bc-sep">›</span><a href="/catalog">Каталог</a><span class="bc-sep">›</span><span>${escH(category.name)}</span></nav><h1>${escH(heading)}</h1><p class="category-intro">${escH(intro)}</p>${categoryGuideHtml(category, products)}<section class="category-products" aria-labelledby="category-products-heading"><h2 id="category-products-heading">Товары в категории</h2><div class="seo-product-grid">${products.map(item => productCardHtml(item)).join('')}</div></section>${siblingsHtml}</main>${footerHtml(contacts, company)}${cartHtml()}<script src="/js/product.js"></script></body></html>`;
+    <header class="category-hero">
+      <div class="category-hero-title-row">
+        <h1 class="category-hero-title">${escH(heading)}</h1>
+        <span class="category-hero-count">${stats.count} ${plural(stats.count, 'модель', 'модели', 'моделей')}</span>
+      </div>
+      <p class="category-intro">${escH(intro)}</p>
+
+      <div class="category-hero-metrics">
+        <span class="cat-metric-pill"><span class="cat-metric-dot success"></span>${priceText(stats.stock)} шт. в наличии</span>
+        ${stats.min && stats.max ? `<span class="cat-metric-pill"><span class="cat-metric-dot"></span>от ${priceText(stats.min)} до ${priceText(stats.max)} ₽</span>` : ''}
+        <span class="cat-metric-pill"><span class="cat-metric-dot"></span>Отгрузка от 1 дня</span>
+        <span class="cat-metric-pill"><span class="cat-metric-dot"></span>Склад в Санкт-Петербурге</span>
+      </div>
+    </header>
+
+    <section class="category-products" aria-labelledby="category-products-heading">
+      <div class="category-section-head">
+        <h2 id="category-products-heading" class="category-section-heading">Товары в категории</h2>
+      </div>
+      <div class="category-product-grid">
+        ${products.map(item => categoryProductCardHtml(item)).join('')}
+      </div>
+    </section>
+
+    ${categoryGuideHtml(category, products)}
+
+    ${categoryWholesaleBannerHtml(category, contacts)}
+
+    ${categorySiblingsHtml(category, allProducts)}
+  </main>
+
+  ${warehouseHtml(company)}
+  ${footerHtml(contacts, company)}
+  ${cartHtml()}
+
+  <script src="/js/category.js"></script>
+</body>
+</html>`;
   }
 
   function salePageHtml(products, contacts, company = {}) {
@@ -728,22 +894,24 @@ ${cartHtml()}
     const heading = categoryHeading(category);
     const materials = valueCounts(items, 'material');
     const colors = valueCounts(items, 'color');
-    const facets = [
-      materials.length ? `<li><strong>Материалы:</strong> ${materials.map(([value, count]) => `${escH(value)} (${count})`).join(', ')}.</li>` : '',
-      colors.length ? `<li><strong>Цвета:</strong> ${colors.map(([value, count]) => `${escH(value)} (${count})`).join(', ')}.</li>` : '',
-    ].filter(Boolean).join('');
-    // Блок «Варианты в каталоге» здесь раньше группировал товары по
-    // product.target_cluster — сырой поисковой фразе для внутренней
-    // SEO-разметки («метеостанция купить», «визитница купить»), а не
-    // человекочитаемому названию. Это же поле специально исключено из
-    // /api/products как внутреннее — на страницу оно тем более не должно
-    // было попасть буквальным текстом. Удалено целиком, а не заменено:
-    // material/color здесь уже дают весь подтверждённый факт о вариантах.
+    const s = categoryStats(items);
+
+    // Раздел раньше называл конкретные технологии нанесения (лазерная
+    // гравировка, тампопечать до 4 цветов Pantone, УФ-печать) и сроки
+    // («1-2 дня», «брендирование от 50 шт. — 3-5 дней») — ничем не
+    // подтверждено (см. комментарий у catalogB2bBannerHtml: logo_service_available
+    // нигде не подтверждён). Оставлены только факты из карточек товаров.
     return `<section class="category-guide" aria-labelledby="category-guide-heading">
-  <h2 id="category-guide-heading">Как выбрать ${escH(heading.toLocaleLowerCase('ru-RU'))}</h2>
-  <p>Сравните товары по данным в карточках: материалу, цвету, цене, артикулу и текущему остатку. Если нужной характеристики нет на странице, уточните её у менеджера до заказа.</p>
-  ${facets ? `<ul class="category-facets">${facets}</ul>` : ''}
-</section>`;
+      <span class="guide-badge">Гид покупателя</span>
+      <h2 id="category-guide-heading" class="guide-title">Как выбрать ${escH(heading.toLocaleLowerCase('ru-RU'))}</h2>
+      <p class="guide-intro">В категории «${escH(heading)}» со склада в наличии ${s.count} ${plural(s.count, 'модель', 'модели', 'моделей')} (всего ${priceText(s.stock)} шт.). Цены от ${priceText(s.min)} до ${priceText(s.max)} ₽. Сравните товары по данным в карточках: материалу, цвету, цене, артикулу и текущему остатку. Если нужной характеристики нет на странице, уточните её у менеджера до заказа.</p>
+      ${(materials.length || colors.length) ? `<div class="guide-specs-grid">
+        <div class="guide-spec-box">
+          <strong>Материалы и цвета</strong>
+          <p>${materials.length ? `Материалы: ${materials.map(([m, count]) => `${escH(m.toLowerCase())} (${count})`).join(', ')}.` : ''} ${colors.length ? `Цвета: ${colors.map(([c, count]) => `${escH(c.toLowerCase())} (${count})`).join(', ')}.` : ''}</p>
+        </div>
+      </div>` : ''}
+    </section>`;
   }
 
   function groupByCategory(products) {
@@ -931,6 +1099,7 @@ ${cartHtml()}
       <div class="catalog-card-media">
         <a href="${pUrl}" class="catalog-card-img-link" aria-label="${escH(pName)}">
           ${imgSrc ? `<img src="${imgSrc}" alt="${escH(pName)}" loading="lazy" class="catalog-card-img">` : `<div class="catalog-card-no-img">Нет фото</div>`}
+          <span class="visually-hidden">${escH(pName)}</span>
         </a>
         <div class="catalog-card-badges">
           ${isSale ? `<span class="catalog-badge-sale">−${escH(product.discount_percent)}%</span>` : ''}
