@@ -116,6 +116,21 @@ async function updateOrderStatus(id, status) {
   updateOrdersBadge();
 }
 
+// Предупреждение о недоставленном уведомлении. Показывается только когда
+// канал реально сломался: у заказов до 10.09.2026 поля notify нет вообще —
+// про них мы ничего не знаем и молчим, а не пугаем задним числом.
+function notifyWarningHtml(o) {
+  if (!o.notify) return '';
+  const failed = [];
+  if (o.notify.telegram === 'failed') failed.push(`Telegram — ${escHtml(o.notify.telegram_error || 'не доставлено')}`);
+  if (o.notify.email === 'failed') failed.push(`Email — ${escHtml(o.notify.email_error || 'не доставлено')}`);
+  if (!failed.length) return '';
+  return `<div class="od-row" style="background:#fffbeb;border-left:4px solid #d97706;padding:10px 12px;border-radius:0 8px 8px 0">
+    <b style="color:#92400e">Уведомление не доставлено</b>
+    <span style="font-size:.85rem">${failed.join('<br>')}</span>
+  </div>`;
+}
+
 function openOrderDetail(id) {
   const o = allOrders.find(o => o.id === id);
   if (!o) return;
@@ -135,6 +150,7 @@ function openOrderDetail(id) {
     <div class="od-row"><b>Покупатель</b>${escHtml(o.customer.name)}</div>
     <div class="od-row"><b>Телефон</b><a href="tel:${o.customer.phone.replace(/\D/g,'')}">${escHtml(o.customer.phone)}</a></div>
     ${o.customer.comment ? `<div class="od-row"><b>Комментарий</b>${escHtml(o.customer.comment)}</div>` : ''}
+    ${notifyWarningHtml(o)}
     <table class="od-items-table">
       <thead><tr><th>Артикул</th><th>Товар</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead>
       <tbody>${itemsHtml}</tbody>

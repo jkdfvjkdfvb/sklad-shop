@@ -184,25 +184,79 @@ function wholesaleText(entry) {
   ].filter(l => l !== '').join('\n');
 }
 
+// Отправка в Telegram. Раньше здесь не проверялся ответ: fetch() не бросает
+// исключение на HTTP 400/403, поэтому неверный chat_id, заблокированный бот
+// или отозванный токен выглядели как успешная отправка — в логах пусто, в
+// Telegram ничего. Так были потеряны два заказа 10.09.2026: приложение честно
+// пыталось отправить, сеть до api.telegram.org не работала, и об этом никто
+// не узнал, пока владелец не заметил отсутствие уведомлений.
+//
+// Возвращает { ok } или { ok:false, error } — вызывающий код записывает
+// результат в заказ, чтобы недоставленное уведомление было видно в админке,
+// а не только в логах контейнера.
+const TELEGRAM_ATTEMPTS = 3;
+
 async function sendTelegramMessage(text, contacts) {
   const token = contacts.telegram_bot_token;
   const chatId = contacts.telegram_chat_id;
-  if (!token || !chatId) return;
-  try {
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
-    });
-  } catch (e) { console.error('Telegram error:', e.message); }
+  if (!token || !chatId) return { ok: false, error: 'Telegram не настроен (нет токена или chat_id)' };
+
+  let lastError = '';
+  let made = 0;
+  for (let attempt = 1; attempt <= TELEGRAM_ATTEMPTS; attempt++) {
+    made = attempt;
+    try {
+      const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
+        signal: AbortSignal.timeout(10000),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (response.ok && body.ok) return { ok: true };
+      // Ответ получен, но Telegram отказал: описание из API информативнее кода.
+      lastError = `Telegram API: ${body.description || `HTTP ${response.status}`}`;
+      // Ошибки конфигурации (неверный chat_id, бот заблокирован) повтором не
+      // лечатся — выходим сразу, не тратя ещё две попытки.
+      if (response.status >= 400 && response.status < 500) break;
+    } catch (e) {
+      // Сеть: таймаут, DNS, недостижимость. Здесь повтор осмыслен.
+      lastError = `Сеть: ${e.cause?.code || e.name || e.message}`;
+    }
+    if (attempt < TELEGRAM_ATTEMPTS) await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+  }
+  console.error(`[telegram] уведомление не доставлено (попыток: ${made}): ${lastError}`);
+  return { ok: false, error: lastError };
 }
 async function sendTelegram(order, contacts) { return sendTelegramMessage(orderText(order), contacts); }
+
+// Записывает результат отправки уведомлений в уже сохранённую запись.
+// Перечитываем файл, а не держим объект в памяти: между сохранением заказа и
+// ответом Telegram менеджер мог поменять статус в админке, и запись из памяти
+// затёрла бы его правку.
+function recordNotifyResult(file, id, result) {
+  try {
+    const rows = readJSON(file, []);
+    const row = rows.find(item => item.id === id);
+    if (!row) return;
+    row.notify = {
+      at: new Date().toISOString(),
+      telegram: result.telegram.ok ? 'sent' : 'failed',
+      email: result.email.ok ? 'sent' : 'failed',
+      ...(result.telegram.ok ? {} : { telegram_error: result.telegram.error }),
+      ...(result.email.ok ? {} : { email_error: result.email.error }),
+    };
+    writeJSON(file, rows);
+  } catch (e) {
+    console.error('[notify] не удалось записать результат отправки:', e.message);
+  }
+}
 
 async function sendEmail(order, contacts) {
   const smtpUser = contacts.smtp_user;
   const smtpPass = contacts.smtp_pass;
   const toEmail  = contacts.order_email || contacts.email;
-  if (!smtpUser || !smtpPass || !toEmail) return;
+  if (!smtpUser || !smtpPass || !toEmail) return { ok: false, error: 'Email не настроен (нет SMTP-логина, пароля или адреса)' };
   try {
     const transporter = nodemailer.createTransport({
       host: contacts.smtp_host || 'smtp.gmail.com',
@@ -228,7 +282,11 @@ async function sendEmail(order, contacts) {
           <tr><td colspan="4"><b>Итого</b></td><td><b>${order.total} ₽</b></td></tr>
         </table>`
     });
-  } catch (e) { console.error('Email error:', e.message); }
+    return { ok: true };
+  } catch (e) {
+    console.error(`[email] уведомление не доставлено: ${e.message}`);
+    return { ok: false, error: `SMTP: ${e.message}` };
+  }
 }
 
 // ==================== Public API ====================
@@ -321,11 +379,20 @@ app.post('/api/order', async (req, res) => {
   orders.unshift(order);
   writeJSON(ORDERS_FILE, orders);
 
+  // Покупателю отвечаем сразу — доставка уведомления менеджеру не должна
+  // задерживать оформление заказа и тем более его ломать. Но результат
+  // дописываем в заказ, когда он станет известен: иначе о недоставленном
+  // уведомлении можно узнать только из логов контейнера.
   const contacts = readJSON(CONTACTS_FILE, {});
-  sendTelegram(order, contacts).catch(() => {});
-  sendEmail(order, contacts).catch(() => {});
-
   res.json({ ok: true, orderId: order.id });
+
+  Promise.allSettled([sendTelegram(order, contacts), sendEmail(order, contacts)])
+    .then(([telegram, email]) => {
+      recordNotifyResult(ORDERS_FILE, order.id, {
+        telegram: telegram.value || { ok: false, error: String(telegram.reason || 'сбой отправки') },
+        email: email.value || { ok: false, error: String(email.reason || 'сбой отправки') },
+      });
+    });
 });
 
 app.post('/api/wholesale-request', (req, res) => {
@@ -356,9 +423,16 @@ app.post('/api/wholesale-request', (req, res) => {
   writeJSON(WHOLESALE_FILE, requests);
 
   const contacts = readJSON(CONTACTS_FILE, {});
-  sendTelegramMessage(wholesaleText(entry), contacts).catch(() => {});
-
   res.status(201).json({ ok: true, requestId: entry.id });
+
+  sendTelegramMessage(wholesaleText(entry), contacts)
+    .then(result => recordNotifyResult(WHOLESALE_FILE, entry.id, {
+      // У оптовых заявок почтового канала нет — помечаем как неприменимый,
+      // иначе в админке он выглядел бы вечно недоставленным.
+      telegram: result,
+      email: { ok: true },
+    }))
+    .catch(e => console.error('[notify] оптовая заявка:', e.message));
 });
 
 // ==================== Auth ====================
