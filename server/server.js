@@ -511,6 +511,20 @@ app.put('/api/admin/products/:article', authMiddleware, (req, res) => {
   if (meta_description !== undefined) products[idx].meta_description = meta_description;
   if (seo_name !== undefined) products[idx].seo_name = seo_name;
   if (target_cluster !== undefined) products[idx].target_cluster = target_cluster;
+  // Нанесение логотипа: блок на карточке появляется только при
+  // logo_service_available = true, поэтому остальные поля без него ни на что
+  // не влияют и остаются просто сохранёнными значениями.
+  const {
+    logo_service_available, logo_service_methods,
+    logo_service_lead_time, logo_service_min_qty,
+  } = req.body;
+  if (logo_service_available !== undefined) products[idx].logo_service_available = Boolean(logo_service_available);
+  if (logo_service_methods   !== undefined) products[idx].logo_service_methods   = String(logo_service_methods);
+  if (logo_service_lead_time !== undefined) products[idx].logo_service_lead_time = String(logo_service_lead_time);
+  if (logo_service_min_qty   !== undefined) {
+    const parsed = parseInt(logo_service_min_qty, 10);
+    products[idx].logo_service_min_qty = Number.isFinite(parsed) && parsed > 0 ? parsed : '';
+  }
   if (slug !== undefined && slug && slug !== products[idx].slug) {
     products[idx].previous_slugs = Array.from(new Set([...(products[idx].previous_slugs || []), products[idx].slug].filter(Boolean)));
     products[idx].slug = slug;

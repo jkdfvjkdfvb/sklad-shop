@@ -177,6 +177,31 @@
               <input type="text" id="pe-color" list="dl-color" placeholder="Чёрный, Серебро, Синий…">
               <datalist id="dl-color"></datalist>
             </div>
+            <h3 class="contacts-section-title">Нанесение логотипа</h3>
+            <p class="notify-hint" style="margin:-6px 0 12px">
+              Блок «Нанесение логотипа» появляется на странице товара только если галочка ниже включена.
+              Пока она выключена, сайт про нанесение ничего не пишет.
+            </p>
+            <div class="form-group">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                <input type="checkbox" id="pe-logo-available" style="width:auto;margin:0">
+                Для этого товара доступно нанесение логотипа
+              </label>
+            </div>
+            <div class="form-group">
+              <label>Способы нанесения <small style="font-weight:400;color:#9ca3af">(через запятую)</small></label>
+              <input type="text" id="pe-logo-methods" placeholder="Лазерная гравировка, УФ-печать">
+            </div>
+            <div class="form-group" style="display:flex;gap:12px">
+              <div style="flex:1">
+                <label>Срок изготовления <small style="font-weight:400;color:#9ca3af">(как писать на сайте)</small></label>
+                <input type="text" id="pe-logo-lead-time" placeholder="3–5 рабочих дней">
+              </div>
+              <div style="flex:1">
+                <label>Минимальный тираж, шт.</label>
+                <input type="number" id="pe-logo-min-qty" min="1" placeholder="50">
+              </div>
+            </div>
             <div class="form-footer">
               <button class="btn btn-primary" id="pe-save-btn">Сохранить</button>
               <span id="pe-status" class="save-contacts-status"></span>

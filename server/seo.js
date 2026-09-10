@@ -474,6 +474,69 @@ function createSeoRouter({ productsFile, publicDir, siteUrl, readJSON, writeJSON
     return `<label class="privacy-consent"><input type="checkbox" id="${escH(id)}" required><span>Я согласен на обработку персональных данных в соответствии с <a href="/privacy" target="_blank" rel="noopener">Политикой</a></span></label>`;
   }
 
+  // DEV-07 бэклога. ТЗ предлагало выводить технологию нанесения, подобранную
+  // по полю material (металл → гравировка и т.п.), и срок «3–5 рабочих дней
+  // через сертифицированное производство в СПб» — одинаково для всех товаров.
+  // Так делать нельзя: в данных под это заведены отдельные поля
+  // (logo_service_methods / lead_time / min_qty), и они пустые, а
+  // logo_service_available у всех 69 SKU = false. Материал товара не
+  // определяет, что именно умеет производство, — это разные факты.
+  // Поэтому блок собирается только из заполненных полей и только для тех
+  // товаров, у которых услуга включена в админке.
+  function brandingGuideHtml(product) {
+    if (!product.logo_service_available) return '';
+    const methods = String(product.logo_service_methods || '')
+      .split(',').map(part => part.trim()).filter(Boolean);
+    const leadTime = String(product.logo_service_lead_time || '').trim();
+    const minQty = Number(product.logo_service_min_qty) || 0;
+    const facts = [
+      methods.length ? `<div class="branding-fact"><dt>Способы нанесения</dt><dd>${methods.map(m => `<span class="branding-method">${escH(m)}</span>`).join('')}</dd></div>` : '',
+      leadTime ? `<div class="branding-fact"><dt>Срок изготовления</dt><dd>${escH(leadTime)}</dd></div>` : '',
+      minQty ? `<div class="branding-fact"><dt>Минимальный тираж</dt><dd>${priceText(minQty)} шт.</dd></div>` : '',
+    ].filter(Boolean).join('');
+    return `<section class="product-branding" aria-labelledby="branding-heading">
+  <h2 id="branding-heading">Нанесение логотипа</h2>
+  ${facts ? `<dl class="branding-facts">${facts}</dl>` : ''}
+  <p class="branding-note">Макет и точную стоимость нанесения менеджер согласует по запросу — оставьте заявку кнопкой «Запросить оптовые условия».</p>
+</section>`;
+  }
+
+  // Оптовая сетка (P0-3 бэклога). Скидки 10% от 10 шт. и 20% от 50 шт.
+  // подтверждены владельцем как действующая политика — в данных их нет
+  // (wholesale_price_from у всех SKU равен рознице), поэтому считаем от
+  // розничной цены по подтверждённой формуле.
+  //
+  // Важно: ни на одной цене тиража нет itemprop — в Offer/JSON-LD и в фиды
+  // уходит только розничная цена за штуку. Иначе Merchant и Яндекс получили
+  // бы у одного товара несколько разных цен, а verify-seo.js — расхождение
+  // паритета HTML/JSON-LD/llms.txt/API.
+  const WHOLESALE_TIERS = [
+    { from: 10, to: 49, discount: 0.10 },
+    { from: 50, to: null, discount: 0.20 },
+  ];
+
+  function wholesaleTierHtml(price) {
+    const base = Number(price) || 0;
+    if (base <= 0) return '';
+    const cols = WHOLESALE_TIERS.map(tier => {
+      const value = Math.round(base * (1 - tier.discount));
+      const qtyText = tier.to ? `${tier.from}–${tier.to} шт.` : `от ${tier.from} шт.`;
+      return `<div class="tier-col">
+        <span class="tier-qty">${escH(qtyText)}</span>
+        <span class="tier-price">${priceText(value)} ₽</span>
+        <span class="tier-label">−${Math.round(tier.discount * 100)}%</span>
+      </div>`;
+    }).join('');
+    return `<div class="wholesale-tiers" aria-label="Цена в зависимости от тиража">
+      <div class="tier-col active">
+        <span class="tier-qty">1–${WHOLESALE_TIERS[0].from - 1} шт.</span>
+        <span class="tier-price">${priceText(base)} ₽</span>
+        <span class="tier-label">розница</span>
+      </div>
+      ${cols}
+    </div>`;
+  }
+
   function cartHtml(company = {}) {
     return `<div class="cart-overlay" id="cart-overlay"></div>
 <div class="cart-drawer" id="cart-drawer" aria-label="Корзина">
@@ -582,7 +645,8 @@ ${headerHtml(contacts)}
           <meta itemprop="priceCurrency" content="RUB"><link itemprop="availability" href="${stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}">
           ${sale ? `<p class="pdp-old-price">${priceText(product.old_price)} ₽</p><p class="pdp-sale-note">Скидка ${escH(product.discount_percent)}%. ${escH(product.sale_terms)}</p>` : ''}
           <div class="pdp-prices-main"><p class="pdp-price pdp-retail"><data class="pdp-val" itemprop="price" value="${price}">${priceText(price)} ₽</data></p></div>
-          <p class="pdp-opt-note">Оптовые условия — по запросу</p>
+          ${wholesaleTierHtml(price)}
+          <p class="pdp-opt-note">Цена за штуку. Точную стоимость тиража и условия менеджер подтверждает при оформлении.</p>
         </div>
         <!-- formatStockDate уже отдаёт дату с точкой («8 сентября 2026 г.») — вторую точку не добавляем (был баг «г..», см. faqFor). -->
         <p class="product-detail-qty ${stock > 0 ? 'in-stock' : 'out-stock'}">${stock > 0 ? `В наличии: ${escH(String(stock))} шт.${updatedTimeHtml ? ` Остаток обновлён ${updatedTimeHtml}` : ''}` : `Нет в наличии${updatedTimeHtml ? `. Остаток обновлён ${updatedTimeHtml}` : ''}`}</p>
@@ -608,6 +672,7 @@ ${headerHtml(contacts)}
     </article>
     ${factsHtml(product)}
     ${attrs.length ? `<section class="product-characteristics" aria-labelledby="characteristics-heading"><h2 id="characteristics-heading">Характеристики</h2><table class="product-attrs"><caption class="visually-hidden">Характеристики товара «${escH(productName(product))}»</caption><thead><tr><th scope="col">Параметр</th><th scope="col">Значение</th></tr></thead><tbody>${attrs.map(([key, value]) => `<tr><th scope="row">${escH(key)}</th><td>${escH(value)}</td></tr>`).join('')}</tbody></table></section>` : ''}
+    ${brandingGuideHtml(product)}
     ${productOverviewHtml(product, products)}
     <section class="product-wholesale" id="wholesale-request" aria-labelledby="wholesale-heading"><h2 id="wholesale-heading">Оптовые условия</h2><p>Оставьте номер телефона — менеджер подтвердит цену и условия для этой модели.</p><form id="wholesale-form"><fieldset><legend class="visually-hidden">Заявка на оптовые условия</legend><label class="visually-hidden" for="wholesale-name">Ваше имя</label><input id="wholesale-name" name="name" required placeholder="Ваше имя"><label class="visually-hidden" for="wholesale-contact">Телефон</label><input id="wholesale-contact" type="tel" name="contact" required placeholder="+7XXXXXXXXXX" pattern="\\+7\\d{10}" maxlength="12" inputmode="tel" title="Введите номер в формате +7XXXXXXXXXX"><label class="visually-hidden" for="wholesale-comment">Количество и комментарий</label><textarea id="wholesale-comment" name="comment" placeholder="Количество и комментарий"></textarea>${privacyConsentHtml(company, 'wholesale-privacy')}<button type="submit" class="wholesale-btn">Отправить запрос</button><p id="wholesale-status" aria-live="polite"></p></fieldset></form></section>
     ${faqHtml(faq)}

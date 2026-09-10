@@ -119,6 +119,51 @@ button.pdp-img-frame {
   transform: scale(1.04);
 }
 
+/* НАНЕСЕНИЕ ЛОГОТИПА (рендерится только при logo_service_available) */
+.product-branding {
+  background: var(--soft-cloud);
+  border: 1px solid var(--hairline-soft);
+  padding: 24px;
+  margin-top: 28px;
+}
+.product-branding h2 { font-size: 1.25rem; margin: 0 0 14px; }
+.branding-facts { display: flex; flex-wrap: wrap; gap: 22px; margin: 0 0 12px; }
+.branding-fact dt { font-size: .78rem; color: var(--mute); margin-bottom: 4px; }
+.branding-fact dd { margin: 0; font-size: .95rem; font-weight: 600; color: var(--ink); display: flex; flex-wrap: wrap; gap: 6px; }
+.branding-method {
+  background: var(--canvas); border: 1px solid var(--hairline-soft);
+  border-radius: var(--radius-pill); padding: 3px 10px; font-size: .82rem; font-weight: 500;
+}
+.branding-note { font-size: .88rem; color: var(--charcoal); margin: 0; }
+
+/* ОПТОВАЯ СЕТКА ЦЕН */
+.wholesale-tiers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--hairline-soft);
+  border: 1px solid var(--hairline-soft);
+  margin-top: 12px;
+}
+.tier-col {
+  background: var(--canvas);
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: center;
+}
+.tier-col.active { background: var(--soft-cloud); }
+.tier-qty { font-size: 0.76rem; color: var(--mute); }
+.tier-price { font-size: 1.05rem; font-weight: 700; color: var(--ink); }
+.tier-label { font-size: 0.72rem; color: var(--mute); }
+.tier-col:not(.active) .tier-label { color: var(--success); font-weight: 600; }
+
+@media (max-width: 420px) {
+  .wholesale-tiers { grid-template-columns: 1fr; }
+  .tier-col { flex-direction: row; align-items: baseline; justify-content: space-between; text-align: left; }
+}
+
 .pdp-zoom-hint {
   position: absolute;
   right: 12px;

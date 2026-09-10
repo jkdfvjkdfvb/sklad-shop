@@ -584,6 +584,10 @@ function openEditModal(art) {
   document.getElementById('pe-category').value = p.category || '';
   document.getElementById('pe-material').value = p.material || '';
   document.getElementById('pe-color').value = p.color || '';
+  document.getElementById('pe-logo-available').checked = Boolean(p.logo_service_available);
+  document.getElementById('pe-logo-methods').value = p.logo_service_methods || '';
+  document.getElementById('pe-logo-lead-time').value = p.logo_service_lead_time || '';
+  document.getElementById('pe-logo-min-qty').value = p.logo_service_min_qty || '';
 
   // populate datalists with unique values from all products
   for (const key of ['category', 'material', 'color']) {
@@ -646,7 +650,14 @@ document.getElementById('pe-save-btn').addEventListener('click', async () => {
   const category = document.getElementById('pe-category').value.trim();
   const material = document.getElementById('pe-material').value.trim();
   const color    = document.getElementById('pe-color').value.trim();
-  const body = { name, description, meta_title, meta_description, category, material, color };
+  const logo_service_available = document.getElementById('pe-logo-available').checked;
+  const logo_service_methods   = document.getElementById('pe-logo-methods').value.trim();
+  const logo_service_lead_time = document.getElementById('pe-logo-lead-time').value.trim();
+  const logo_service_min_qty   = document.getElementById('pe-logo-min-qty').value.trim();
+  const body = {
+    name, description, meta_title, meta_description, category, material, color,
+    logo_service_available, logo_service_methods, logo_service_lead_time, logo_service_min_qty,
+  };
   if (articleInput !== art) body.new_article = articleInput;
 
   const res = await apiFetch(`/api/admin/products/${art}`, {
